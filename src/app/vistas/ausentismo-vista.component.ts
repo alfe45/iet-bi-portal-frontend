@@ -12,7 +12,7 @@ import { Component } from '@angular/core';
            <button type="button" class="attendance-row" disabled><span class="student-avatar">{{ student.initials }}</span><span class="student-name"><strong>{{ student.name }}</strong><small>{{ student.id }}</small></span><span><small>Tardías</small><strong>{{ student.late }}</strong></span><span><small>Justificadas</small><strong>{{ student.justified }}</strong></span><span><small>Injustificadas</small><strong>{{ student.unjustified }}</strong></span><span aria-hidden="true">→</span></button>
         }
       </section>
-       <form class="attendance-editor" aria-labelledby="attendance-editor-title"><div><p class="eyebrow">Vista previa</p><h3 id="attendance-editor-title">Ana López</h3></div><div class="counter-grid"><label><span>Tardías</span><input type="number" min="0" value="0" readonly /></label><label><span>Ausencias justificadas</span><input type="number" min="0" value="0" readonly /></label><label><span>Ausencias injustificadas</span><input type="number" min="0" value="0" readonly /></label></div><div class="editor-actions"><button type="button" class="ghost-button" disabled>Cancelar</button><button type="button" class="primary-button" disabled>Vista previa</button></div></form>
+       <form class="attendance-editor" aria-labelledby="attendance-editor-title"><div><p class="eyebrow">Vista previa</p><h3 id="attendance-editor-title">José Luis Rodríguez Mora</h3></div><div class="counter-grid"><label><span>Tardías</span><input type="number" min="0" value="0" readonly /></label><label><span>Ausencias justificadas</span><input type="number" min="0" value="0" readonly /></label><label><span>Ausencias injustificadas</span><input type="number" min="0" value="0" readonly /></label></div><div class="editor-actions"><button type="button" class="ghost-button" disabled>Cancelar</button><button type="button" class="primary-button" disabled>Vista previa</button></div></form>
     </section>
   `,
   styles: `
@@ -20,5 +20,5 @@ import { Component } from '@angular/core';
   `,
 })
 export class AusentismoVistaComponent {
-  protected readonly students = [{ name: 'Ana López', id: '8-734-401', initials: 'AL', late: 1, justified: 0, unjustified: 0 }, { name: 'Juan Mora', id: '8-811-109', initials: 'JM', late: 2, justified: 1, unjustified: 0 }, { name: 'María Solís', id: '8-744-002', initials: 'MS', late: 0, justified: 0, unjustified: 1 }];
+  protected readonly students = [{ name: 'José Luis Rodríguez Mora', id: '8-734-401', initials: 'JR', late: 1, justified: 0, unjustified: 0 }, { name: 'María Fernanda Jiménez Vargas', id: '8-811-109', initials: 'MJ', late: 2, justified: 1, unjustified: 0 }, { name: 'Carlos Eduardo Araya Rojas', id: '8-744-002', initials: 'CA', late: 0, justified: 0, unjustified: 1 }];
 }

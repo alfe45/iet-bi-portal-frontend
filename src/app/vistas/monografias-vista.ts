@@ -36,9 +36,9 @@ import { Component } from '@angular/core';
 })
 export class MonografiasVista {
    protected readonly monographs = [
-     { id: 'M-301', student: 'Ana López', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', supervisor: 'Maya Quirós Paniagua', status: 'En desarrollo', startDate: '2026-08-05', followUps: [{ date: '2026-08-22' }] },
-     { id: 'M-204', student: 'Juan Mora', title: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', supervisor: 'Profesor Carlos', status: 'Aprobada', startDate: '2026-07-18', followUps: [{ date: '2026-08-01' }] },
-     { id: 'M-101', student: 'María Solís', title: 'Impacto social de la lectura digital', area: 'Teoría del Conocimiento', supervisor: 'Profesora Ana', status: 'En desarrollo', startDate: '2026-08-08', followUps: [{ date: '2026-08-22' }] },
+     { id: 'M-301', student: 'José Luis Rodríguez Mora', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', status: 'En desarrollo', startDate: '2026-08-05', followUps: [{ date: '2026-08-22' }] },
+     { id: 'M-204', student: 'María Fernanda Jiménez Vargas', title: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', supervisor: 'Juan Gabriel Valverde Valverde', status: 'Aprobada', startDate: '2026-07-18', followUps: [{ date: '2026-08-01' }] },
+     { id: 'M-101', student: 'Carlos Eduardo Araya Rojas', title: 'Impacto social de la lectura digital', area: 'Teoría del Conocimiento', supervisor: 'Laura Vanessa Quirós Brenes', status: 'En desarrollo', startDate: '2026-08-08', followUps: [{ date: '2026-08-22' }] },
    ];
   protected initials(name: string) { return name.split(' ').slice(0, 2).map((part) => part[0]).join(''); }
   protected latestDate(item: { followUps: Array<{ date: string }> }) { return item.followUps.at(-1)?.date ?? 'Sin reportes'; }

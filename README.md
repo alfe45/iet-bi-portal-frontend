@@ -1,6 +1,6 @@
 # IET BI Portal Frontend
 
-Prototipo visual del portal institucional construido con Angular 22. Las pantallas muestran datos ilustrativos definidos directamente en cada vista: no existe backend, capa de datos ni validación de credenciales.
+Prototipo visual del portal institucional construido con Angular 22. Las pantallas muestran datos de ejemplo definidos directamente en cada vista: no existe backend, capa de datos ni validación de credenciales.
 
 ## Desarrollo
 

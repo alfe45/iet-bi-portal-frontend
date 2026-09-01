@@ -40,6 +40,6 @@ import { Component } from '@angular/core';
   `,
 })
 export class SeguimientosVista {
-   protected readonly monographs = [{ id: 'M-301', student: 'Ana López', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', status: 'En desarrollo', followUps: [{ date: '2026-08-22', status: 'Revisado', note: 'Se presenta a las secciones de supervisión con puntualidad.', professor: 'Maya Quirós Paniagua' }] }];
+   protected readonly monographs = [{ id: 'M-301', student: 'José Luis Rodríguez Mora', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', status: 'En desarrollo', followUps: [{ date: '2026-08-22', status: 'Revisado', note: 'Se presenta a las secciones de supervisión con puntualidad.', professor: 'Ana Lucía Solano Castro' }] }];
    protected initials(name:string){return name.split(' ').slice(0,2).map((part)=>part[0]).join('')}
 }

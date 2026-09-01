@@ -142,7 +142,7 @@ export class HeaderComponent {
   private readonly auth = inject(AutenticacionService);
 
   protected readonly roleLabel = computed(() => this.auth.currentRole() ?? 'Sin rol');
-  protected readonly name = computed(() => ({ Administrador: 'Administración general', 'Profesor regular': 'Profesor Carlos', 'Profesor Guía': 'Profesora Ana', 'Coordinador de monografía': 'Maya Quirós Paniagua' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Invitado');
+  protected readonly name = computed(() => ({ Administrador: 'Administración general', 'Profesor regular': 'Juan Gabriel Valverde Valverde', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Coordinador de monografía': 'Ana Lucía Solano Castro' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Invitado');
   protected readonly username = computed(() => this.auth.currentRole() ? 'usuario.demostración' : 'sin sesión');
   protected readonly avatar = computed(() => this.name().split(' ').map((part) => part[0]).slice(0, 2).join(''));
 

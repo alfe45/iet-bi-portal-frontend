@@ -174,7 +174,7 @@ export class ReportesVistaComponent {
    protected readonly guideMode = (this.route.snapshot.data['reportMode'] as 'individual' | 'consolidated' | 'section' | undefined) ?? 'individual';
    protected readonly period = '2026 | Segundo semestre';
    protected readonly section = '11-1';
-   protected readonly student = 'Ana López';
+   protected readonly student = 'José Luis Rodríguez Mora';
    protected readonly subject = 'Historia';
    protected readonly monograph = 'Lectura crítica y escritura argumentativa';
    protected readonly selectedObservation = 'Se presenta a las secciones de supervisión con puntualidad. Estamos redactando la pregunta para iniciar con la introducción de la monografía, es un estudiante muy aplicado y responsable.';
@@ -203,10 +203,10 @@ export class ReportesVistaComponent {
     { key: 'observaciones', label: 'Observaciones' },
   ];
 
-    private readonly academic = { student: { name: 'Ana López', section: '11-1', email: 'ana.lopez@estudiante.edu' }, absenteeism: { tardies: 1, justifiedAbsences: 0, unjustifiedAbsences: 0 }, subjects: [{ subject: 'Historia', minimumValue: '4', obtainedValue: '6', observations: 'Buen análisis de fuentes.' }, { subject: 'Lengua B', minimumValue: '4', obtainedValue: '6', observations: 'Producción escrita consistente.' }], monographReport: { area: 'Lengua A', supervisor: 'Maya Quirós Paniagua', observations: this.selectedObservation } };
+    private readonly academic = { student: { name: 'José Luis Rodríguez Mora', section: '11-1', email: 'jose.rodriguez@estudiante.edu' }, absenteeism: { tardies: 1, justifiedAbsences: 0, unjustifiedAbsences: 0 }, subjects: [{ subject: 'Historia', minimumValue: '4', obtainedValue: '6', observations: 'Buen análisis de fuentes.' }, { subject: 'Lengua B', minimumValue: '4', obtainedValue: '6', observations: 'Producción escrita consistente.' }], monographReport: { area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', observations: this.selectedObservation } };
     protected readonly professorReport = computed(() => this.academic);
     protected readonly guideReport = computed(() => this.academic);
-    protected readonly consolidatedRows = computed(() => [{ estudiante: 'Ana López', matematica: '6', historia: '6', lenguaB: '6', estudiosSociales: '85', teoriaConocimiento: 'B' }, { estudiante: 'Juan Mora', matematica: '4', historia: '6', lenguaB: '5', estudiosSociales: '90', teoriaConocimiento: 'C' }]);
+    protected readonly consolidatedRows = computed(() => [{ estudiante: 'José Luis Rodríguez Mora', matematica: '6', historia: '6', lenguaB: '6', estudiosSociales: '85', teoriaConocimiento: 'B' }, { estudiante: 'María Fernanda Jiménez Vargas', matematica: '4', historia: '6', lenguaB: '5', estudiosSociales: '90', teoriaConocimiento: 'C' }]);
     protected readonly sectionSummary = computed(() => ({ students: '2 mostrados de 29 registrados', evaluations: '10 registros de notas', absenteeism: '2 ausencias totales', observations: 'Predomina un buen desempeño general.', academicInfo: 'La sección mantiene estabilidad académica.' }));
     protected readonly monographReportRows = computed(() => [{ area: this.academic.monographReport.area, supervisor: this.academic.monographReport.supervisor, observaciones: this.selectedObservation }]);
 

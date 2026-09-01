@@ -39,7 +39,7 @@ import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadis
             <h3>Consulta integral del estudiante</h3>
             <p>El Profesor Guía consulta notas, ausentismo y reporte de monografía.</p>
           </div>
-          <span class="tag">Ana López</span>
+          <span class="tag">José Luis Rodríguez Mora</span>
         </div>
 
         <div class="split-grid">
@@ -110,9 +110,9 @@ import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadis
   `,
 })
 export class SeccionGuiaVistaComponent {
-  protected readonly guide = { period: '2026 | Segundo semestre', section: '11-1', level: 'Undécimo', guideTeacher: 'Profesora Ana', count: '29 estudiantes', students: [{ name: 'Ana López', id: '8-734-401', email: 'ana.lopez@estudiante.edu', monograph: 'Lectura crítica y escritura argumentativa' }, { name: 'Juan Mora', id: '8-811-109', email: 'juan.mora@estudiante.edu', monograph: 'Modelos de reciclaje escolar' }] };
-  protected readonly student = 'Ana López';
-  protected readonly detail = { student: { name: 'Ana López', id: '8-734-401', email: 'ana.lopez@estudiante.edu', section: '11-1', level: 'Undécimo' }, absenteeism: { tardies: 1, justifiedAbsences: 0, unjustifiedAbsences: 0 }, subjects: [{ subject: 'Matemática', minimumValue: '4', obtainedValue: '6', observations: 'Buen razonamiento y constancia.' }, { subject: 'Historia', minimumValue: '4', obtainedValue: '5', observations: 'Participa y relaciona hechos con criterio.' }], monographReport: { area: 'Lengua A', supervisor: 'Maya Quirós Paniagua', monograph: 'Lectura crítica y escritura argumentativa', observations: 'Se presenta a las secciones de supervisión con puntualidad.' } };
+  protected readonly guide = { period: '2026 | Segundo semestre', section: '11-1', level: 'Undécimo', guideTeacher: 'Laura Vanessa Quirós Brenes', count: '29 estudiantes', students: [{ name: 'José Luis Rodríguez Mora', id: '8-734-401', email: 'jose.rodriguez@estudiante.edu', monograph: 'Lectura crítica y escritura argumentativa' }, { name: 'María Fernanda Jiménez Vargas', id: '8-811-109', email: 'maria.jimenez@estudiante.edu', monograph: 'Modelos de reciclaje escolar' }] };
+  protected readonly student = 'José Luis Rodríguez Mora';
+  protected readonly detail = { student: { name: 'José Luis Rodríguez Mora', id: '8-734-401', email: 'jose.rodriguez@estudiante.edu', section: '11-1', level: 'Undécimo' }, absenteeism: { tardies: 1, justifiedAbsences: 0, unjustifiedAbsences: 0 }, subjects: [{ subject: 'Matemática', minimumValue: '4', obtainedValue: '6', observations: 'Buen razonamiento y constancia.' }, { subject: 'Historia', minimumValue: '4', obtainedValue: '5', observations: 'Participa y relaciona hechos con criterio.' }], monographReport: { area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', monograph: 'Lectura crítica y escritura argumentativa', observations: 'Se presenta a las secciones de supervisión con puntualidad.' } };
   protected readonly cards = computed(() => [
      { label: 'Sección guía', value: this.guide.section, tone: 'primary' as const },
      { label: 'Estudiantes', value: this.guide.count, tone: 'success' as const },

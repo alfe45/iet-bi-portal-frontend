@@ -46,7 +46,7 @@ export class DetalleMonografiaVistaComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly id = this.route.snapshot.paramMap.get('id') ?? '';
 
-  private readonly monographs = [{ id: 'M-301', student: 'Ana López', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', supervisor: 'Maya Quirós Paniagua', status: 'En desarrollo', startDate: '2026-08-05', description: 'Monografía enfocada en los procesos de construcción de la pregunta de investigación y la introducción del trabajo escrito.', followUps: [{ date: '2026-08-22', professor: 'Maya Quirós Paniagua', status: 'Revisado', note: 'Se presenta a las secciones de supervisión con puntualidad.' }] }];
+  private readonly monographs = [{ id: 'M-301', student: 'José Luis Rodríguez Mora', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', status: 'En desarrollo', startDate: '2026-08-05', description: 'Monografía enfocada en los procesos de construcción de la pregunta de investigación y la introducción del trabajo escrito.', followUps: [{ date: '2026-08-22', professor: 'Ana Lucía Solano Castro', status: 'Revisado', note: 'Se presenta a las secciones de supervisión con puntualidad.' }] }];
   protected readonly monograph = computed(() => this.monographs.find((item) => item.id === this.id) ?? this.monographs[0]);
   protected readonly columns = [
     { key: 'fecha', label: 'Fecha' },

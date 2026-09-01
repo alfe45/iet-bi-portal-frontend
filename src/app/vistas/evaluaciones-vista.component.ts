@@ -25,7 +25,7 @@ import { Component } from '@angular/core';
         </div>
       </section>
         <form class="evaluation-editor" aria-labelledby="editor-title">
-          <div class="step-heading"><span>3</span><div><h3 id="editor-title">Vista previa de evaluación</h3><p>Ana López · Historia</p></div></div>
+          <div class="step-heading"><span>3</span><div><h3 id="editor-title">Vista previa de evaluación</h3><p>José Luis Rodríguez Mora · Historia</p></div></div>
           <div class="editor-grid"><label><span>Valor mínimo</span><input value="4" readonly aria-describedby="scale-help" /></label><label><span>Valor obtenido</span><input placeholder="Ingrese la calificación" readonly /></label><label class="editor-grid__full"><span>Observación académica</span><textarea rows="4" placeholder="Describa brevemente el desempeño del estudiante" readonly></textarea></label></div>
           <small id="scale-help">Escala asignada: 1 a 7</small>
           <div class="editor-actions"><button type="button" class="ghost-button" disabled>Cancelar</button><button class="primary-button" type="button" disabled>Vista previa</button></div>
@@ -38,5 +38,5 @@ import { Component } from '@angular/core';
 })
 export class EvaluacionesVistaComponent {
    protected readonly section = '11-1'; protected readonly subject = 'historia';
-  protected readonly students = [{ name: 'Ana López', id: '8-734-401', initials: 'AL', grade: '6' }, { name: 'Juan Mora', id: '8-811-109', initials: 'JM', grade: '4' }, { name: 'María Solís', id: '8-744-002', initials: 'MS', grade: '7' }];
+  protected readonly students = [{ name: 'José Luis Rodríguez Mora', id: '8-734-401', initials: 'JR', grade: '6' }, { name: 'María Fernanda Jiménez Vargas', id: '8-811-109', initials: 'MJ', grade: '4' }, { name: 'Carlos Eduardo Araya Rojas', id: '8-744-002', initials: 'CA', grade: '7' }];
 }
