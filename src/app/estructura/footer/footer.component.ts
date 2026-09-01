@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-pie',
+  selector: 'app-footer',
   template: `
     <footer class="footer">
       <span>© 2026 Instituto de Educación Dr. Clodomiro Picado</span>
@@ -37,4 +37,4 @@ import { Component } from '@angular/core';
     }
   `,
 })
-export class PieComponent {}
+export class FooterComponent {}

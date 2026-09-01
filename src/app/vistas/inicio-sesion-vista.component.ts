@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
-import { RolUsuario } from '../../nucleo/modelos/modelos-prototipo';
+import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
+import { RolUsuario } from '../nucleo/modelos/modelos-prototipo';
 
 @Component({
   selector: 'app-vista-inicio-sesion',

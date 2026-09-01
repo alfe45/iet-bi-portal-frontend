@@ -2,19 +2,19 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
-import { BreadcrumbsComponent } from '../compartidos/componentes/migas-navegacion.component';
-import { PieComponent } from './pie/pie.component';
-import { EncabezadoComponent } from './encabezado/encabezado.component';
-import { BarraLateralComponent } from './barra-lateral/barra-lateral.component';
+import { BreadcrumbsComponent } from '../compartidos/componentes/breadcrumbs.component';
+import { FooterComponent } from './footer/footer.component';
+import { HeaderComponent } from './header/header.component';
+import { SidebarComponent } from './sidebar/sidebar.component';
 import { filter, map, startWith } from 'rxjs';
 
 @Component({
   selector: 'app-shell',
-   imports: [RouterOutlet, EncabezadoComponent, BarraLateralComponent, PieComponent, BreadcrumbsComponent],
+  imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent, BreadcrumbsComponent],
   template: `
     <div class="shell">
       <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
-      <app-encabezado />
+      <app-header />
 
       <div class="shell__toolbar">
         <button type="button" class="ghost-button shell__menu-button" aria-controls="main-navigation" [attr.aria-expanded]="sidebarOpen()" (click)="sidebarOpen.set(true)">Abrir menú</button>
@@ -22,11 +22,11 @@ import { filter, map, startWith } from 'rxjs';
       </div>
 
       <div class="shell__body">
-        <app-barra-lateral [isOpen]="sidebarOpen()" (close)="sidebarOpen.set(false)" />
+        <app-sidebar [isOpen]="sidebarOpen()" (close)="sidebarOpen.set(false)" />
 
         <main id="main-content" class="shell__main" tabindex="-1">
           <router-outlet />
-          <app-pie />
+          <app-footer />
         </main>
       </div>
     </div>

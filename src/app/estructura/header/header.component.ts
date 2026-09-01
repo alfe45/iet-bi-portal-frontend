@@ -2,7 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
 
 @Component({
-  selector: 'app-encabezado',
+  selector: 'app-header',
   template: `
     <header class="topbar">
       <div class="brand">
@@ -138,7 +138,7 @@ import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.s
     }
   `,
 })
-export class EncabezadoComponent {
+export class HeaderComponent {
   private readonly auth = inject(AutenticacionService);
 
   protected readonly roleLabel = computed(() => this.auth.currentRole() ?? 'Sin rol');

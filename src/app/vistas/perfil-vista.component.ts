@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
-import { StatGridComponent } from '../../compartidos/componentes/cuadricula-estadisticas.component';
+import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
+import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadisticas.component';
 
 @Component({
   selector: 'app-vista-perfil',

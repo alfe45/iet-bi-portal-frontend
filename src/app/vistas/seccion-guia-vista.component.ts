@@ -1,6 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
-import { DataTableComponent } from '../../compartidos/componentes/tabla-datos.component';
-import { StatGridComponent } from '../../compartidos/componentes/cuadricula-estadisticas.component';
+import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
+import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadisticas.component';
 
 @Component({
   selector: 'app-vista-seccion-guia',

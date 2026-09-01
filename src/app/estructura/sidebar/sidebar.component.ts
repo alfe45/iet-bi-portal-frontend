@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
 
 @Component({
-  selector: 'app-barra-lateral',
+  selector: 'app-sidebar',
   imports: [RouterLink, RouterLinkActive],
   template: `
     <aside id="main-navigation" class="sidebar" [class.sidebar--open]="isOpen()" aria-label="Navegación principal">
@@ -140,7 +140,7 @@ import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.s
     }
   `,
 })
-export class BarraLateralComponent {
+export class SidebarComponent {
   private readonly auth = inject(AutenticacionService);
 
   isOpen = input(false);

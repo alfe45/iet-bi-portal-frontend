@@ -1,9 +1,9 @@
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
-import { AlertBannerComponent } from '../../compartidos/componentes/banner-alerta.component';
-import { DataTableComponent } from '../../compartidos/componentes/tabla-datos.component';
-import { StatGridComponent } from '../../compartidos/componentes/cuadricula-estadisticas.component';
+import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
+import { AlertBannerComponent } from '../compartidos/componentes/banner-alerta.component';
+import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
+import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadisticas.component';
 
 @Component({
   selector: 'app-vista-funcionalidad',
