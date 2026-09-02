@@ -140,12 +140,6 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
 
            <p class="report-context"><strong>Observación:</strong> {{ selectedObservation }}</p>
 
-          <div class="ascii-report">
-            <p>---------------------------------------------------------</p>
-            <p class="ascii-report__title">REPORTE DE MONOGRAFÍA</p>
-            <p>---------------------------------------------------------</p>
-          </div>
-
           <app-data-table [columns]="monographReportColumns" [rows]="monographReportRows()" />
         </section>
       }
@@ -156,13 +150,11 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
     .report-preview { display: grid; gap: 1rem; }
     .report-header { display: flex; justify-content: space-between; gap: 1rem; align-items: center; }
     .report-sheet { padding: 1.5rem; border-radius: 24px; background: linear-gradient(180deg, #fff, #f8fbfd); border: 1px solid #dfe7ef; display: grid; gap: 0.5rem; }
-    .report-sheet p, .monograph-report-block p, .ascii-report p { margin: 0; }
+    .report-sheet p, .monograph-report-block p { margin: 0; }
     .section-heading p { margin: 0.35rem 0 0; color: #667085; }
     .tab-active { background: #d9ebf7; color: #1e3a5f; box-shadow: inset 0 0 0 1px rgba(47, 107, 154, 0.2); }
     .monograph-report-block { display: grid; gap: 0.6rem; }
     .monograph-report-block h4 { margin: 0; color: #1e3a5f; }
-    .ascii-report { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #1e3a5f; }
-    .ascii-report__title { font-weight: 800; text-align: center; }
     .observation-filter { max-width: 420px; }
   `,
 })
