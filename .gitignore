@@ -1,0 +1,14 @@
+node_modules/
+.angular/
+/dist/
+
+.agents/
+.codex/
+.claude/
+.cursor/
+.github/copilot-instructions.md
+.github/instructions/
+.github/prompts/
+AGENTS.md
+CLAUDE.md
+GEMINI.md

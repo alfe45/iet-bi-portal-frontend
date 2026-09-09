@@ -1,12 +1,14 @@
 import { Component, computed, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { Location } from '@angular/common';
+import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { AlertBannerComponent } from '../compartidos/componentes/banner-alerta.component';
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
+import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 
 @Component({
   selector: 'app-vista-reportes',
-  imports: [AlertBannerComponent, DataTableComponent],
+  imports: [AlertBannerComponent, DataTableComponent, RouterLink, RouterLinkActive],
   template: `
     <section class="page-grid">
       <section class="surface">
@@ -18,18 +20,16 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
           </div>
 
           <div class="pill-grid">
-             <button type="button" class="ghost-button" disabled>← Volver</button>
+             <button type="button" class="ghost-button" (click)="back()">← Volver</button>
             @if (isGuide()) {
-               <button type="button" class="ghost-button" disabled>Académico individual</button>
-               <button type="button" class="ghost-button" disabled>Consolidado de notas</button>
-               <button type="button" class="ghost-button" disabled>General de sección</button>
+               <a class="ghost-button" routerLink="/reportes/asignatura" routerLinkActive="tab-active">Mi asignatura</a>
             }
 
-             <button type="button" class="primary-button" disabled>Vista previa</button>
+             <button type="button" class="primary-button" (click)="print()">Imprimir reporte</button>
           </div>
         </div>
 
-        <div class="report-context"><strong>Periodo:</strong> {{ period }} <strong>Estudiante:</strong> {{ student }} <strong>Sección:</strong> {{ section }}</div>
+         <div class="report-context"><strong>Periodo activo:</strong> {{ period }} <strong>Grupo:</strong> {{ subject }} · {{ section }} <strong>Estudiantes:</strong> {{ groupStudentCount() }}</div>
       </section>
 
       @if (isProfessor()) {
@@ -52,79 +52,8 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
         </section>
       }
 
-       @if (isGuide() && guideMode === 'individual') {
-        <app-alert-banner title="Reporte académico individual" message="Incluye automáticamente el reporte de monografía cuando el estudiante dispone de esa información." tone="success" />
-
-        <section class="surface report-preview">
-          <div class="report-header">
-            <div>
-              <p class="eyebrow">Vista previa</p>
-              <h3>Reporte académico individual</h3>
-            </div>
-            <span class="tag">Profesor Guía</span>
-          </div>
-
-          <div class="report-sheet">
-            <p><strong>Estudiante:</strong> {{ guideReport().student.name }}</p>
-            <p><strong>Sección:</strong> {{ guideReport().student.section }}</p>
-            <p><strong>Correo:</strong> {{ guideReport().student.email }}</p>
-             <p><strong>Periodo:</strong> {{ period }}</p>
-          </div>
-
-          <app-data-table [columns]="individualColumns" [rows]="guideRows()" />
-
-          @if (guideReport().monographReport; as report) {
-            <article class="surface inset-surface monograph-report-block">
-              <h4>REPORTE DE MONOGRAFÍA</h4>
-              <p><strong>Área:</strong> {{ report.area }}</p>
-              <p><strong>Supervisor:</strong> {{ report.supervisor }}</p>
-              <p><strong>Observaciones:</strong></p>
-              <p>{{ report.observations }}</p>
-            </article>
-          }
-        </section>
-      }
-
-       @if (isGuide() && guideMode === 'consolidated') {
-        <app-alert-banner title="Reporte consolidado de notas" message="Muestra en una sola tabla todos los estudiantes de la sección guía y todas sus asignaturas." tone="success" />
-
-        <section class="surface report-preview">
-          <div class="report-header">
-            <div>
-              <p class="eyebrow">Vista previa</p>
-              <h3>Consolidado de notas de la sección guía</h3>
-            </div>
-            <span class="tag">Una sola tabla</span>
-          </div>
-
-          <app-data-table [columns]="consolidatedColumns" [rows]="consolidatedRows()" />
-        </section>
-      }
-
-       @if (isGuide() && guideMode === 'section') {
-        <app-alert-banner title="Reporte general de sección" message="Resume estudiantes, evaluaciones, ausentismo, observaciones académicas e información relevante de la sección guía." tone="success" />
-
-        <section class="surface report-preview">
-          <div class="report-header">
-            <div>
-              <p class="eyebrow">Vista previa</p>
-              <h3>Reporte general de sección</h3>
-            </div>
-            <span class="tag">11-1</span>
-          </div>
-
-          <div class="report-sheet">
-            <p><strong>Estudiantes:</strong> {{ sectionSummary().students }}</p>
-            <p><strong>Evaluaciones:</strong> {{ sectionSummary().evaluations }}</p>
-            <p><strong>Ausentismo:</strong> {{ sectionSummary().absenteeism }}</p>
-            <p><strong>Observaciones académicas:</strong> {{ sectionSummary().observations }}</p>
-            <p><strong>Información académica relevante:</strong> {{ sectionSummary().academicInfo }}</p>
-          </div>
-        </section>
-      }
-
       @if (isCoordinator()) {
-        <app-alert-banner title="Reporte de monografía" message="El Coordinador de monografía genera el reporte con área, profesor guía y observaciones. El Profesor Guía de sección puede consultarlo en modo lectura." tone="success" />
+        <app-alert-banner title="Reporte de monografía" message="El Profesor Coordinador de Monografía genera el reporte con área y observaciones. El Profesor Guía de sección puede consultarlo en modo lectura." tone="success" />
 
         <section class="surface report-preview">
           <div class="report-header">
@@ -133,12 +62,12 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
               <h3>REPORTE DE MONOGRAFÍA</h3>
             </div>
             <div class="pill-grid">
-               <button type="button" class="ghost-button" disabled>Volver</button>
-               <button type="button" class="primary-button" disabled>Vista previa</button>
+               <button type="button" class="ghost-button" (click)="back()">Volver</button>
+               <button type="button" class="primary-button" (click)="print()">Imprimir reporte</button>
             </div>
           </div>
 
-           <p class="report-context"><strong>Observación:</strong> {{ selectedObservation }}</p>
+           <p class="report-context"><strong>Observación:</strong> {{ selectedObservation() }}</p>
 
           <app-data-table [columns]="monographReportColumns" [rows]="monographReportRows()" />
         </section>
@@ -156,20 +85,24 @@ import { DataTableComponent } from '../compartidos/componentes/tabla-datos.compo
     .monograph-report-block { display: grid; gap: 0.6rem; }
     .monograph-report-block h4 { margin: 0; color: #1e3a5f; }
     .observation-filter { max-width: 420px; }
+    @media print { .pill-grid, app-header, app-sidebar, app-footer { display: none !important; } .surface { box-shadow: none; } }
   `,
 })
 export class ReportesVistaComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly route = inject(ActivatedRoute);
+  private readonly datos = inject(PortalDatosService);
+  private readonly location = inject(Location);
 
   protected readonly role = computed(() => this.auth.currentRole() ?? 'Administrador');
-   protected readonly guideMode = (this.route.snapshot.data['reportMode'] as 'individual' | 'consolidated' | 'section' | undefined) ?? 'individual';
-   protected readonly period = '2026 | Segundo semestre';
-   protected readonly section = '11-1';
+    protected readonly reportMode = (this.route.snapshot.data['reportMode'] as 'subject' | 'monograph' | undefined) ?? 'subject';
+    protected readonly period = this.route.snapshot.queryParamMap.get('periodo') ?? 'Segundo semestre 2026';
+    protected readonly section = this.route.snapshot.queryParamMap.get('seccion') ?? '11-1';
    protected readonly student = 'José Luis Rodríguez Mora';
-   protected readonly subject = 'Historia';
+    protected readonly subject = this.route.snapshot.queryParamMap.get('asignatura') ?? 'Historia';
    protected readonly monograph = 'Lectura crítica y escritura argumentativa';
-   protected readonly selectedObservation = 'Se presenta a las secciones de supervisión con puntualidad. Estamos redactando la pregunta para iniciar con la introducción de la monografía, es un estudiante muy aplicado y responsable.';
+   protected readonly selectedObservation = computed(() => this.datos.monografias()[0]?.seguimientos.at(-1)?.observacion ?? 'Sin observaciones registradas.');
+   protected readonly groupStudentCount = computed(() => this.datos.estudiantes().filter((item) => item['seccion'] === this.section).length);
 
 
   protected readonly individualColumns = [
@@ -180,27 +113,22 @@ export class ReportesVistaComponent {
     { key: 'observaciones', label: 'Observaciones' },
   ];
 
-  protected readonly consolidatedColumns = [
-    { key: 'estudiante', label: 'Estudiante' },
-    { key: 'matematica', label: 'Matemática' },
-    { key: 'historia', label: 'Historia' },
-    { key: 'lenguaB', label: 'Lengua B' },
-    { key: 'estudiosSociales', label: 'Estudios Sociales' },
-    { key: 'teoriaConocimiento', label: 'Teoría del Conocimiento' },
-  ];
-
   protected readonly monographReportColumns = [
     { key: 'area', label: 'Área' },
-    { key: 'supervisor', label: 'Supervisor' },
+    { key: 'coordinador', label: 'Profesor Coordinador de Monografía' },
     { key: 'observaciones', label: 'Observaciones' },
   ];
 
-    private readonly academic = { student: { name: 'José Luis Rodríguez Mora', section: '11-1', email: 'jose.rodriguez@estudiante.edu' }, absenteeism: { tardies: 1, justifiedAbsences: 0, unjustifiedAbsences: 0 }, subjects: [{ subject: 'Historia', minimumValue: '4', obtainedValue: '6', observations: 'Buen análisis de fuentes.' }, { subject: 'Lengua B', minimumValue: '4', obtainedValue: '6', observations: 'Producción escrita consistente.' }], monographReport: { area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', observations: this.selectedObservation } };
-    protected readonly professorReport = computed(() => this.academic);
-    protected readonly guideReport = computed(() => this.academic);
-    protected readonly consolidatedRows = computed(() => [{ estudiante: 'José Luis Rodríguez Mora', matematica: '6', historia: '6', lenguaB: '6', estudiosSociales: '85', teoriaConocimiento: 'B' }, { estudiante: 'María Fernanda Jiménez Vargas', matematica: '4', historia: '6', lenguaB: '5', estudiosSociales: '90', teoriaConocimiento: 'C' }]);
-    protected readonly sectionSummary = computed(() => ({ students: '2 mostrados de 29 registrados', evaluations: '10 registros de notas', absenteeism: '2 ausencias totales', observations: 'Predomina un buen desempeño general.', academicInfo: 'La sección mantiene estabilidad académica.' }));
-    protected readonly monographReportRows = computed(() => [{ area: this.academic.monographReport.area, supervisor: this.academic.monographReport.supervisor, observaciones: this.selectedObservation }]);
+    private readonly academic = computed(() => {
+      const student = this.datos.estudiantes()[0];
+      const evaluation = this.datos.evaluacion(student?.id ?? '');
+      const attendance = this.datos.asistencia(student?.id ?? '');
+      const monograph = this.datos.monografias()[0];
+       return { student: { name: student?.['nombre'] ?? '', section: this.section, email: student?.['correo'] ?? '' }, absenteeism: { tardies: attendance.tardias, justifiedAbsences: attendance.justificadas, unjustifiedAbsences: attendance.injustificadas }, subjects: [{ subject: this.subject, minimumValue: this.subject === 'Estudios Sociales' ? '70' : '4', obtainedValue: evaluation.valor, observations: evaluation.observacion }], monographReport: monograph ? { area: monograph.area, coordinator: monograph.coordinador, observations: this.selectedObservation() } : undefined };
+    });
+    protected readonly professorReport = computed(() => this.academic());
+    protected readonly guideReport = computed(() => this.academic());
+    protected readonly monographReportRows = computed(() => { const report = this.academic().monographReport; return report ? [{ area: report.area, coordinador: report.coordinator, observaciones: report.observations }] : []; });
 
   protected readonly pageTitle = computed(() => {
     if (this.isCoordinator()) {
@@ -208,15 +136,7 @@ export class ReportesVistaComponent {
     }
 
     if (this.isGuide()) {
-       if (this.guideMode === 'consolidated') {
-        return 'Reporte consolidado de notas';
-      }
-
-       if (this.guideMode === 'section') {
-        return 'Reporte general de sección';
-      }
-
-      return 'Reporte académico individual';
+       return 'Reporte académico';
     }
 
     return 'Reporte académico individual';
@@ -259,7 +179,7 @@ export class ReportesVistaComponent {
   }
 
   protected isProfessor() {
-    return this.role() === 'Profesor regular';
+    return this.reportMode === 'subject' && ['Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía'].includes(this.role());
   }
 
   protected isGuide() {
@@ -267,8 +187,11 @@ export class ReportesVistaComponent {
   }
 
   protected isCoordinator() {
-    return this.role() === 'Coordinador de monografía';
+    return this.role() === 'Profesor Coordinador de Monografía' && this.reportMode === 'monograph';
   }
+
+  protected back(): void { this.location.back(); }
+  protected print(): void { window.print(); }
 
   private etiquetaAusentismo(absenteeism: { tardies: number; justifiedAbsences: number; unjustifiedAbsences: number }) {
     return `T: ${absenteeism.tardies} · AJ: ${absenteeism.justifiedAbsences} · AI: ${absenteeism.unjustifiedAbsences}`;

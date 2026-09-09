@@ -7,120 +7,32 @@ import { RolUsuario } from '../nucleo/modelos/modelos-prototipo';
   selector: 'app-vista-inicio-sesion',
   imports: [FormsModule],
   template: `
-    <section class="login-page">
-      <div class="login-card">
-        <div class="login-brand">
-          <img class="login-brand__logo" src="/logo-mep.jpg" alt="Logo del Ministerio de Educación Pública" />
-          <div>
-            <p class="eyebrow">Instituto de Educación Dr. Clodomiro Picado</p>
-            <h1>IET BI Portal</h1>
-          </div>
-        </div>
-
-         <form class="login-form" (ngSubmit)="iniciarSesion()">
-          <label>
-            <span>Usuario</span>
-            <input name="usuario" autocomplete="username" placeholder="Ingrese su usuario" readonly />
-          </label>
-
-          <label>
-            <span>Contraseña</span>
-            <input type="password" name="contrasena" autocomplete="current-password" placeholder="Ingrese su contraseña" readonly />
-          </label>
-
-          <label>
-            <span>Rol de acceso</span>
-            <select name="rol" [(ngModel)]="rol" aria-describedby="role-help">
-              @for (item of roles; track item) {
-                <option [value]="item">{{ item }}</option>
-              }
-            </select>
-            <small id="role-help">Seleccione el rol para continuar.</small>
-          </label>
-
-          <button type="submit" class="primary-button login-button">Iniciar sesión</button>
+    <main class="auth-main bg-grd-primary">
+      <section class="auth-card card" aria-labelledby="login-title">
+        <div class="card-body">
+          <header class="auth-brand"><img src="/logo-mep.jpg" alt="Logo del Ministerio de Educación Pública" /><p>Instituto de Educación</p><h1 id="login-title">Dr. Clodomiro Picado</h1><span>IET BI Portal</span></header>
+          <form (ngSubmit)="iniciarSesion()" class="auth-form">
+            <label for="usuario">Usuario</label><input id="usuario" class="form-control" name="usuario" [(ngModel)]="usuario" autocomplete="username" required />
+            <label for="contrasena">Contraseña</label><input id="contrasena" class="form-control" type="password" name="contrasena" [(ngModel)]="contrasena" autocomplete="current-password" required />
+            <label for="rol">Tipo de acceso</label><select id="rol" class="form-select" name="rol" [(ngModel)]="rol">@for(item of roles;track item){<option [value]="item">{{ item }}</option>}</select>
+            @if(error){<div class="alert alert-danger py-2 mb-0" role="alert">Ingrese usuario y contraseña para continuar.</div>}
+            <button type="submit" class="btn btn-primary btn-lg w-100">Iniciar sesión</button>
           </form>
-      </div>
-    </section>
+          <footer>Acceso local de demostración · Segundo semestre 2026</footer>
+        </div>
+      </section>
+    </main>
   `,
   styles: `
-    .login-page {
-      min-height: 100vh;
-      display: grid;
-      place-items: center;
-      padding: 2rem;
-      background:
-        radial-gradient(circle at top right, rgba(47, 107, 154, 0.22), transparent 30%),
-        linear-gradient(160deg, #f5f7fa 0%, #eaf3f8 100%);
-    }
-
-    .login-card {
-      width: min(100%, 980px);
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      gap: 1.5rem;
-      padding: 1.5rem;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(47, 107, 154, 0.12);
-      border-radius: 18px;
-      box-shadow: 0 28px 90px rgba(30, 58, 95, 0.15);
-      backdrop-filter: blur(20px);
-    }
-
-    .login-brand {
-      display: grid;
-      gap: 1.2rem;
-      min-width: 0;
-      padding: 2rem;
-      border-radius: 14px;
-      color: #fff;
-      background: linear-gradient(135deg, #1e3a5f, #2f6b9a 65%, #5398cb);
-      align-content: center;
-    }
-
-    .login-brand__mark {
-      display: none;
-    }
-
-    .login-brand__logo {
-      width: 88px;
-      height: 88px;
-      object-fit: contain;
-      border-radius: 22px;
-      background: #fff;
-      padding: 0.45rem;
-    }
-
-    .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.74rem; }
-    .login-brand h1, .eyebrow { margin: 0; }
-    .login-brand h1 { font-size: clamp(1.35rem, 2.1vw, 1.7rem); line-height: 1.1; white-space: nowrap; letter-spacing: -0.035em; }
-
-    .login-form { display: grid; gap: 1rem; align-content: center; padding: 1rem; }
-    .login-form label { display: grid; gap: 0.45rem; font-weight: 600; }
-    .login-form small { color: #667085; font-weight: 400; }
-    .login-button { margin-top: 0.5rem; min-height: 48px; }
-
-    @media (max-width: 900px) {
-      .login-card { grid-template-columns: 1fr; }
-      .login-brand { padding: 1.5rem; }
-    }
-
-    @media (max-width: 560px) {
-      .login-page { padding: 1rem; }
-      .login-card { padding: 0.75rem; }
-      .login-brand h1 { white-space: normal; font-size: 1.65rem; }
-    }
+    :host{display:block;height:100vh;height:100dvh;overflow:hidden}.auth-main{height:100%;display:grid;place-items:center;padding:1rem;background:linear-gradient(135deg,#2387f5,#73b4ff);position:relative;overflow:hidden}.auth-main::before,.auth-main::after{content:'';position:absolute;border-radius:50%;background:rgba(255,255,255,.1)}.auth-main::before{width:360px;height:360px;right:-100px;top:-160px}.auth-main::after{width:280px;height:280px;left:-100px;bottom:-140px}.auth-card{z-index:1;width:min(100%,400px);padding:0;border:0;border-radius:8px;box-shadow:0 12px 40px rgba(4,26,55,.24)}.card-body{padding:1.7rem 2rem}.auth-brand{text-align:center;margin-bottom:1.25rem}.auth-brand img{width:64px;height:64px;object-fit:contain;padding:4px;border:1px solid #edf0f2;border-radius:10px}.auth-brand p{margin:.7rem 0 .1rem;color:#8996a4;font-size:.67rem;letter-spacing:.1em;text-transform:uppercase}.auth-brand h1{margin:0;color:#29344a;font-size:1.25rem;font-weight:600}.auth-brand span{color:#4099ff;font-size:.75rem;font-weight:600}.auth-form{display:grid;gap:.6rem}.auth-form label{font-size:.72rem;font-weight:500;color:#39465f}.auth-form .btn{margin-top:.45rem;font-size:.82rem;background:linear-gradient(45deg,#4099ff,#73b4ff);border:0}footer{margin-top:1rem;padding-top:.8rem;border-top:1px solid #edf0f2;text-align:center;color:#8996a4;font-size:.63rem}@media(max-height:620px){.card-body{padding:1rem 1.5rem}.auth-brand{margin-bottom:.7rem}.auth-brand img{width:45px;height:45px}.auth-form{gap:.4rem}}
   `,
 })
 export class InicioSesionVistaComponent {
-   protected readonly auth = inject(AutenticacionService);
-
-   protected readonly roles: RolUsuario[] = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Coordinador de monografía'];
-
-   protected rol: RolUsuario = 'Administrador';
-
-   protected iniciarSesion(): void {
-     this.auth.iniciarComoRol(this.rol);
-   }
-
+  protected readonly auth = inject(AutenticacionService);
+  protected readonly roles: RolUsuario[] = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía'];
+  protected rol: RolUsuario = 'Administrador';
+  protected usuario = 'usuario.demostracion';
+  protected contrasena = 'demo2026';
+  protected error = false;
+  protected iniciarSesion(): void { this.error = !this.auth.iniciarSesion(this.usuario, this.contrasena, this.rol); }
 }

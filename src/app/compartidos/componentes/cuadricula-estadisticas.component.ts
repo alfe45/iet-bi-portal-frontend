@@ -6,26 +6,20 @@ import { TarjetaEstadistica as StatCard } from '../../nucleo/modelos/modelos-pro
   selector: 'app-stat-grid',
   imports: [CommonModule],
   template: `
-    <div class="stat-grid">
+    <div class="row g-3 stat-grid">
       @for (card of cards(); track card.label) {
-        <article class="surface stat-card" [class.stat-card--success]="card.tone === 'success'" [class.stat-card--danger]="card.tone === 'danger'" [class.stat-card--primary]="card.tone === 'primary'">
-          <span>{{ card.label }}</span>
-          <strong>{{ card.value }}</strong>
-          @if (card.trend) {
-            <small>{{ card.trend }}</small>
-          }
-        </article>
+        <div class="col-12 col-sm-6 col-xl">
+          <article class="card stat-card" [class.stat-card--success]="card.tone === 'success'" [class.stat-card--danger]="card.tone === 'danger'" [class.stat-card--primary]="card.tone === 'primary'">
+            <span>{{ card.label }}</span><strong>{{ card.value }}</strong>@if (card.trend) { <small>{{ card.trend }}</small> }
+          </article>
+        </div>
       }
     </div>
   `,
   styles: `
-    .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-    .stat-card { display: grid; gap: 0.45rem; }
-    .stat-card strong { font-size: 1.7rem; color: #1e3a5f; }
-    .stat-card span, .stat-card small { color: #6b7280; }
-    .stat-card--success { border-top: 4px solid #2e7d32; }
-    .stat-card--danger { border-top: 4px solid #c62828; }
-    .stat-card--primary { border-top: 4px solid #2f6b9a; }
+    .stat-grid { --bs-gutter-x: .8rem; --bs-gutter-y: .8rem; }
+    .stat-card { height:100%; min-height:92px; display:grid; gap:.2rem; padding:.9rem 1rem; color:#fff; background:linear-gradient(45deg,#8996a4,#a8b2bc); overflow:hidden; }
+    .stat-card strong { font-size:1.55rem; line-height:1.15; color:#fff; }.stat-card span,.stat-card small{color:rgba(255,255,255,.85);font-size:.7rem}.stat-card--success{background:linear-gradient(45deg,#20b99a,#56e3c7)}.stat-card--danger{background:linear-gradient(45deg,#ef4765,#ff8298)}.stat-card--primary{background:linear-gradient(45deg,#4099ff,#73b4ff)}
   `,
 })
 export class StatGridComponent {

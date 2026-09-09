@@ -1,45 +1,75 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-datos.service';
 
 @Component({
   selector: 'app-vista-monografias',
-  imports: [],
+  imports: [FormsModule],
   template: `
-    <section class="monograph-workspace" aria-labelledby="monographs-title">
-      <header class="monograph-hero">
-        <div><p class="eyebrow">Acompañamiento de investigación</p><h2 id="monographs-title">Mis estudiantes de monografía</h2><p>Revise el avance y registre los reportes de cada estudiante asignado.</p></div>
-         <button type="button" class="primary-button" disabled>Registrar reporte</button>
-      </header>
+    <section class="monographs-page" aria-labelledby="monographs-title">
+      <header class="page-header"><div><p class="eyebrow">Acompañamiento de investigación</p><h2 id="monographs-title">Mis estudiantes de monografía</h2><p>Seleccione un estudiante para consultar y gestionar su monografía.</p></div></header>
 
-       <div class="summary-strip" aria-label="Resumen de monografías"><div><strong>{{ monographs.length }}</strong><span>Estudiantes asignados</span></div><div><strong>2</strong><span>En desarrollo</span></div><div><strong>1</strong><span>Reporte disponible</span></div></div>
-
-      <section class="monograph-list">
-         <div class="list-toolbar"><div><h3>Proyectos asignados</h3><p>Datos de ejemplo para la exposición.</p></div></div>
-        <div class="project-grid">
-            @for (item of monographs; track item.id) {
-            <article class="project-card">
-              <div class="project-card__top"><span class="student-mark">{{ initials(item.student) }}</span><span class="badge">{{ item.status }}</span></div>
-              <div><p class="project-card__student">{{ item.student }}</p><h4>{{ item.title }}</h4><p class="project-card__area">{{ item.area }}</p></div>
-              <div class="progress-line"><span></span></div>
-              <dl><div><dt>Último reporte</dt><dd>{{ latestDate(item) }}</dd></div><div><dt>Inicio</dt><dd>{{ item.startDate }}</dd></div></dl>
-                <div class="project-actions"><button type="button" class="ghost-button">Ver monografía</button><button type="button" class="primary-button">Nuevo reporte</button></div>
-            </article>
-          } @empty {
-             <p class="empty-state">No hay datos de ejemplo.</p>
-          }
-        </div>
+      <section class="student-selector" aria-label="Monografías asignadas">
+        <strong>Monografías asignadas</strong>
+        <div class="student-options">@for(item of monographs(); track item.id){<button type="button" [class.selected]="item.id === selectedId()" (click)="seleccionar(item)"><span>{{ item.estudiante }}</span><small>{{ item.titulo }}</small></button>}</div>
       </section>
+
+      @if(selected(); as item){
+         <div class="selected-toolbar"><div><p class="eyebrow">Estudiante</p><h3>{{ item.estudiante }}</h3><p>{{ item.titulo }} · {{ item.area }} · {{ item.estado }}</p></div><div class="top-actions"><button type="button" class="send-button info-button" style="color:#fff;background:#2f80b7;border-color:#2f80b7" (click)="abrirEdicionInformacion()">Editar información de la monografía</button><button type="button" class="send-button observations-button" style="color:#fff;background:#7650a8;border-color:#7650a8" (click)="abrirEdicionObservaciones()">Observaciones</button><button type="button" class="send-button" [disabled]="item.informeEnviado" (click)="abrirEnvioInforme()">{{ item.informeEnviado ? 'Enviado al Profesor Guía' : 'Enviar al Profesor Guía' }}</button></div></div>
+
+        <section class="content-block"><div class="block-heading"><div><h3>Información de la monografía</h3></div></div>
+          <dl class="info-grid"><div><dt>Título</dt><dd>{{ item.titulo }}</dd></div><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Estado</dt><dd>{{ item.estado }}</dd></div><div><dt>Fecha de inicio</dt><dd>{{ item.fechaInicio }}</dd></div><div class="full"><dt>Descripción</dt><dd>{{ item.descripcion }}</dd></div></dl>
+        </section>
+
+        <section class="content-block"><div class="block-heading"><div><h3>Seguimientos</h3><p>Últimos registros del acompañamiento.</p></div><button type="button" class="primary-button" (click)="showFollowUp = true">Registrar seguimiento</button></div>
+          @if(showFollowUp){<form class="inline-form" (ngSubmit)="guardarSeguimiento()"><div class="form-grid"><label>Fecha<input name="fecha" type="date" [(ngModel)]="followUp.fecha" required /></label><label>Estado<select name="estadoSeguimiento" [(ngModel)]="followUp.estado"><option>Revisado</option><option>Pendiente</option><option>Con correcciones</option></select></label><label class="full">Observación<textarea name="observacion" rows="3" [(ngModel)]="followUp.observacion" required></textarea></label></div><div class="actions"><button type="button" class="ghost-button" (click)="cancelarSeguimiento()">Cancelar</button><button type="submit" class="primary-button">Guardar seguimiento</button></div></form>}
+          <div class="follow-ups">@for(followUp of visibleFollowUps(); track followUp.id){<article><div class="follow-up-top"><strong>{{ followUp.fecha }}</strong><span class="tag">{{ followUp.estado }}</span></div><p>“{{ followUp.observacion }}”</p><small>Profesor Coordinador: {{ followUp.profesor }}</small></article>} @empty {<p class="empty">Sin seguimientos registrados.</p>}</div>
+          @if(item.seguimientos.length > 3){<button type="button" class="text-button" (click)="showAllFollowUps = !showAllFollowUps">{{ showAllFollowUps ? 'Ver menos' : 'Ver todos' }}</button>}
+        </section>
+
+        <section class="content-block report-section"><div class="block-heading"><div><h3>Informe de monografía</h3><p>Este informe queda disponible automáticamente para el Profesor Guía.</p></div></div>
+          <dl class="report-grid"><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Profesor Coordinador de Monografía</dt><dd>{{ item.coordinador }}</dd></div></dl>
+          <div class="report-observation"><dt>Observaciones</dt><p>{{ item.observacionReporte || 'Informe de monografía sin registrar.' }}</p><small>{{ item.observacionReporte ? 'Informe guardado · Última actualización: ' + (item.fechaInforme || 'Sin fecha registrada') : 'Sin informe' }}</small></div>
+           @if(item.informeEnviado){<p class="sent-status">Reporte enviado al Profesor Guía · {{ item.fechaEnvioInforme }}</p>} @else {<p class="pending-status">Pendiente de envío al Profesor Guía.</p>}
+          <div class="report-preview"><p class="preview-label">Vista previa</p><h4>REPORTE DE MONOGRAFÍA</h4><table><thead><tr><th>Área</th><th>Profesor Coordinador de Monografía</th><th>Observaciones</th></tr></thead><tbody><tr><td>{{ item.area }}</td><td>{{ item.coordinador }}</td><td>{{ item.observacionReporte || reportObservation || 'Informe de monografía sin registrar.' }}</td></tr></tbody></table></div>
+        </section>
+      } @else {<p class="empty">No hay estudiantes asignados.</p>}
+        @if(reportModal(); as modal){<div class="modal-backdrop" role="presentation"><section class="monograph-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title"><div class="modal-heading"><div><p class="eyebrow">{{ modal === 'info' ? 'Información de la monografía' : modal === 'observations' ? 'Informe de monografía' : 'Entrega del informe' }}</p><h3 id="report-modal-title">{{ modal === 'info' ? 'Editar información de la monografía' : modal === 'observations' ? 'Observaciones' : 'Confirmar envío' }}</h3></div><button type="button" class="close-button" (click)="cerrarModal()">×</button></div>
+              @if(modal === 'info'){<form (ngSubmit)="guardarInformacion()"><div class="form-grid"><label>Título<input name="modalTitulo" [(ngModel)]="draft.titulo" required /></label><label>Área<input name="modalArea" [(ngModel)]="draft.area" required /></label><label>Estado<select name="modalEstado" [(ngModel)]="draft.estado"><option>En desarrollo</option><option>Aprobada</option></select></label><label>Fecha de inicio<input name="modalFechaInicio" type="date" [(ngModel)]="draft.fechaInicio" required /></label><label class="full">Descripción<textarea name="modalDescripcion" rows="4" [(ngModel)]="draft.descripcion" required></textarea></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar información</button></div></form>}
+              @else if(modal === 'observations'){<form (ngSubmit)="guardarObservaciones()"><div class="readonly-fields"><div><small>Estudiante</small><strong>{{ selected()?.estudiante }}</strong></div><div><small>Área</small><strong>{{ selected()?.area }}</strong></div><div><small>Profesor Coordinador de Monografía</small><strong>{{ selected()?.coordinador }}</strong></div></div><label>Observaciones<textarea name="reportObservation" rows="5" [(ngModel)]="reportObservation" placeholder="Escriba las observaciones del informe"></textarea></label><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar observaciones</button></div></form>}
+              @else if(modal === 'confirm-send'){<p>¿Desea enviar las observaciones de <strong>{{ selected()?.estudiante }}</strong> al Profesor Guía?</p><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="button" class="send-button" (click)="confirmarEnvio()">Confirmar envío</button></div>}
+         </section></div>}
     </section>
   `,
   styles: `
-    .monograph-workspace{display:grid;gap:1rem}.monograph-hero,.monograph-list,.summary-strip{background:#fff;border:1px solid #dbe5ef;border-radius:12px;padding:1.25rem}.monograph-hero{display:flex;justify-content:space-between;align-items:center;gap:1rem;background:linear-gradient(120deg,#17334f,#285f89);color:#fff;padding:clamp(1.4rem,4vw,2.4rem)}h2,h3,h4,p{margin:0}.monograph-hero p{color:#d8e7f1;margin-top:.4rem}.eyebrow{color:#9dc6df!important;text-transform:uppercase;letter-spacing:.12em;font-size:.74rem;font-weight:800}.summary-strip{display:grid;grid-template-columns:repeat(3,1fr);padding:0}.summary-strip div{display:grid;gap:.2rem;padding:1rem 1.25rem;border-right:1px solid #e3eaf0}.summary-strip div:last-child{border:0}.summary-strip strong{font-size:1.45rem;color:#1e3a5f}.summary-strip span{font-size:.86rem;color:#667085}.list-toolbar{display:flex;justify-content:space-between;align-items:end;gap:1rem;margin-bottom:1rem}.list-toolbar p{color:#667085;margin-top:.3rem}.list-toolbar input{min-width:280px}.project-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:1rem}.project-card{display:grid;gap:1rem;padding:1.15rem;border:1px solid #dbe5ef;border-radius:11px;background:#fbfdff}.project-card__top,.project-actions,dl,dl div{display:flex;align-items:center;justify-content:space-between;gap:.7rem}.student-mark{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;background:#1e3a5f;color:#fff;font-weight:800}.project-card__student{color:#2f6b9a;font-weight:700}.project-card h4{margin-top:.25rem;color:#1e3a5f;font-size:1.05rem}.project-card__area{color:#667085;margin-top:.3rem}.progress-line{height:5px;border-radius:999px;background:#e4ebf1;overflow:hidden}.progress-line span{display:block;width:68%;height:100%;background:#2f6b9a}dl{margin:0}dt{font-size:.74rem;color:#667085}dd{margin:.2rem 0 0;font-weight:700;font-size:.86rem}.project-actions>*{flex:1}.empty-state{grid-column:1/-1;padding:2rem;text-align:center;color:#667085}@media(max-width:680px){.monograph-hero,.list-toolbar{align-items:stretch;flex-direction:column}.summary-strip{grid-template-columns:1fr}.summary-strip div{border-right:0;border-bottom:1px solid #e3eaf0}.list-toolbar input{min-width:0}.project-actions{flex-direction:column}.project-actions>*{width:100%}}
+    .monographs-page{display:grid;gap:1rem;align-content:start}.page-header,.student-selector,.selected-toolbar,.content-block{padding:1rem 1.2rem;border:1px solid #dbe5ef;border-radius:9px;background:#fff}.page-header{border-left:5px solid #2f6b9a}.page-header h2,.page-header p:last-child,.selected-toolbar h3,.selected-toolbar p{margin:0}.page-header p:last-child{margin-top:.35rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.student-options{display:flex;gap:.5rem;margin-top:.7rem;overflow-x:auto}.student-options button{display:grid;min-width:210px;padding:.65rem .8rem;border:1px solid #dbe5ef;border-radius:7px;background:#fff;color:#1e3a5f;text-align:left;cursor:pointer}.student-options button.selected{border-color:#2f6b9a;background:#eaf3f8;box-shadow:inset 0 0 0 1px #2f6b9a}.student-options small{margin-top:.15rem;color:#667085;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.selected-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-left:5px solid #2f6b9a}.selected-toolbar p{margin-top:.25rem;color:#667085}.top-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.5rem}.content-block{display:grid;gap:1rem}.block-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem}.block-heading h3{margin:0;color:#1e3a5f;text-transform:uppercase;font-size:.92rem;letter-spacing:.04em}.block-heading p{margin:.25rem 0 0;color:#667085}.edit-button,.send-button{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:.5rem .8rem;border:1px solid transparent;border-radius:5px;font-weight:700;cursor:pointer}.edit-button{color:#8a4b00;background:#fff0d6;border-color:#f0bd6b}.send-button{color:#fff;background:#238d78;border-color:#238d78}.send-button:disabled{cursor:not-allowed;opacity:.5}.actions{display:flex;justify-content:flex-end;gap:.5rem}.info-grid,.report-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin:0}.info-grid>div,.report-grid>div{padding:.75rem;border:1px solid #e6edf3;border-radius:7px}.info-grid .full,.report-grid .full{grid-column:1/-1}.info-grid dt,.report-grid dt,.report-observation dt{font-size:.74rem;color:#667085}.info-grid dd,.report-grid dd{margin:.2rem 0 0;color:#1e3a5f;font-weight:600}.follow-ups{display:grid;gap:.6rem}.follow-ups article{display:grid;gap:.35rem;padding:.75rem;border-left:3px solid #b9d3e5;background:#f8fbfd}.follow-ups p,.follow-ups small{margin:0}.follow-ups small{color:#667085}.follow-up-top{display:flex;justify-content:space-between;gap:1rem}.inline-form{padding:.9rem;border:1px solid #b9d3e5;border-radius:7px;background:#f8fbfd}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}.form-grid label,.inline-form>label,.monograph-modal label{display:grid;gap:.35rem;font-weight:700}.form-grid .full{grid-column:1/-1}.text-button{justify-self:start;padding:0;border:0;background:none;color:#2f6b9a;font-weight:700;cursor:pointer}.report-observation{display:grid;gap:.25rem;padding:.8rem;border:1px solid #e6edf3;border-radius:7px}.report-observation p{margin:0;color:#1e3a5f}.report-observation small,.sent-status{color:#667085}.sent-status{margin:0;font-size:.82rem}.report-preview{display:grid;gap:.6rem;margin-top:.25rem;padding:1rem;background:#f8fbfd;border:1px solid #b9d3e5}.preview-label{margin:0;color:#667085;font-size:.74rem;font-weight:800;text-transform:uppercase}.report-preview h4{margin:0;text-align:center;letter-spacing:.08em}.report-preview table{width:100%;border-collapse:collapse}.report-preview th,.report-preview td{padding:.6rem;border:1px solid #222;text-align:left;vertical-align:top}.modal-backdrop{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:1rem;background:rgba(20,36,54,.48)}.monograph-modal{width:min(560px,100%);max-height:90vh;overflow:auto;padding:1.2rem;border-radius:10px;background:#fff;box-shadow:0 18px 60px rgba(0,0,0,.25)}.modal-heading{display:flex;justify-content:space-between;gap:1rem;margin-bottom:1rem}.modal-heading h3{margin:0;color:#1e3a5f}.close-button{border:0;background:transparent;color:#667085;font-size:1.5rem;cursor:pointer}.readonly-fields{display:grid;gap:.6rem;margin-bottom:1rem}.readonly-fields div{display:grid;gap:.15rem;padding:.65rem;border:1px solid #e6edf3;border-radius:6px;background:#f8fbfd}.readonly-fields small{color:#667085}.modal-actions{display:flex;justify-content:flex-end;gap:.5rem;margin-top:1rem}.empty{margin:0;color:#667085}@media(max-width:700px){.block-heading,.selected-toolbar{align-items:flex-start;flex-direction:column}.top-actions{justify-content:flex-start}.info-grid,.report-grid,.form-grid{grid-template-columns:1fr}.info-grid .full,.report-grid .full,.form-grid .full{grid-column:auto}}
   `,
 })
 export class MonografiasVista {
-   protected readonly monographs = [
-     { id: 'M-301', student: 'José Luis Rodríguez Mora', title: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', supervisor: 'Ana Lucía Solano Castro', status: 'En desarrollo', startDate: '2026-08-05', followUps: [{ date: '2026-08-22' }] },
-     { id: 'M-204', student: 'María Fernanda Jiménez Vargas', title: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', supervisor: 'Juan Gabriel Valverde Valverde', status: 'Aprobada', startDate: '2026-07-18', followUps: [{ date: '2026-08-01' }] },
-     { id: 'M-101', student: 'Carlos Eduardo Araya Rojas', title: 'Impacto social de la lectura digital', area: 'Teoría del Conocimiento', supervisor: 'Laura Vanessa Quirós Brenes', status: 'En desarrollo', startDate: '2026-08-08', followUps: [{ date: '2026-08-22' }] },
-   ];
-  protected initials(name: string) { return name.split(' ').slice(0, 2).map((part) => part[0]).join(''); }
-  protected latestDate(item: { followUps: Array<{ date: string }> }) { return item.followUps.at(-1)?.date ?? 'Sin reportes'; }
+  private readonly datos = inject(PortalDatosService);
+  protected readonly monographs = computed(() => this.datos.monografias());
+  protected readonly selectedId = signal(this.monographs()[0]?.id ?? '');
+  protected readonly selected = computed(() => this.monographs().find((item) => item.id === this.selectedId()));
+  protected readonly visibleFollowUps = computed(() => { const followUps = this.selected()?.seguimientos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)) ?? []; return this.showAllFollowUps ? followUps : followUps.slice(0, 3); });
+  protected editingInfo = false;
+  protected showFollowUp = false;
+  protected showAllFollowUps = false;
+  protected draft = this.emptyDraft();
+  protected reportObservation = this.monographs()[0]?.observacionReporte ?? '';
+   protected readonly reportModal = signal<'info' | 'observations' | 'confirm-send' | null>(null);
+  protected followUp = this.emptyFollowUp();
+
+  protected seleccionar(item: MonografiaLocal): void { this.selectedId.set(item.id); this.draft = { ...item }; this.reportObservation = item.observacionReporte ?? ''; this.editingInfo = false; this.showFollowUp = false; this.showAllFollowUps = false; this.reportModal.set(null); }
+  protected guardarMonografia(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.editingInfo = false; }
+  protected guardarSeguimiento(): void { const current = this.selected(); if (!current || !this.followUp.observacion.trim()) return; this.datos.agregarSeguimiento(current.id, { ...this.followUp, profesor: current.coordinador }); this.followUp = this.emptyFollowUp(); this.showFollowUp = false; }
+  protected cancelarSeguimiento(): void { this.followUp = this.emptyFollowUp(); this.showFollowUp = false; }
+   protected abrirEdicionInformacion(): void { const current = this.selected(); if (current) this.draft = { ...current }; this.reportModal.set('info'); }
+   protected abrirEdicionObservaciones(): void { this.reportObservation = this.selected()?.observacionReporte ?? ''; this.reportModal.set('observations'); }
+   protected guardarInformacion(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.reportModal.set(null); }
+   protected guardarObservaciones(): void { const current = this.selected(); if (!current) return; const today = new Date().toISOString().slice(0, 10); this.datos.guardarMonografia({ ...current, observacionReporte: this.reportObservation.trim(), fechaInforme: today, seguimientos: current.seguimientos }); this.reportModal.set(null); }
+   protected abrirEnvioInforme(): void { this.reportModal.set('confirm-send'); }
+   protected confirmarEnvio(): void { const current = this.selected(); if (!current?.observacionReporte?.trim()) return; this.datos.enviarMonografia(current.id); this.reportModal.set(null); }
+  protected cerrarModal(): void { this.reportModal.set(null); }
+  private emptyDraft(): Partial<MonografiaLocal> { const item = this.monographs()[0]; return item ? { ...item } : {}; }
+  private emptyFollowUp(): { fecha: string; estado: string; observacion: string } { return { fecha: new Date().toISOString().slice(0, 10), estado: 'Revisado', observacion: '' }; }
 }

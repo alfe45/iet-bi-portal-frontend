@@ -1,42 +1,40 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
+import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 
 @Component({
   selector: 'app-vista-evaluaciones',
-  imports: [],
+  imports: [FormsModule],
   template: `
-    <section class="academic-workspace" aria-labelledby="evaluations-title">
-      <header class="workspace-header">
-        <div><p class="eyebrow">Registro académico</p><h2 id="evaluations-title">Evaluaciones</h2><p>Seleccione el grupo y luego el estudiante que desea evaluar.</p></div>
-        <button type="button" class="ghost-button" disabled>← Volver</button>
-      </header>
-      <div class="active-period" aria-label="Periodo académico activo"><span class="active-period__dot" aria-hidden="true"></span><div><small>Periodo activo</small><strong>2026 · Segundo semestre</strong></div><span>Se aplica automáticamente</span></div>
-      <section class="selection-panel" aria-labelledby="group-title">
-        <div class="step-heading"><span>1</span><div><h3 id="group-title">Seleccione su grupo</h3><p>Solo aparecen sus asignaciones académicas.</p></div></div>
-        <div class="visual-selection"><strong>Sección:</strong> 11-1 <strong>Asignatura:</strong> Historia</div>
-      </section>
-      <section class="student-panel" aria-labelledby="student-title">
-        <div class="step-heading"><span>2</span><div><h3 id="student-title">Estudiantes del grupo</h3><p>11-1 · Historia</p></div></div>
-        <div class="student-grid">
-          @for (student of students; track student.id) {
-            <button type="button" class="student-card" disabled>
-              <span class="student-avatar">{{ student.initials }}</span><span><strong>{{ student.name }}</strong><small>{{ student.id }}</small></span><span class="student-status">{{ student.grade }}</span>
-            </button>
-          }
-        </div>
-      </section>
-        <form class="evaluation-editor" aria-labelledby="editor-title">
-          <div class="step-heading"><span>3</span><div><h3 id="editor-title">Vista previa de evaluación</h3><p>José Luis Rodríguez Mora · Historia</p></div></div>
-          <div class="editor-grid"><label><span>Valor mínimo</span><input value="4" readonly aria-describedby="scale-help" /></label><label><span>Valor obtenido</span><input placeholder="Ingrese la calificación" readonly /></label><label class="editor-grid__full"><span>Observación académica</span><textarea rows="4" placeholder="Describa brevemente el desempeño del estudiante" readonly></textarea></label></div>
-          <small id="scale-help">Escala asignada: 1 a 7</small>
-          <div class="editor-actions"><button type="button" class="ghost-button" disabled>Cancelar</button><button class="primary-button" type="button" disabled>Vista previa</button></div>
-        </form>
+    <section class="work-page" aria-labelledby="evaluations-title">
+      <header class="surface page-header"><div><p class="eyebrow">Registro académico</p><h2 id="evaluations-title">Evaluaciones</h2><p>Registra o modifica la evaluación de un estudiante.</p></div><div class="context-summary"><small>Periodo activo</small><strong>{{ grupos.periodoActivo() }}</strong></div></header>
+      <section class="surface group-bar"><label>Grupo<select [ngModel]="grupos.grupoActual()?.id" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span><strong>{{ grupos.grupoActual()?.estudiantes?.length ?? 0 }}</strong> estudiantes · Escala {{ grupos.grupoActual()?.escala ?? '-' }}</span></section>
+      <section class="surface student-work"><div class="section-heading"><div><h3>Estudiantes</h3><p>{{ grupos.etiqueta(grupos.grupoActual()) }}</p></div><input class="student-search" type="search" placeholder="Buscar estudiante" aria-label="Buscar estudiante" [ngModel]="search()" (ngModelChange)="search.set($event)" /></div><div class="student-list">@for (student of students(); track student.id) {<button type="button" class="student-row" [class.selected]="student.id === selectedId" [attr.aria-selected]="student.id === selectedId" (click)="seleccionar(student.id)"><span><strong>{{ student['nombre'] }}</strong><small>{{ student['cedula'] }}</small></span><span class="status">{{ student.grade ? 'Registrada' : 'Sin registrar' }}</span><b>{{ student.grade || '—' }}</b></button>} @empty {<p class="empty">No hay estudiantes que coincidan con la búsqueda.</p>}</div></section>
+      <form class="surface editor" (ngSubmit)="guardar()"><div><p class="eyebrow">Estudiante seleccionado</p><h3>{{ selectedName() }}</h3><p class="editor-context">{{ grupos.etiqueta(grupos.grupoActual()) }}</p></div><div class="editor-grid"><label><span>Valor mínimo</span><input [value]="minimumValue()" readonly /></label><label><span>Valor obtenido</span><input name="valor" type="text" [(ngModel)]="valor" required /></label><label class="full"><span>Observación académica</span><textarea name="observacion" rows="3" [(ngModel)]="observacion"></textarea></label></div>@if(message){<p class="message" role="status">{{ message }}</p>}<div class="actions"><button type="button" class="ghost-button" (click)="recargar()">Cancelar</button><button type="submit" class="primary-button" [attr.aria-label]="'Guardar evaluación de ' + selectedName()">Guardar evaluación</button></div></form>
     </section>
   `,
   styles: `
-    .academic-workspace { display: grid; gap: 1rem; }.workspace-header,.selection-panel,.student-panel,.evaluation-editor,.active-period { background:#fff;border:1px solid #dbe5ef;border-radius:12px;padding:1.25rem }.workspace-header{display:flex;justify-content:space-between;align-items:center;gap:1rem}h2,h3,p{margin:0}.workspace-header p,.step-heading p{color:#667085;margin-top:.35rem}.eyebrow{color:#2f6b9a!important;text-transform:uppercase;letter-spacing:.12em;font-size:.74rem;font-weight:800}.active-period{display:flex;align-items:center;gap:.75rem;background:#eef7f0;border-color:#c8e2cd}.active-period__dot{width:10px;height:10px;border-radius:50%;background:#2e7d32}.active-period div{display:grid}.active-period>span:last-child{margin-left:auto;color:#47624c;font-size:.86rem}.step-heading{display:flex;align-items:flex-start;gap:.8rem;margin-bottom:1rem}.step-heading>span{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#1e3a5f;color:#fff;font-weight:800}.student-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.75rem}.student-card{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:.75rem;min-height:76px;padding:.8rem;border:1px solid #dbe5ef;border-radius:10px;background:#fff;text-align:left;cursor:pointer;color:#374151}.student-card:hover,.student-card--selected{border-color:#2f6b9a;background:#eaf3f8}.student-avatar{width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:#1e3a5f;color:#fff;font-weight:800}.student-card strong,.student-card small{display:block}.student-card small{color:#667085;margin-top:.2rem}.student-status{font-weight:800;color:#2f6b9a}.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}label{display:grid;gap:.45rem;font-weight:700}.editor-grid__full{grid-column:1/-1}.editor-actions{display:flex;justify-content:flex-end;gap:.75rem;margin-top:1rem}.success-message{margin-top:1rem;padding:.8rem;color:#245d29;background:#eef7f0;border-radius:8px}@media(max-width:680px){.workspace-header{align-items:flex-start;flex-direction:column}.editor-grid{grid-template-columns:1fr}.active-period>span:last-child{display:none}}
+    .work-page{display:grid;gap:.7rem;align-content:start}.page-header,.group-bar,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:1rem}.page-header h2,.page-header p:last-child,.section-heading h3,.section-heading p,.editor h3,.editor-context{margin:0}.page-header p:last-child,.section-heading p{margin-top:.3rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.context-summary{display:grid;text-align:right}.context-summary small{color:#667085}.context-summary strong{color:#238d78}.group-bar{background:#f2f7fa}.group-bar label{display:flex;align-items:center;gap:.7rem;font-weight:700}.group-bar select{min-width:220px}.group-bar>span{color:#667085;font-size:.85rem}.student-search{max-width:280px}.student-list{display:grid;gap:.4rem;margin-top:.8rem}.student-row{display:grid;grid-template-columns:1fr auto 45px;align-items:center;gap:1rem;padding:.65rem .75rem;border:1px solid #dbe5ef;border-radius:8px;background:#fff;text-align:left;cursor:pointer}.student-row:hover,.student-row.selected{border-color:#2f6b9a;background:#eaf3f8}.student-row strong,.student-row small{display:block}.student-row small{margin-top:.2rem;color:#667085;font-size:.8rem}.student-row .status{color:#667085;font-size:.82rem}.student-row b{text-align:right;color:#1e3a5f}.empty{color:#667085}.editor{border-left:5px solid #2f6b9a}.editor-context{margin-top:.25rem;color:#667085;font-size:.85rem}.editor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:.8rem}label{display:grid;gap:.3rem;font-weight:700}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:.7rem;margin-top:.7rem}.message{color:#238d78;font-weight:700}@media(max-width:700px){.page-header,.group-bar,.section-heading{align-items:stretch;flex-direction:column}.context-summary{text-align:left}.group-bar label{align-items:stretch;flex-direction:column}.group-bar select,.student-search{max-width:none;width:100%}.student-row{grid-template-columns:1fr auto}.student-row>b{display:none}.editor-grid{grid-template-columns:1fr}.full{grid-column:auto}}
   `,
 })
 export class EvaluacionesVistaComponent {
-   protected readonly section = '11-1'; protected readonly subject = 'historia';
-  protected readonly students = [{ name: 'José Luis Rodríguez Mora', id: '8-734-401', initials: 'JR', grade: '6' }, { name: 'María Fernanda Jiménez Vargas', id: '8-811-109', initials: 'MJ', grade: '4' }, { name: 'Carlos Eduardo Araya Rojas', id: '8-744-002', initials: 'CA', grade: '7' }];
+  protected readonly grupos = inject(GruposProfesorService);
+  private readonly datos = inject(PortalDatosService);
+  private readonly route = inject(ActivatedRoute);
+  protected readonly search = signal('');
+  protected selectedId = '';
+  protected valor = '';
+  protected observacion = '';
+  protected message = '';
+  protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], grade: this.datos.evaluacion(student.id).valor })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
+  protected readonly selectedName = computed(() => this.grupos.grupoActual()?.estudiantes.find((student) => student.id === this.selectedId)?.['nombre'] ?? 'Seleccione un estudiante');
+  protected readonly minimumValue = computed(() => this.grupos.grupoActual()?.escala === '1–100' ? '70' : this.grupos.grupoActual()?.escala === 'A–E' ? 'D' : '4');
+
+  constructor() { const query = this.route.snapshot.queryParamMap; this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo')); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.recargar(); }
+  protected cambiarGrupo(id: string): void { this.grupos.seleccionar(id); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.search.set(''); this.recargar(); }
+  protected seleccionar(id: string): void { this.selectedId = id; this.message = ''; this.recargar(); }
+  protected recargar(): void { const item = this.datos.evaluacion(this.selectedId); this.valor = item.valor; this.observacion = item.observacion; }
+  protected guardar(): void { if (!this.selectedId) return; this.datos.guardarEvaluacion({ estudianteId: this.selectedId, valor: String(this.valor), observacion: this.observacion.trim() }); this.message = 'Evaluación guardada correctamente.'; }
 }

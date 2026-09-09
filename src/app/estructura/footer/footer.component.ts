@@ -5,10 +5,10 @@ import { Component } from '@angular/core';
   template: `
     <footer class="footer">
       <span>© 2026 Instituto de Educación Dr. Clodomiro Picado</span>
-      <span>IET BI Portal</span>
+       <span class="footer__portal">IET BI Portal</span>
       <nav class="footer__links" aria-label="Enlaces de ayuda">
-        <a href="#">Ayuda</a>
-        <a href="#">Soporte</a>
+        <a href="mailto:soporte@institucion.edu?subject=Ayuda%20IET%20BI%20Portal">Ayuda</a>
+        <a href="mailto:soporte@institucion.edu">Soporte</a>
       </nav>
     </footer>
   `,
@@ -18,12 +18,12 @@ import { Component } from '@angular/core';
       justify-content: space-between;
       align-items: center;
       gap: 1rem;
-      padding: 1.25rem 0 0;
-      color: #6b7280;
-      font-size: 0.92rem;
-      flex-wrap: wrap;
-      border-top: 1px solid #e3ebf3;
-      margin-top: 1.25rem;
+       height: 34px;
+       padding: 0 1.5rem;
+       color: #8996a4;
+       background:#fff;
+       font-size: .68rem;
+       border-top: 1px solid #e5e8ec;
     }
 
     .footer__links {
@@ -32,9 +32,10 @@ import { Component } from '@angular/core';
     }
 
     .footer__links a {
-      color: #2f6b9a;
-      text-decoration: none;
-    }
+       color: #4099ff;
+       text-decoration: none;
+     }
+     @media(max-width:700px){.footer__portal{display:none}}
   `,
 })
 export class FooterComponent {}

@@ -5,16 +5,13 @@ import { Component, input } from '@angular/core';
   selector: 'app-alert-banner',
   imports: [CommonModule],
   template: `
-    <section class="surface alert" [class.alert--success]="tone() === 'success'" [class.alert--danger]="tone() === 'danger'">
+    <section class="alert portal-alert mb-0" [class.alert-success]="tone() === 'success'" [class.alert-danger]="tone() === 'danger'" [class.alert-info]="tone() === 'neutral'" role="status">
       <strong>{{ title() }}</strong>
       <p>{{ message() }}</p>
     </section>
   `,
   styles: `
-    .alert { display: grid; gap: 0.3rem; }
-    .alert strong, .alert p { margin: 0; }
-    .alert--success { border-left: 5px solid #2e7d32; }
-    .alert--danger { border-left: 5px solid #c62828; }
+    .portal-alert{display:grid;gap:.2rem;padding:.7rem .85rem;border:0;border-left:4px solid currentColor;border-radius:4px;font-size:.74rem}.portal-alert strong,.portal-alert p{margin:0}
   `,
 })
 export class AlertBannerComponent {

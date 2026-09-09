@@ -2,7 +2,7 @@ export type RolUsuario =
   | 'Administrador'
   | 'Profesor regular'
   | 'Profesor Guía'
-  | 'Coordinador de monografía';
+  | 'Profesor Coordinador de Monografía';
 
 export interface TarjetaEstadistica {
   label: string;
@@ -19,4 +19,6 @@ export interface ColumnaTabla {
 
 export interface AccionTabla {
   label: string;
+  code?: string;
+  tone?: 'default' | 'danger';
 }

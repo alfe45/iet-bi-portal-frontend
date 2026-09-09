@@ -1,153 +1,39 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, output } from '@angular/core';
 import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
 
 @Component({
   selector: 'app-header',
   template: `
-    <header class="topbar">
-      <div class="brand">
-        <img class="brand__logo" src="/logo-mep.jpg" alt="Logo del Ministerio de Educación Pública" />
-        <div class="brand__copy">
-          <p class="brand__institution">Instituto de Educación Dr. Clodomiro Picado</p>
-          <h1>IET BI Portal</h1>
-        </div>
-      </div>
-
-      <div class="topbar__actions" aria-label="Información de usuario">
-        <div class="current-role">
-          <span>Rol</span>
-          <strong>{{ roleLabel() }}</strong>
-        </div>
-
-        <div class="user-chip">
-          <div class="avatar">{{ avatar() }}</div>
-          <div>
-            <strong>{{ name() }}</strong>
-            <span>{{ username() }}</span>
-          </div>
-        </div>
-
-        <button type="button" class="logout-button" (click)="cerrarSesion()" aria-label="Cerrar la sesión actual">
-          <span aria-hidden="true">↪</span>
-          Cerrar sesión
-        </button>
+    <header class="pc-header">
+      <div class="brand"><img src="/logo-mep.jpg" alt="Logo del Ministerio de Educación Pública" /><div><strong>Instituto de Educación</strong><span>Dr. Clodomiro Picado</span></div></div>
+      <div class="header-actions">
+        <button type="button" class="menu-button" aria-label="Abrir menú principal" (click)="menuToggle.emit()"><span></span><span></span><span></span></button>
+        <div class="header-spacer"></div>
+         <div class="user"><span class="avatar">{{ avatar() }}</span><span class="user__copy"><strong>{{ name() }}</strong><small>{{ username() }}</small></span></div>
+        <button type="button" class="logout" (click)="cerrarSesion()" aria-label="Cerrar la sesión actual" title="Cerrar sesión">Salir</button>
       </div>
     </header>
   `,
   styles: `
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1.5rem;
-      padding: 1rem 1.25rem;
-      background: #ffffff;
-      color: #1e3a5f;
-      border-radius: 14px;
-      border: 1px solid rgba(47, 107, 154, 0.14);
-      box-shadow: 0 8px 26px rgba(30, 58, 95, 0.08);
-    }
-
-    .brand,
-    .topbar__actions,
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 0.9rem;
-    }
-
-    .brand__logo {
-      width: 66px;
-      height: 66px;
-      object-fit: contain;
-      border-radius: 18px;
-      background: #fff;
-      padding: 0.35rem;
-      border: 1px solid rgba(47, 107, 154, 0.12);
-    }
-
-    .avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 16px;
-      display: grid;
-      place-items: center;
-      font-weight: 700;
-      background: #eaf3f8;
-      color: #1e3a5f;
-      border: 1px solid rgba(47, 107, 154, 0.18);
-    }
-
-    .brand__institution,
-    .current-role span,
-    .user-chip span {
-      margin: 0;
-      font-size: 0.82rem;
-      color: #667085;
-    }
-
-    .brand__copy {
-      display: grid;
-      gap: 0.3rem;
-    }
-
-    .brand h1,
-    .current-role strong,
-    .user-chip strong {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .brand h1 {
-      font-size: 1.2rem;
-    }
-
-    .current-role {
-      padding: 0.7rem 0.9rem;
-      border-radius: 16px;
-      background: #f7fafc;
-      border: 1px solid #e4edf5;
-    }
-
-    .current-role,
-    .user-chip {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-    }
-
-    .logout-button {
-      min-height: 44px;
-      padding: 0.7rem 0.95rem;
-      border: 1px solid #d5e0ea;
-      border-radius: 9px;
-      background: #fff;
-      color: #1e3a5f;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .logout-button:hover { background: #f2f7fa; border-color: #2f6b9a; }
-
-    @media (max-width: 1100px) {
-      .topbar,
-      .topbar__actions {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-    }
+    :host { display: block; min-width: 0; z-index: 1030; }
+    .pc-header { height: 60px; display: grid; grid-template-columns: 245px minmax(0,1fr); color: #fff; background: linear-gradient(to right,#4099ff,#73b4ff); box-shadow: 0 1px 6px rgba(4,26,55,.18); }
+    .brand { display: flex; align-items: center; gap: .7rem; padding: 0 1rem; border-right: 1px solid rgba(255,255,255,.18); }
+    .brand img { width: 39px; height: 39px; object-fit: contain; border-radius: 8px; background: #fff; padding: 3px; }
+     .brand strong,.brand span,.user strong,.user small { display: block; }
+     .brand strong { font-size: .88rem; line-height: 1.1; }.brand span { font-size: .76rem; opacity: .82; }
+    .header-actions { min-width: 0; display: flex; align-items: center; gap: .85rem; padding: 0 1.25rem; }
+      .header-spacer { flex: 1; }.user small { font-size: .72rem; opacity: .8; }.user strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .86rem; }
+    .user { min-width: 0; display: flex; align-items: center; gap: .6rem; }.avatar { flex: 0 0 auto; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); font-weight: 600; }.user__copy { min-width: 0; max-width: 210px; }
+    .logout,.menu-button { height: 38px; border: 1px solid rgba(255,255,255,.32); border-radius: 4px; color: #fff; background: rgba(255,255,255,.12); font-weight: 600; }.logout { padding: 0 .8rem; }.menu-button { display: none; width: 40px; padding: 9px; }.menu-button span { display:block; height:2px; margin:4px 0; background:#fff; }
+    @media(max-width:1024px){.pc-header{grid-template-columns:minmax(0,1fr)}.brand{display:none}.menu-button{display:block}.header-actions{padding:0 .9rem}}
+     @media(max-width:700px){.user__copy{display:none}.header-actions{gap:.55rem}}
   `,
 })
 export class HeaderComponent {
   private readonly auth = inject(AutenticacionService);
-
-  protected readonly roleLabel = computed(() => this.auth.currentRole() ?? 'Sin rol');
-  protected readonly name = computed(() => ({ Administrador: 'Administración general', 'Profesor regular': 'Juan Gabriel Valverde Valverde', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Coordinador de monografía': 'Ana Lucía Solano Castro' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Invitado');
-  protected readonly username = computed(() => this.auth.currentRole() ? 'usuario.demostración' : 'sin sesión');
+  menuToggle = output<void>();
+  protected readonly name = computed(() => ({ Administrador: 'Administración general', 'Profesor regular': 'Juan Gabriel Valverde Valverde', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Profesor Coordinador de Monografía': 'Ana Lucía Solano Castro' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Invitado');
+  protected readonly username = computed(() => this.auth.currentUsername() || 'sin sesión');
   protected readonly avatar = computed(() => this.name().split(' ').map((part) => part[0]).slice(0, 2).join(''));
-
-  protected cerrarSesion(): void {
-    this.auth.cerrarSesion();
-  }
-
+  protected cerrarSesion(): void { this.auth.cerrarSesion(); }
 }
