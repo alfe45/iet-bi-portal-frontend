@@ -54,6 +54,7 @@ import { SidebarComponent } from './sidebar/sidebar.component';
     }
   `,
 })
+// Organiza la estructura general de la aplicación autenticada.
 export class EstructuraPrincipalComponent {
   private readonly router = inject(Router);
   private readonly currentUrl = toSignal(this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd), map((event) => event.urlAfterRedirects), startWith(this.router.url)), { initialValue: this.router.url });

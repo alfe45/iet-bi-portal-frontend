@@ -12,6 +12,7 @@ import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
     .page{display:grid;gap:1rem}.eyebrow{color:#2f6b9a!important;text-transform:uppercase;letter-spacing:.12em;font-size:.74rem;font-weight:800}h2,h3,p{margin:0}.layout{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:1rem;align-items:start}.results{display:grid;gap:.5rem}.result{display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:center;padding:.8rem;border:1px solid transparent;border-radius:9px;background:#fff;text-align:left;cursor:pointer}.result.selected{background:#eaf3f8;border-color:#b9d3e5}.result strong,.result small,.result em{display:block}.result small{color:#667085}.result em{color:#2f6b9a;font-style:normal}.avatar{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:#1e3a5f;color:#fff;font-weight:800}.history ol{display:grid;gap:1rem;padding-left:1.5rem}.history article{display:grid;gap:.5rem;padding:1rem;border:1px solid #dbe5ef;border-radius:10px}.history article>div{display:flex;justify-content:space-between}.history small{color:#667085}@media(max-width:800px){.layout{grid-template-columns:1fr}}
   `,
 })
+// Registra y consulta el seguimiento de estudiantes.
 export class SeguimientosVista {
   private readonly datos = inject(PortalDatosService);
   protected readonly monographs = computed(() => this.datos.monografias());

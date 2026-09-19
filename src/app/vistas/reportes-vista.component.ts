@@ -88,6 +88,7 @@ import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
     @media print { .pill-grid, app-header, app-sidebar, app-footer { display: none !important; } .surface { box-shadow: none; } }
   `,
 })
+// Coordina la consulta de reportes del portal.
 export class ReportesVistaComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly route = inject(ActivatedRoute);

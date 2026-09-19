@@ -41,6 +41,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     .empty-cell{text-align:center;color:#8996a4;padding:2rem!important}
   `,
 })
+// Presenta tablas reutilizables con sus acciones y estados.
 export class DataTableComponent {
   columns = input.required<TableColumn[]>();
   rows = input.required<Array<Record<string, unknown>>>();

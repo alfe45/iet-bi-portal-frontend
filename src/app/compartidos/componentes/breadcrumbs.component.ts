@@ -20,6 +20,7 @@ import { Component, input } from '@angular/core';
     .breadcrumbs__separator { color: #bec8d0; }
   `,
 })
+// Muestra la ruta de navegación de la vista actual.
 export class BreadcrumbsComponent {
   items = input.required<string[]>();
 }

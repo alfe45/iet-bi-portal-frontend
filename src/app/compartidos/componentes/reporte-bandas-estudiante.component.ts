@@ -132,6 +132,7 @@ export interface DocumentoReporteBandas {
     }
   `,
 })
+// Genera la vista de bandas de rendimiento de un estudiante.
 export class ReporteBandasEstudianteComponent {
   report = input.required<DocumentoReporteBandas>();
 }

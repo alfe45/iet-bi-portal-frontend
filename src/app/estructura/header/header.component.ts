@@ -29,6 +29,7 @@ import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.s
      @media(max-width:700px){.user__copy{display:none}.header-actions{gap:.55rem}}
   `,
 })
+// Muestra la barra superior y las acciones de la sesión actual.
 export class HeaderComponent {
   private readonly auth = inject(AutenticacionService);
   menuToggle = output<void>();

@@ -12,6 +12,7 @@ export interface GrupoTrabajo {
 }
 
 @Injectable({ providedIn: 'root' })
+// Construye los grupos de trabajo disponibles para el profesor autenticado.
 export class GruposProfesorService {
   private readonly auth = inject(AutenticacionService);
   private readonly datos = inject(PortalDatosService);

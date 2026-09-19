@@ -4,6 +4,7 @@ import { inject } from '@angular/core';
 import { RolUsuario } from '../modelos/modelos-prototipo';
 
 @Injectable({ providedIn: 'root' })
+// Gestiona la sesión local y la información básica del usuario autenticado.
 export class AutenticacionService {
   private readonly router = inject(Router);
   private readonly sessionKey = 'iet-bi-portal:sesion:v1';

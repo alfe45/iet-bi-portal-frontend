@@ -59,6 +59,7 @@ import { PortalDatosService, RegistroPortal } from '../nucleo/datos/portal-datos
     }
   `,
 })
+// Genera reportes de rendimiento por bandas.
 export class ReportesBandasVistaComponent {
   private readonly datos = inject(PortalDatosService);
   private readonly auth = inject(AutenticacionService);

@@ -52,6 +52,7 @@ import { RouterLink } from '@angular/router';
       @media (max-width: 700px) { .teacher-summary { align-items: flex-start; flex-direction: column; }.summary-counts { justify-content: flex-start; }.summary-counts span + span { padding-left: .65rem; }.quick-grid { grid-template-columns: 1fr; }.assignment-row { align-items: flex-start; flex-direction: column; }.assignment-row .ghost-button { align-self: stretch; } }
   `,
 })
+// Presenta el resumen principal del portal.
 export class TableroVistaComponent {
    private readonly auth = inject(AutenticacionService);
    private readonly datos = inject(PortalDatosService);

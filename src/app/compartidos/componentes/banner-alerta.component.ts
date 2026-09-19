@@ -14,6 +14,7 @@ import { Component, input } from '@angular/core';
     .portal-alert{display:grid;gap:.2rem;padding:.7rem .85rem;border:0;border-left:4px solid currentColor;border-radius:4px;font-size:.74rem}.portal-alert strong,.portal-alert p{margin:0}
   `,
 })
+// Muestra mensajes informativos, de éxito o de error.
 export class AlertBannerComponent {
   title = input('Aviso');
   message = input.required<string>();

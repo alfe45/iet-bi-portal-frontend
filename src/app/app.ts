@@ -6,4 +6,5 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   template: '<router-outlet />',
 })
+// Componente raíz de la aplicación.
 export class App {}

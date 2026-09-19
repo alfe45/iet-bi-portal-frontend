@@ -38,4 +38,5 @@ import { Component } from '@angular/core';
      @media(max-width:700px){.footer__portal{display:none}}
   `,
 })
+// Muestra el pie común de la aplicación.
 export class FooterComponent {}

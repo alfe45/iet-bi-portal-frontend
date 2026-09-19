@@ -37,6 +37,7 @@ import { Location } from '@angular/common';
     .profile-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
   `,
 })
+// Permite consultar la información del perfil activo.
 export class PerfilVistaComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly location = inject(Location);

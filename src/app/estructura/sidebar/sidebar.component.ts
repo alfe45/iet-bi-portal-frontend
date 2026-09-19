@@ -148,6 +148,7 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
     }
   `,
 })
+// Construye la navegación lateral según el rol del usuario.
 export class SidebarComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly grupos = inject(GruposProfesorService);

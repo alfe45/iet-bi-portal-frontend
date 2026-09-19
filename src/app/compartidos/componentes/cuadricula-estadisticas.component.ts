@@ -22,6 +22,7 @@ import { TarjetaEstadistica as StatCard } from '../../nucleo/modelos/modelos-pro
     .stat-card strong { font-size:1.55rem; line-height:1.15; color:#fff; }.stat-card span,.stat-card small{color:rgba(255,255,255,.85);font-size:.7rem}.stat-card--success{background:linear-gradient(45deg,#20b99a,#56e3c7)}.stat-card--danger{background:linear-gradient(45deg,#ef4765,#ff8298)}.stat-card--primary{background:linear-gradient(45deg,#4099ff,#73b4ff)}
   `,
 })
+// Presenta un conjunto de indicadores resumidos.
 export class StatGridComponent {
   cards = input.required<StatCard[]>();
 }

@@ -160,6 +160,7 @@ const ESTADO_INICIAL: EstadoPortal = {
 };
 
 @Injectable({ providedIn: 'root' })
+// Mantiene los registros locales usados por las vistas que todavía no tienen API.
 export class PortalDatosService {
   private readonly estado = signal<EstadoPortal>(this.cargar());
 
