@@ -12,3 +12,9 @@ node_modules/
 AGENTS.md
 CLAUDE.md
 GEMINI.md
+
+coverage/
+*.log
+.idea/
+skills-lock.json
+SKILL.md
