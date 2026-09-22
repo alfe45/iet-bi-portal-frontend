@@ -89,6 +89,17 @@ export interface CasStudentLocal {
   observaciones: string;
 }
 
+export type RolCas = 'Sin asignación CAS' | 'Profesor CAS' | 'Profesor Coordinador de CAS';
+export type ResponsabilidadProfesor = 'Profesor CAS' | 'Profesor Coordinador de CAS' | 'Profesor Guía';
+
+export interface AsignacionResponsabilidadLocal {
+  id: string;
+  cedula: string;
+  profesor: string;
+  responsabilidad: ResponsabilidadProfesor;
+  seccion?: string;
+}
+
 interface EstadoPortal {
   version: 4;
   registros: Record<FuncionalidadAdministrativa, RegistroPortal[]>;
@@ -96,6 +107,8 @@ interface EstadoPortal {
   ausentismo: AusentismoLocal[];
   monografias: MonografiaLocal[];
   cas: CasStudentLocal[];
+  rolesCas?: Record<string, RolCas>;
+  asignacionesResponsabilidad?: AsignacionResponsabilidadLocal[];
   enviosRegistro?: Array<{ grupoId: string; periodo: string; fecha: string }>;
 }
 
@@ -290,6 +303,84 @@ export class PortalDatosService {
 
   guardarCasEstudiante(student: CasStudentLocal): void {
     this.actualizar((estado) => ({ ...estado, cas: estado.cas.map((item) => item.id === student.id ? structuredClone(student) : item) }));
+  }
+
+  rolCasDeProfesor(cedula: string): RolCas {
+    return this.estado().rolesCas?.[cedula] ?? 'Sin asignación CAS';
+  }
+
+  guardarRolCas(cedula: string, rol: RolCas, cedulaAnterior?: string): void {
+    this.actualizar((estado) => {
+      const rolesCas = { ...(estado.rolesCas ?? {}) };
+      if (cedulaAnterior && cedulaAnterior !== cedula) delete rolesCas[cedulaAnterior];
+      if (rol === 'Sin asignación CAS') delete rolesCas[cedula];
+      else rolesCas[cedula] = rol;
+      return { ...estado, rolesCas };
+    });
+  }
+
+  eliminarRolCas(cedula: string): void {
+    this.actualizar((estado) => {
+      const rolesCas = { ...(estado.rolesCas ?? {}) };
+      delete rolesCas[cedula];
+      return { ...estado, rolesCas };
+    });
+  }
+
+  asignacionesResponsabilidad(): AsignacionResponsabilidadLocal[] {
+    return this.estado().asignacionesResponsabilidad ?? [];
+  }
+
+  guardarAsignacionResponsabilidad(asignacion: AsignacionResponsabilidadLocal): void {
+    if ((asignacion.responsabilidad === 'Profesor CAS' || asignacion.responsabilidad === 'Profesor Guía') && !asignacion.seccion) return;
+    this.actualizar((estado) => {
+      let asignaciones = [...(estado.asignacionesResponsabilidad ?? [])];
+      if (asignacion.responsabilidad === 'Profesor CAS' || asignacion.responsabilidad === 'Profesor Coordinador de CAS') {
+        asignaciones = asignaciones.filter((item) => item.cedula !== asignacion.cedula || (item.responsabilidad !== 'Profesor CAS' && item.responsabilidad !== 'Profesor Coordinador de CAS'));
+      }
+      if (asignacion.responsabilidad === 'Profesor Guía' && asignacion.seccion) {
+        asignaciones = asignaciones.filter((item) => item.responsabilidad !== 'Profesor Guía' || item.seccion !== asignacion.seccion || item.id === asignacion.id);
+      }
+      asignaciones = asignaciones.filter((item) => item.id !== asignacion.id);
+      asignaciones.push(structuredClone(asignacion));
+      const rolesCas = { ...(estado.rolesCas ?? {}) };
+      if (asignacion.responsabilidad === 'Profesor CAS' || asignacion.responsabilidad === 'Profesor Coordinador de CAS') rolesCas[asignacion.cedula] = asignacion.responsabilidad;
+      return { ...estado, rolesCas, asignacionesResponsabilidad: asignaciones };
+    });
+  }
+
+  eliminarAsignacionResponsabilidad(id: string): void {
+    this.actualizar((estado) => {
+      const asignacion = (estado.asignacionesResponsabilidad ?? []).find((item) => item.id === id);
+      const asignacionesResponsabilidad = (estado.asignacionesResponsabilidad ?? []).filter((item) => item.id !== id);
+      const rolesCas = { ...(estado.rolesCas ?? {}) };
+      if (asignacion && (asignacion.responsabilidad === 'Profesor CAS' || asignacion.responsabilidad === 'Profesor Coordinador de CAS')) delete rolesCas[asignacion.cedula];
+      return { ...estado, rolesCas, asignacionesResponsabilidad };
+    });
+  }
+
+  eliminarAsignacionesDeProfesor(cedula: string): void {
+    this.actualizar((estado) => {
+      const asignacionesResponsabilidad = (estado.asignacionesResponsabilidad ?? []).filter((item) => item.cedula !== cedula);
+      const rolesCas = { ...(estado.rolesCas ?? {}) };
+      delete rolesCas[cedula];
+      return { ...estado, rolesCas, asignacionesResponsabilidad };
+    });
+  }
+
+  responsabilidadUnicaDeProfesor(cedula: string): ResponsabilidadProfesor | '' {
+    const roles = [...new Set(this.asignacionesResponsabilidad().filter((item) => item.cedula === cedula).map((item) => item.responsabilidad))];
+    if (roles.length === 1) return roles[0];
+    const rolCas = this.rolCasDeProfesor(cedula);
+    return rolCas === 'Sin asignación CAS' ? '' : rolCas;
+  }
+
+  seccionesGuiadasPorProfesor(profesor: string): string[] {
+    return this.asignacionesResponsabilidad().filter((item) => item.responsabilidad === 'Profesor Guía' && item.profesor === profesor).map((item) => item.seccion ?? '').filter(Boolean);
+  }
+
+  seccionCasDeProfesor(cedula: string): string {
+    return this.asignacionesResponsabilidad().find((item) => item.cedula === cedula && item.responsabilidad === 'Profesor CAS')?.seccion ?? '';
   }
 
   monografia(id: string): MonografiaLocal | undefined {

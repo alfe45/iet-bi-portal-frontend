@@ -23,6 +23,8 @@ export class GruposProfesorService {
     const username = this.auth.currentUsername();
     const known = this.datos.listar('profesores').find((item) => item['nombre'] === username)?.['nombre'];
     if (known) return known;
+    const assigned = this.datos.asignacionesResponsabilidad().find((item) => item.cedula === username)?.profesor;
+    if (assigned) return assigned;
     return this.datos.listar('asignaciones').find((item) => item['periodo'] === this.periodoActivo())?.['profesor'] ?? username;
   });
   readonly grupos = computed<GrupoTrabajo[]>(() => this.datos.listar('asignaciones')

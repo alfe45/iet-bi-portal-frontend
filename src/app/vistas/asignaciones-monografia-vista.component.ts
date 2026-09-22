@@ -7,7 +7,7 @@ import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-dato
   imports: [FormsModule],
   template: `
     <section class="assignment-page" aria-labelledby="assignment-title">
-      <header class="surface page-header"><div><p class="eyebrow">Administración</p><h2 id="assignment-title">Asignaciones de monografía</h2><p>Enlace cada estudiante con su proyecto y Profesor Coordinador de Monografía.</p></div><button type="button" class="primary-button" (click)="nuevo()">Asignar monografía</button></header>
+      <header class="surface page-header"><div><p class="eyebrow">Administración</p><h2 id="assignment-title">Asignación de monografía</h2><p>Enlace cada estudiante con su proyecto y Profesor Coordinador de Monografía.</p></div><button type="button" class="primary-button" (click)="nuevo()">Asignar monografía</button></header>
       <section class="surface assignment-list"><div class="table-head"><strong>Estudiante</strong><strong>Proyecto</strong><strong>Área</strong><strong>Profesor Coordinador</strong><strong></strong></div>
         @for (item of monographs(); track item.id) {<div class="assignment-row"><div><strong>{{ item.estudiante }}</strong><small>{{ item.estado }}</small></div><span>{{ item.titulo }}</span><span>{{ item.area }}</span><span>{{ item.coordinador }}</span><button type="button" class="ghost-button" (click)="editar(item)">Editar</button></div>}
         @empty {<p class="empty">No hay asignaciones de monografía.</p>}

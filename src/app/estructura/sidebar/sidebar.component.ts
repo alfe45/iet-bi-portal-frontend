@@ -70,13 +70,21 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
 
     .sidebar__nav {
        min-height: 0;
-       overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: .8rem;
-      padding: .8rem 0;
-      overscroll-behavior: contain;
+       overflow-x: hidden;
+       overflow-y: auto;
+       scrollbar-width: thin;
+       scrollbar-color: #b9cfe4 transparent;
+       display: flex;
+       flex-direction: column;
+       gap: .8rem;
+       padding: .8rem 0;
+       overscroll-behavior: contain;
     }
+
+    .sidebar__nav::-webkit-scrollbar { width: 8px; }
+    .sidebar__nav::-webkit-scrollbar-track { background: transparent; }
+    .sidebar__nav::-webkit-scrollbar-thumb { border: 2px solid #fff; border-radius: 999px; background: #b9cfe4; }
+    .sidebar__nav::-webkit-scrollbar-thumb:hover { background: #4099ff; }
 
     .sidebar__group {
       display: grid;
@@ -165,7 +173,7 @@ export class SidebarComponent {
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
     const role = this.auth.currentRole();
     const menus: Record<string, typeof common> = {
-       Administrador: [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Periodos académicos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Escalas', path: '/escalas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignaciones académicas', path: '/asignaciones' }, { label: 'Asignaciones de monografía', path: '/asignaciones-monografia' }] }],
+        Administrador: [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Periodos académicos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Escalas', path: '/escalas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación académica', path: '/asignaciones' }, { label: 'Asignación de monografía', path: '/asignaciones-monografia' }, { label: 'Asignación CAS', path: '/asignaciones-cas' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }] }],
        'Profesor regular': [...common, teacherWork, academicRecord, communication, account],
            'Profesor Guía': [...common, teacherWork, academicRecord, communication, { title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }] }, account],
         'Profesor Coordinador de Monografía': [...common, teacherWork, academicRecord, communication, { title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] }, account],

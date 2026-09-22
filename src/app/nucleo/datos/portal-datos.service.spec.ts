@@ -62,4 +62,24 @@ describe('PortalDatosService', () => {
 
     expect(new PortalDatosService().monografia('M-301')?.seguimientos.at(-1)?.observacion).toBe('Nuevo avance');
   });
+
+  it('persists and removes a CAS role assigned to a professor', () => {
+    const service = new PortalDatosService();
+    service.guardarRolCas('8-700-101', 'Profesor Coordinador de CAS');
+
+    expect(new PortalDatosService().rolCasDeProfesor('8-700-101')).toBe('Profesor Coordinador de CAS');
+
+    service.guardarRolCas('8-700-101', 'Sin asignación CAS');
+    expect(new PortalDatosService().rolCasDeProfesor('8-700-101')).toBe('Sin asignación CAS');
+  });
+
+  it('keeps CAS and guide assignments as separate responsibilities', () => {
+    const service = new PortalDatosService();
+    service.guardarAsignacionResponsabilidad({ id: 'RESP-CAS', cedula: '8-700-101', profesor: 'Juan Gabriel Valverde Valverde', responsabilidad: 'Profesor CAS', seccion: '11-1' });
+    service.guardarAsignacionResponsabilidad({ id: 'RESP-GUIA', cedula: '8-700-101', profesor: 'Juan Gabriel Valverde Valverde', responsabilidad: 'Profesor Guía', seccion: '11-1' });
+
+    expect(service.asignacionesResponsabilidad()).toHaveLength(2);
+    expect(service.rolCasDeProfesor('8-700-101')).toBe('Profesor CAS');
+    expect(service.seccionesGuiadasPorProfesor('Juan Gabriel Valverde Valverde')).toEqual(['11-1']);
+  });
 });
