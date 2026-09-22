@@ -1,0 +1,401 @@
+import { Injectable, signal } from '@angular/core';
+
+export type FuncionalidadAdministrativa =
+  | 'usuarios'
+  | 'profesores'
+  | 'estudiantes'
+  | 'periodos'
+  | 'secciones'
+  | 'matriculas'
+  | 'escalas'
+  | 'asignaturas'
+  | 'asignaciones';
+
+export interface RegistroPortal {
+  id: string;
+  [key: string]: string;
+}
+
+export interface EvaluacionLocal {
+  estudianteId: string;
+  valor: string;
+  observacion: string;
+  asignatura?: string;
+  seccion?: string;
+  periodo?: string;
+}
+
+export interface AusentismoLocal {
+  estudianteId: string;
+  tardias: number;
+  justificadas: number;
+  injustificadas: number;
+  asignatura?: string;
+  seccion?: string;
+  periodo?: string;
+}
+
+export interface SeguimientoLocal {
+  id: string;
+  fecha: string;
+  estado: string;
+  observacion: string;
+  profesor: string;
+}
+
+export interface MonografiaLocal {
+  id: string;
+  estudiante: string;
+  titulo: string;
+  area: string;
+  coordinador: string;
+  estado: string;
+  fechaInicio: string;
+  descripcion: string;
+  observacionReporte?: string;
+  fechaInforme?: string;
+  informeEnviado?: boolean;
+  fechaEnvioInforme?: string;
+  mensajeEnvioInforme?: string;
+  seguimientos: SeguimientoLocal[];
+}
+
+export interface CasActivityLocal {
+  id: string;
+  proyecto: string;
+  fechas: string[];
+  creatividad: boolean;
+  actividad: boolean;
+  servicio: boolean;
+  resultados: boolean[];
+  carpeta: boolean;
+  reflexion: boolean;
+  pruebas: boolean;
+}
+
+export interface CasStudentLocal {
+  id: string;
+  estudiante: string;
+  seccion: string;
+  correo: string;
+  profesorCas: string;
+  periodo: string;
+  actividades: CasActivityLocal[];
+  perfil: boolean;
+  entrevistaI: boolean;
+  entrevistaII: boolean;
+  entrevistaIII: boolean;
+  entrevistaFinal: boolean;
+  observaciones: string;
+}
+
+interface EstadoPortal {
+  version: 4;
+  registros: Record<FuncionalidadAdministrativa, RegistroPortal[]>;
+  evaluaciones: EvaluacionLocal[];
+  ausentismo: AusentismoLocal[];
+  monografias: MonografiaLocal[];
+  cas: CasStudentLocal[];
+  enviosRegistro?: Array<{ grupoId: string; periodo: string; fecha: string }>;
+}
+
+const STORAGE_KEY = 'iet-bi-portal:datos:v4';
+
+const NOMBRES_ESTUDIANTES_DEMO = [
+  'Andrea Sofía Vargas Solano', 'Valeria Fernanda Mora Jiménez', 'Daniel Alejandro Chaves Rojas', 'Camila Isabel Brenes Castro', 'Sebastián Andrés Quesada León',
+  'Natalia Gabriela Zúñiga Arias', 'Mateo Esteban Villalobos Rojas', 'Mariana José Porras Méndez', 'Emiliano David Salazar Cordero', 'Luciana María Alfaro Vargas',
+  'Gabriel Antonio Calderón Soto', 'Isabella Valentina Hernández Mora', 'Santiago José Roldán Jiménez', 'Paula Andrea Carvajal Solís', 'Tomás Ignacio Méndez Ramírez',
+  'Daniela Beatriz Arias Cordero', 'Nicolás Eduardo Sandí Vargas', 'María José Obando Castro', 'Luis Fernando Céspedes Rojas', 'Sofía Alejandra Montero León',
+  'Juan Diego Madrigal Solano', 'Ana Lucía Chacón Méndez', 'Álvaro Sebastián Segura Jiménez', 'Victoria Elena Salas Brenes', 'Marco Antonio Ureña Vargas',
+  'Gabriela María Corrales Soto', 'José Manuel Retana Castro', 'Fernanda Isabel Valverde Mora', 'Carlos Andrés Rojas Quesada', 'Laura Valentina Esquivel Arias',
+  'Mauricio Adrián Fonseca Solano', 'Pía Carolina Cordero Jiménez', 'Esteban Rafael Naranjo Vargas', 'Karla María Hidalgo Rojas', 'Rodrigo Alberto Céspedes Mora',
+];
+
+const ESTUDIANTES_DEMO: RegistroPortal[] = [
+  { id: 'E-001', nombre: 'José Luis Rodríguez Mora', cedula: '8-734-401', seccion: '11-1', correo: 'jose.rodriguez@estudiante.edu', estado: 'Activo' },
+  { id: 'E-002', nombre: 'María Fernanda Jiménez Vargas', cedula: '8-811-109', seccion: '11-1', correo: 'maria.jimenez@estudiante.edu', estado: 'Activo' },
+  { id: 'E-003', nombre: 'Carlos Eduardo Araya Rojas', cedula: '8-744-002', seccion: '11-1', correo: 'carlos.araya@estudiante.edu', estado: 'Activo' },
+  { id: 'E-004', nombre: 'Sofía Valeria Cordero Méndez', cedula: '8-755-018', seccion: '11-2', correo: 'sofia.cordero@estudiante.edu', estado: 'Activo' },
+  { id: 'E-005', nombre: 'Diego Andrés Solís Vargas', cedula: '8-766-024', seccion: '11-2', correo: 'diego.solis@estudiante.edu', estado: 'Activo' },
+  ...Array.from({ length: 35 }, (_, index) => {
+    const number = index + 6;
+    const section = number <= 22 ? '11-1' : '11-2';
+    return { id: `E-${String(number).padStart(3, '0')}`, nombre: NOMBRES_ESTUDIANTES_DEMO[index], cedula: `8-${String(800 + number).padStart(3, '0')}-${String(400 + number).padStart(3, '0')}`, seccion: section, correo: `estudiante${number}@estudiante.edu`, estado: 'Activo' };
+  }),
+];
+
+const EVALUACIONES_DEMO: EvaluacionLocal[] = ESTUDIANTES_DEMO.map((student, index) => ({
+  estudianteId: student.id,
+  valor: String(4 + (index % 4)),
+  observacion: index % 4 === 0 ? 'Desempeño sobresaliente.' : index % 4 === 1 ? 'Buen avance en los aprendizajes.' : index % 4 === 2 ? 'Debe reforzar algunos contenidos.' : 'Cumple con los objetivos del periodo.',
+}));
+
+const AUSENTISMO_DEMO: AusentismoLocal[] = ESTUDIANTES_DEMO.map((student, index) => ({
+  estudianteId: student.id,
+  tardias: index % 4 === 0 ? 0 : index % 4,
+  justificadas: index % 5 === 0 ? 1 : 0,
+  injustificadas: index % 7 === 0 ? 1 : 0,
+}));
+
+const CAS_PROFESORES_DEMO = ['Efraín Aguilar Madriz', 'Laura Vanessa Quirós Brenes'];
+const casActivity = (id: string): CasActivityLocal => ({ id, proyecto: '', fechas: ['', ''], creatividad: false, actividad: false, servicio: false, resultados: Array.from({ length: 7 }, () => false), carpeta: false, reflexion: false, pruebas: false });
+const CAS_DEMO: CasStudentLocal[] = [
+  { id: 'CAS-001', estudiante: 'José Luis Rodríguez Mora', seccion: '11-1', correo: 'jose.rodriguez@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[0], periodo: 'I SEMESTRE 2026', actividades: [{ ...casActivity('CAS-001-1'), proyecto: 'Recibimiento de los 12° BI', fechas: ['06-03', ''], actividad: true, resultados: [true, true, false, false, false, true, false], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-2'), proyecto: 'Trabajo de zona verde costado norte del IET', fechas: ['13-03', ''], actividad: true, servicio: true, resultados: [false, true, false, true, true, false, true], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-3'), proyecto: 'Trabajo de zona verde frente al comedor IET', fechas: ['20-03', ''], actividad: true, servicio: true, resultados: [false, true, false, true, true, false, true], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-4'), proyecto: 'Recibimiento de exposición de Carpetas de CAS 12°', fechas: ['27-03', ''], creatividad: true, actividad: true, resultados: [true, true, false, false, false, false, true], carpeta: true, reflexion: true, pruebas: true }], perfil: true, entrevistaI: true, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+  { id: 'CAS-002', estudiante: 'María Fernanda Jiménez Vargas', seccion: '11-1', correo: 'maria.jimenez@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[1], periodo: 'I SEMESTRE 2026', actividades: [casActivity('CAS-002-1')], perfil: false, entrevistaI: false, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+  { id: 'CAS-003', estudiante: 'Carlos Eduardo Araya Rojas', seccion: '11-2', correo: 'carlos.araya@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[0], periodo: 'I SEMESTRE 2026', actividades: [casActivity('CAS-003-1')], perfil: false, entrevistaI: false, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+];
+
+EVALUACIONES_DEMO[0] = { estudianteId: 'E-001', valor: '6', observacion: 'Buen análisis de fuentes.' };
+EVALUACIONES_DEMO[1] = { estudianteId: 'E-002', valor: '4', observacion: 'Debe reforzar el análisis.' };
+EVALUACIONES_DEMO[2] = { estudianteId: 'E-003', valor: '7', observacion: 'Desempeño sobresaliente.' };
+
+const ESTADO_INICIAL: EstadoPortal = {
+  version: 4,
+  registros: {
+    usuarios: [
+      { id: 'U-001', nombre: 'Administración general', descripcion: 'Usuario administrador', estado: 'Activo' },
+      { id: 'U-002', nombre: 'Juan Gabriel Valverde Valverde', descripcion: 'Profesor regular', estado: 'Activo' },
+    ],
+    profesores: [
+      { id: 'P-001', nombre: 'Juan Gabriel Valverde Valverde', cedula: '8-700-101', correo: 'juan.valverde@institucion.edu', estado: 'Activo' },
+      { id: 'P-002', nombre: 'Laura Vanessa Quirós Brenes', cedula: '8-701-102', correo: 'laura.quiros@institucion.edu', estado: 'Activo' },
+      { id: 'P-003', nombre: 'Ana Lucía Solano Castro', cedula: '8-702-103', correo: 'ana.solano@institucion.edu', estado: 'Activo' },
+    ],
+    estudiantes: ESTUDIANTES_DEMO,
+    periodos: [{ id: 'PER-2026-2', nombre: 'Segundo semestre 2026', descripcion: 'Periodo académico vigente', estado: 'Activo' }],
+     secciones: [{ id: 'SEC-11-1', nombre: '11-1', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }, { id: 'SEC-11-2', nombre: '11-2', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }],
+    matriculas: ESTUDIANTES_DEMO.map((student, index) => ({ id: `MAT-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], periodo: 'Segundo semestre 2026', estado: 'Activa' })),
+    escalas: [
+      { id: 'ESC-1-7', nombre: 'Escala 1 a 7', rango: '1-7', estado: 'Activa' },
+      { id: 'ESC-1-100', nombre: 'Escala 1 a 100', rango: '1-100', estado: 'Activa' },
+      { id: 'ESC-A-E', nombre: 'Escala A a E', rango: 'A-E', estado: 'Activa' },
+    ],
+    asignaturas: [
+      { id: 'ASG-HIS', nombre: 'Historia', descripcion: 'Procesos históricos contemporáneos', escala: '1-7', estado: 'Activa' },
+      { id: 'ASG-MAT', nombre: 'Matemática AI', descripcion: 'Resolución de problemas y pensamiento lógico', escala: '1-100', estado: 'Activa' },
+      { id: 'ASG-ESS', nombre: 'Estudios Sociales', descripcion: 'Análisis de contexto social y ciudadanía', escala: '1-100', estado: 'Activa' },
+      { id: 'ASG-CIV', nombre: 'Cívica', descripcion: 'Ciudadanía, convivencia y participación democrática', escala: '1-100', estado: 'Activa' },
+      { id: 'ASG-LIT', nombre: 'Literatura', descripcion: 'Lectura, análisis y producción literaria', escala: '1-7', estado: 'Activa' },
+      { id: 'ASG-SDI', nombre: 'Sociedad Digital', descripcion: 'Cultura, comunicación y ciudadanía digital', escala: '1-7', estado: 'Activa' },
+      { id: 'ASG-BIO', nombre: 'Biología', descripcion: 'Estudio de los seres vivos y sus procesos', escala: '1-7', estado: 'Activa' },
+      { id: 'ASG-LEN', nombre: 'Lengua B', descripcion: 'Competencias comunicativas y producción escrita', escala: '1-7', estado: 'Activa' },
+      { id: 'ASG-TDC', nombre: 'Teoría del Conocimiento', descripcion: 'Investigación y pensamiento crítico', escala: 'A-E', estado: 'Activa' },
+    ],
+    asignaciones: [
+      { id: 'ACA-001', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Historia', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+       { id: 'ACA-002', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Estudios Sociales', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+       { id: 'ACA-004', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Historia', seccion: '11-2', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+      { id: 'ACA-003', profesor: 'Laura Vanessa Quirós Brenes', asignatura: 'Teoría del Conocimiento', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+    ],
+  },
+  evaluaciones: EVALUACIONES_DEMO,
+  ausentismo: AUSENTISMO_DEMO,
+  cas: CAS_DEMO,
+   monografias: [
+     { id: 'M-301', estudiante: 'José Luis Rodríguez Mora', titulo: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', coordinador: 'Ana Lucía Solano Castro', estado: 'En desarrollo', fechaInicio: '2026-08-05', descripcion: 'Monografía enfocada en la construcción de la pregunta de investigación y la introducción del trabajo escrito.', observacionReporte: 'Se presenta a las sesiones de coordinación con puntualidad.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-001', fecha: '2026-08-22', estado: 'Revisado', observacion: 'Se presenta a las sesiones de coordinación con puntualidad.', profesor: 'Ana Lucía Solano Castro' }] },
+     { id: 'M-204', estudiante: 'María Fernanda Jiménez Vargas', titulo: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', coordinador: 'Ana Lucía Solano Castro', estado: 'Aprobada', fechaInicio: '2026-07-18', descripcion: 'Análisis de prácticas sostenibles aplicables a la institución.', observacionReporte: 'Marco teórico revisado y proyecto aprobado.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-002', fecha: '2026-08-01', estado: 'Revisado', observacion: 'Marco teórico revisado.', profesor: 'Ana Lucía Solano Castro' }] },
+     { id: 'M-101', estudiante: 'Carlos Eduardo Araya Rojas', titulo: 'Impacto social de la lectura digital', area: 'Teoría del Conocimiento', coordinador: 'Ana Lucía Solano Castro', estado: 'En desarrollo', fechaInicio: '2026-08-08', descripcion: 'Estudio sobre hábitos de lectura en medios digitales.', observacionReporte: 'Pendiente validar los instrumentos de investigación.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-003', fecha: '2026-08-22', estado: 'Pendiente', observacion: 'Pendiente validar los instrumentos.', profesor: 'Ana Lucía Solano Castro' }] },
+  ],
+};
+
+@Injectable({ providedIn: 'root' })
+// Mantiene los registros locales usados por las vistas que todavía no tienen API.
+export class PortalDatosService {
+  private readonly estado = signal<EstadoPortal>(this.cargar());
+
+  listar(funcionalidad: FuncionalidadAdministrativa): RegistroPortal[] {
+    return this.estado().registros[funcionalidad];
+  }
+
+  guardarRegistro(funcionalidad: FuncionalidadAdministrativa, valores: Record<string, string>, id?: string): string {
+    const registroId = id ?? this.nuevoId(funcionalidad.slice(0, 3).toUpperCase());
+    this.actualizar((estado) => ({
+      ...estado,
+      registros: {
+        ...estado.registros,
+        [funcionalidad]: id
+          ? estado.registros[funcionalidad].map((registro) => registro.id === id ? { ...registro, ...valores, id } : registro)
+          : [...estado.registros[funcionalidad], { ...valores, id: registroId }],
+      },
+    }));
+    return registroId;
+  }
+
+  eliminarRegistro(funcionalidad: FuncionalidadAdministrativa, id: string): void {
+    this.actualizar((estado) => ({ ...estado, registros: { ...estado.registros, [funcionalidad]: estado.registros[funcionalidad].filter((registro) => registro.id !== id) } }));
+  }
+
+  estudiantes(): RegistroPortal[] {
+    return this.listar('estudiantes');
+  }
+
+  evaluacion(estudianteId: string): EvaluacionLocal {
+    return this.estado().evaluaciones.find((item) => item.estudianteId === estudianteId) ?? { estudianteId, valor: '', observacion: '' };
+  }
+
+  evaluacionDeGrupo(estudianteId: string, grupo: { asignatura: string; seccion: string; periodo: string }): EvaluacionLocal {
+    return this.estado().evaluaciones.find((item) => item.estudianteId === estudianteId && item.asignatura === grupo.asignatura && item.seccion === grupo.seccion && item.periodo === grupo.periodo)
+      ?? this.estado().evaluaciones.find((item) => item.estudianteId === estudianteId && !item.asignatura)
+      ?? { estudianteId, valor: '', observacion: '' };
+  }
+
+  guardarEvaluacion(evaluacion: EvaluacionLocal): void {
+    this.actualizar((estado) => ({ ...estado, evaluaciones: this.upsert(estado.evaluaciones, evaluacion, 'estudianteId') }));
+  }
+
+  guardarEvaluacionDeGrupo(evaluacion: EvaluacionLocal): void {
+    this.actualizar((estado) => ({ ...estado, evaluaciones: this.upsertGrupo(estado.evaluaciones, evaluacion) }));
+  }
+
+  asistencia(estudianteId: string): AusentismoLocal {
+    return this.estado().ausentismo.find((item) => item.estudianteId === estudianteId) ?? { estudianteId, tardias: 0, justificadas: 0, injustificadas: 0 };
+  }
+
+  asistenciaDeGrupo(estudianteId: string, grupo: { asignatura: string; seccion: string; periodo: string }): AusentismoLocal {
+    return this.estado().ausentismo.find((item) => item.estudianteId === estudianteId && item.asignatura === grupo.asignatura && item.seccion === grupo.seccion && item.periodo === grupo.periodo)
+      ?? this.estado().ausentismo.find((item) => item.estudianteId === estudianteId && !item.asignatura)
+      ?? { estudianteId, tardias: 0, justificadas: 0, injustificadas: 0 };
+  }
+
+  guardarAsistencia(asistencia: AusentismoLocal): void {
+    const normalizada = { ...asistencia, tardias: this.entero(asistencia.tardias), justificadas: this.entero(asistencia.justificadas), injustificadas: this.entero(asistencia.injustificadas) };
+    this.actualizar((estado) => ({ ...estado, ausentismo: this.upsert(estado.ausentismo, normalizada, 'estudianteId') }));
+  }
+
+  guardarAsistenciaDeGrupo(asistencia: AusentismoLocal): void {
+    const normalizada = { ...asistencia, tardias: this.entero(asistencia.tardias), justificadas: this.entero(asistencia.justificadas), injustificadas: this.entero(asistencia.injustificadas) };
+    this.actualizar((estado) => ({ ...estado, ausentismo: this.upsertGrupo(estado.ausentismo, normalizada) }));
+  }
+
+  registroEnviado(grupoId: string, periodo: string): boolean {
+    return (this.estado().enviosRegistro ?? []).some((item) => item.grupoId === grupoId && item.periodo === periodo);
+  }
+
+  enviarRegistro(grupoId: string, periodo: string): void {
+    if (this.registroEnviado(grupoId, periodo)) return;
+    this.actualizar((estado) => ({ ...estado, enviosRegistro: [...(estado.enviosRegistro ?? []), { grupoId, periodo, fecha: new Date().toISOString() }] }));
+  }
+
+  monografias(): MonografiaLocal[] {
+    return this.estado().monografias;
+  }
+
+  casEstudiantes(): CasStudentLocal[] {
+    return this.estado().cas ?? [];
+  }
+
+  casProfesores(): string[] {
+    return [...new Set(this.casEstudiantes().map((student) => student.profesorCas))];
+  }
+
+  guardarCasEstudiante(student: CasStudentLocal): void {
+    this.actualizar((estado) => ({ ...estado, cas: estado.cas.map((item) => item.id === student.id ? structuredClone(student) : item) }));
+  }
+
+  monografia(id: string): MonografiaLocal | undefined {
+    return this.estado().monografias.find((item) => item.id === id);
+  }
+
+  guardarMonografia(monografia: MonografiaLocal): void {
+    this.actualizar((estado) => ({ ...estado, monografias: this.upsert(estado.monografias, monografia, 'id') }));
+  }
+
+  enviarMonografia(monografiaId: string): void {
+    const fecha = new Date().toISOString().slice(0, 10);
+    this.actualizar((estado) => ({
+      ...estado,
+      monografias: estado.monografias.map((item) => item.id === monografiaId ? { ...item, informeEnviado: true, fechaEnvioInforme: fecha } : item),
+    }));
+  }
+
+  agregarSeguimiento(monografiaId: string, seguimiento: Omit<SeguimientoLocal, 'id'>): void {
+    this.actualizar((estado) => ({
+      ...estado,
+      monografias: estado.monografias.map((item) => item.id === monografiaId ? { ...item, seguimientos: [...item.seguimientos, { ...seguimiento, id: this.nuevoId('SEG') }] } : item),
+    }));
+  }
+
+  guardarSeguimiento(monografiaId: string, seguimiento: SeguimientoLocal): void {
+    this.actualizar((estado) => ({
+      ...estado,
+      monografias: estado.monografias.map((item) => item.id === monografiaId ? { ...item, seguimientos: this.upsert(item.seguimientos, seguimiento, 'id') } : item),
+    }));
+  }
+
+  restablecer(): void {
+    this.estado.set(structuredClone(ESTADO_INICIAL));
+    this.persistir();
+  }
+
+  private actualizar(mutacion: (estado: EstadoPortal) => EstadoPortal): void {
+    this.estado.update(mutacion);
+    this.persistir();
+  }
+
+  private cargar(): EstadoPortal {
+    try {
+      const guardado = localStorage.getItem(STORAGE_KEY);
+      const estado = guardado ? JSON.parse(guardado) as EstadoPortal : null;
+      return estado?.version === 4 ? this.completarDatosFaltantes({ ...estado, cas: this.normalizarCas(estado.cas ?? structuredClone(CAS_DEMO)) }) : structuredClone(ESTADO_INICIAL);
+    } catch {
+      return structuredClone(ESTADO_INICIAL);
+    }
+  }
+
+  private persistir(): void {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.estado()));
+    } catch {
+    }
+  }
+
+  private normalizarCas(estudiantes: CasStudentLocal[]): CasStudentLocal[] {
+    return estudiantes.map((student) => ({
+      ...student,
+      actividades: [...student.actividades, ...(student.id === 'CAS-001' ? CAS_DEMO[0].actividades.slice(student.actividades.length, 4).map((activity) => structuredClone(activity)) : [])].map((activity) => ({
+        ...activity,
+        resultados: Array.from({ length: 7 }, (_, index) => Boolean(activity.resultados?.[index])),
+      })),
+    }));
+  }
+
+  private completarDatosFaltantes(estado: EstadoPortal): EstadoPortal {
+    const estudiantes = [
+      ...estado.registros.estudiantes,
+      ...ESTUDIANTES_DEMO.filter((demo) => !estado.registros.estudiantes.some((student) => student.id === demo.id)),
+    ];
+    const periodo = estado.registros.periodos.find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Segundo semestre 2026';
+    const matriculas = [
+      ...estado.registros.matriculas,
+      ...ESTUDIANTES_DEMO
+        .filter((demo) => !estado.registros.matriculas.some((matricula) => matricula['estudiante'] === demo['nombre'] && matricula['periodo'] === periodo && matricula['estado'] === 'Activa'))
+        .map((student, index) => ({ id: `MAT-DEMO-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], periodo, estado: 'Activa' })),
+    ];
+    const evaluaciones = estudiantes.map((student, index) => estado.evaluaciones.find((item) => item.estudianteId === student.id) ?? {
+      ...EVALUACIONES_DEMO[index % EVALUACIONES_DEMO.length],
+      estudianteId: student.id,
+    });
+    const ausentismo = estudiantes.map((student, index) => estado.ausentismo.find((item) => item.estudianteId === student.id) ?? {
+      ...AUSENTISMO_DEMO[index % AUSENTISMO_DEMO.length],
+      estudianteId: student.id,
+    });
+    return { ...estado, registros: { ...estado.registros, estudiantes, matriculas }, evaluaciones, ausentismo };
+  }
+
+  private upsert<T extends Record<K, string>, K extends keyof T>(items: T[], value: T, key: K): T[] {
+    return items.some((item) => item[key] === value[key]) ? items.map((item) => item[key] === value[key] ? value : item) : [...items, value];
+  }
+
+  private upsertGrupo<T extends { estudianteId: string; asignatura?: string; seccion?: string; periodo?: string }>(items: T[], value: T): T[] {
+    const same = (item: T) => item.estudianteId === value.estudianteId && item.asignatura === value.asignatura && item.seccion === value.seccion && item.periodo === value.periodo;
+    return items.some(same) ? items.map((item) => same(item) ? value : item) : [...items, value];
+  }
+
+  private entero(value: number): number {
+    return Math.max(0, Math.trunc(Number(value) || 0));
+  }
+
+  private nuevoId(prefijo: string): string {
+    return `${prefijo}-${globalThis.crypto?.randomUUID?.() ?? Date.now().toString(36)}`;
+  }
+}
