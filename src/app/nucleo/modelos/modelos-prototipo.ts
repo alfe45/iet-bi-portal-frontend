@@ -2,7 +2,9 @@ export type RolUsuario =
   | 'Administrador'
   | 'Profesor regular'
   | 'Profesor Guía'
-  | 'Profesor Coordinador de Monografía';
+  | 'Profesor Coordinador de Monografía'
+  | 'Profesor CAS'
+  | 'Profesor Coordinador de CAS';
 
 export interface TarjetaEstadistica {
   label: string;

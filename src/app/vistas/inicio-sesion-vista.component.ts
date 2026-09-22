@@ -30,7 +30,7 @@ import { RolUsuario } from '../nucleo/modelos/modelos-prototipo';
 // Controla el formulario de inicio de sesión.
 export class InicioSesionVistaComponent {
   protected readonly auth = inject(AutenticacionService);
-  protected readonly roles: RolUsuario[] = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía'];
+  protected readonly roles: RolUsuario[] = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
   protected rol: RolUsuario = 'Administrador';
   protected usuario = 'usuario.demostracion';
   protected contrasena = 'demo2026';

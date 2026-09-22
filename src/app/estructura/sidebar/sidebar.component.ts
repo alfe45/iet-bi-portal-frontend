@@ -169,6 +169,8 @@ export class SidebarComponent {
        'Profesor regular': [...common, teacherWork, academicRecord, communication, account],
            'Profesor Guía': [...common, teacherWork, academicRecord, communication, { title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }] }, account],
         'Profesor Coordinador de Monografía': [...common, teacherWork, academicRecord, communication, { title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] }, account],
+        'Profesor CAS': [...common, teacherWork, academicRecord, communication, { title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }] }, account],
+         'Profesor Coordinador de CAS': [...common, teacherWork, academicRecord, communication, { title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }, { label: 'Coordinación CAS', path: '/coordinacion-cas' }] }, account],
     };
     return role ? menus[role] ?? [] : [];
   });

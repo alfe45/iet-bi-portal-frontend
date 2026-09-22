@@ -14,11 +14,12 @@ import { GrupoDocenteVistaComponent } from './vistas/grupo-docente-vista.compone
 import { GruposProfesorVistaComponent } from './vistas/grupos-profesor-vista.component';
 import { RegistroAcademicoVistaComponent } from './vistas/registro-academico-vista.component';
 import { CompartirSeccionVistaComponent } from './vistas/compartir-seccion-vista.component';
+import { CasVistaComponent } from './vistas/cas-vista.component';
 import { authGuard, roleGuard } from './nucleo/autenticacion/autenticacion.guards';
 import { RolUsuario } from './nucleo/modelos/modelos-prototipo';
 
 const ADMIN: RolUsuario[] = ['Administrador'];
-const DOCENTES: RolUsuario[] = ['Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía'];
+const DOCENTES: RolUsuario[] = ['Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const TODOS: RolUsuario[] = ['Administrador', ...DOCENTES];
 
 export const routes: Routes = [
@@ -53,6 +54,8 @@ export const routes: Routes = [
       { path: 'reportes/asignatura', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: DOCENTES } },
       { path: 'monografias', component: MonografiasVista, data: { roles: ['Profesor Coordinador de Monografía'] } },
       { path: 'perfil', component: PerfilVistaComponent, data: { roles: TODOS } },
+      { path: 'cas', component: CasVistaComponent, data: { casMode: 'teacher', roles: ['Profesor CAS', 'Profesor Coordinador de CAS'] } },
+      { path: 'coordinacion-cas', component: CasVistaComponent, data: { casMode: 'coordinator', roles: ['Profesor Coordinador de CAS'] } },
     ],
   },
   { path: '**', redirectTo: 'login' },

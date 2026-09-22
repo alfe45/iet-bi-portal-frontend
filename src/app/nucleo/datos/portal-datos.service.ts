@@ -60,12 +60,42 @@ export interface MonografiaLocal {
   seguimientos: SeguimientoLocal[];
 }
 
+export interface CasActivityLocal {
+  id: string;
+  proyecto: string;
+  fechas: string[];
+  creatividad: boolean;
+  actividad: boolean;
+  servicio: boolean;
+  resultados: boolean[];
+  carpeta: boolean;
+  reflexion: boolean;
+  pruebas: boolean;
+}
+
+export interface CasStudentLocal {
+  id: string;
+  estudiante: string;
+  seccion: string;
+  correo: string;
+  profesorCas: string;
+  periodo: string;
+  actividades: CasActivityLocal[];
+  perfil: boolean;
+  entrevistaI: boolean;
+  entrevistaII: boolean;
+  entrevistaIII: boolean;
+  entrevistaFinal: boolean;
+  observaciones: string;
+}
+
 interface EstadoPortal {
   version: 4;
   registros: Record<FuncionalidadAdministrativa, RegistroPortal[]>;
   evaluaciones: EvaluacionLocal[];
   ausentismo: AusentismoLocal[];
   monografias: MonografiaLocal[];
+  cas: CasStudentLocal[];
   enviosRegistro?: Array<{ grupoId: string; periodo: string; fecha: string }>;
 }
 
@@ -106,6 +136,14 @@ const AUSENTISMO_DEMO: AusentismoLocal[] = ESTUDIANTES_DEMO.map((student, index)
   justificadas: index % 5 === 0 ? 1 : 0,
   injustificadas: index % 7 === 0 ? 1 : 0,
 }));
+
+const CAS_PROFESORES_DEMO = ['Efraín Aguilar Madriz', 'Laura Vanessa Quirós Brenes'];
+const casActivity = (id: string): CasActivityLocal => ({ id, proyecto: '', fechas: ['', ''], creatividad: false, actividad: false, servicio: false, resultados: Array.from({ length: 7 }, () => false), carpeta: false, reflexion: false, pruebas: false });
+const CAS_DEMO: CasStudentLocal[] = [
+  { id: 'CAS-001', estudiante: 'José Luis Rodríguez Mora', seccion: '11-1', correo: 'jose.rodriguez@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[0], periodo: 'I SEMESTRE 2026', actividades: [{ ...casActivity('CAS-001-1'), proyecto: 'Recibimiento de los 12° BI', fechas: ['06-03', ''], actividad: true, resultados: [true, true, false, false, false, true, false], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-2'), proyecto: 'Trabajo de zona verde costado norte del IET', fechas: ['13-03', ''], actividad: true, servicio: true, resultados: [false, true, false, true, true, false, true], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-3'), proyecto: 'Trabajo de zona verde frente al comedor IET', fechas: ['20-03', ''], actividad: true, servicio: true, resultados: [false, true, false, true, true, false, true], carpeta: true, reflexion: true, pruebas: true }, { ...casActivity('CAS-001-4'), proyecto: 'Recibimiento de exposición de Carpetas de CAS 12°', fechas: ['27-03', ''], creatividad: true, actividad: true, resultados: [true, true, false, false, false, false, true], carpeta: true, reflexion: true, pruebas: true }], perfil: true, entrevistaI: true, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+  { id: 'CAS-002', estudiante: 'María Fernanda Jiménez Vargas', seccion: '11-1', correo: 'maria.jimenez@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[1], periodo: 'I SEMESTRE 2026', actividades: [casActivity('CAS-002-1')], perfil: false, entrevistaI: false, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+  { id: 'CAS-003', estudiante: 'Carlos Eduardo Araya Rojas', seccion: '11-2', correo: 'carlos.araya@estudiante.edu', profesorCas: CAS_PROFESORES_DEMO[0], periodo: 'I SEMESTRE 2026', actividades: [casActivity('CAS-003-1')], perfil: false, entrevistaI: false, entrevistaII: false, entrevistaIII: false, entrevistaFinal: false, observaciones: '' },
+];
 
 EVALUACIONES_DEMO[0] = { estudianteId: 'E-001', valor: '6', observacion: 'Buen análisis de fuentes.' };
 EVALUACIONES_DEMO[1] = { estudianteId: 'E-002', valor: '4', observacion: 'Debe reforzar el análisis.' };
@@ -152,6 +190,7 @@ const ESTADO_INICIAL: EstadoPortal = {
   },
   evaluaciones: EVALUACIONES_DEMO,
   ausentismo: AUSENTISMO_DEMO,
+  cas: CAS_DEMO,
    monografias: [
      { id: 'M-301', estudiante: 'José Luis Rodríguez Mora', titulo: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', coordinador: 'Ana Lucía Solano Castro', estado: 'En desarrollo', fechaInicio: '2026-08-05', descripcion: 'Monografía enfocada en la construcción de la pregunta de investigación y la introducción del trabajo escrito.', observacionReporte: 'Se presenta a las sesiones de coordinación con puntualidad.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-001', fecha: '2026-08-22', estado: 'Revisado', observacion: 'Se presenta a las sesiones de coordinación con puntualidad.', profesor: 'Ana Lucía Solano Castro' }] },
      { id: 'M-204', estudiante: 'María Fernanda Jiménez Vargas', titulo: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', coordinador: 'Ana Lucía Solano Castro', estado: 'Aprobada', fechaInicio: '2026-07-18', descripcion: 'Análisis de prácticas sostenibles aplicables a la institución.', observacionReporte: 'Marco teórico revisado y proyecto aprobado.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-002', fecha: '2026-08-01', estado: 'Revisado', observacion: 'Marco teórico revisado.', profesor: 'Ana Lucía Solano Castro' }] },
@@ -241,6 +280,18 @@ export class PortalDatosService {
     return this.estado().monografias;
   }
 
+  casEstudiantes(): CasStudentLocal[] {
+    return this.estado().cas ?? [];
+  }
+
+  casProfesores(): string[] {
+    return [...new Set(this.casEstudiantes().map((student) => student.profesorCas))];
+  }
+
+  guardarCasEstudiante(student: CasStudentLocal): void {
+    this.actualizar((estado) => ({ ...estado, cas: estado.cas.map((item) => item.id === student.id ? structuredClone(student) : item) }));
+  }
+
   monografia(id: string): MonografiaLocal | undefined {
     return this.estado().monografias.find((item) => item.id === id);
   }
@@ -285,7 +336,7 @@ export class PortalDatosService {
     try {
       const guardado = localStorage.getItem(STORAGE_KEY);
       const estado = guardado ? JSON.parse(guardado) as EstadoPortal : null;
-      return estado?.version === 4 ? this.completarDatosFaltantes(estado) : structuredClone(ESTADO_INICIAL);
+      return estado?.version === 4 ? this.completarDatosFaltantes({ ...estado, cas: this.normalizarCas(estado.cas ?? structuredClone(CAS_DEMO)) }) : structuredClone(ESTADO_INICIAL);
     } catch {
       return structuredClone(ESTADO_INICIAL);
     }
@@ -296,6 +347,16 @@ export class PortalDatosService {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.estado()));
     } catch {
     }
+  }
+
+  private normalizarCas(estudiantes: CasStudentLocal[]): CasStudentLocal[] {
+    return estudiantes.map((student) => ({
+      ...student,
+      actividades: [...student.actividades, ...(student.id === 'CAS-001' ? CAS_DEMO[0].actividades.slice(student.actividades.length, 4).map((activity) => structuredClone(activity)) : [])].map((activity) => ({
+        ...activity,
+        resultados: Array.from({ length: 7 }, (_, index) => Boolean(activity.resultados?.[index])),
+      })),
+    }));
   }
 
   private completarDatosFaltantes(estado: EstadoPortal): EstadoPortal {
