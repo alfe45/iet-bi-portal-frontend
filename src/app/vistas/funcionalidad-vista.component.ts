@@ -40,7 +40,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   escalas: { title: 'Tipos de escala', singular: 'escala', subtitle: 'Administre las escalas utilizadas en las asignaturas.', columns: [{ key: 'nombre', label: 'Nombre' }, { key: 'rango', label: 'Rango' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'rango', label: 'Rango' }, { key: 'estado', label: 'Estado', type: 'select', options: ['Activa', 'Inactiva'] }] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Consulte y administre el catálogo de asignaturas.', columns: [{ key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }, { key: 'escala', label: 'Escala' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }, { key: 'escala', label: 'Escala', type: 'select', options: ['1-7', '1-100', 'A-E'] }, { key: 'estado', label: 'Estado', type: 'select', options: ['Activa', 'Inactiva'] }] },
-  asignaciones: { title: 'Asignaciones académicas', singular: 'asignación', subtitle: 'Administre la relación entre profesor, asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'asignatura', label: 'Asignatura' }, { key: 'seccion', label: 'Sección' }, { key: 'periodo', label: 'Periodo' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'asignatura', label: 'Asignatura' }, { key: 'seccion', label: 'Sección' }, { key: 'periodo', label: 'Periodo' }, { key: 'estado', label: 'Estado', type: 'select', options: ['Activa', 'Inactiva'] }] },
+  asignaciones: { title: 'Asignación académica', singular: 'asignación', subtitle: 'Administre la relación entre profesor, asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'asignatura', label: 'Asignatura' }, { key: 'seccion', label: 'Sección' }, { key: 'periodo', label: 'Periodo' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'asignatura', label: 'Asignatura' }, { key: 'seccion', label: 'Sección' }, { key: 'periodo', label: 'Periodo' }, { key: 'estado', label: 'Estado', type: 'select', options: ['Activa', 'Inactiva'] }] },
 };
 
 @Component({
@@ -214,9 +214,9 @@ export class FuncionalidadVistaComponent {
      this.editorOpen.set(false);
   }
 
-   private cargarProfesores(): void {
-    this.apiError = '';
-     this.profesoresApi.listar().subscribe({ next: (items) => this.profesoresApiRows.set(items.map((item) => ({ id: String(item.idProfesor), nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, estado: item.activo ? 'Activo' : 'Inactivo', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))), error: () => this.apiError = 'No se pudo conectar con el backend de profesores.' });
+     private cargarProfesores(): void {
+     this.apiError = '';
+      this.profesoresApi.listar().subscribe({ next: (items) => this.profesoresApiRows.set(items.map((item) => ({ id: String(item.idProfesor), nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, estado: item.activo ? 'Activo' : 'Inactivo', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))), error: () => this.apiError = 'No se pudo conectar con el backend de profesores.' });
    }
 
    private cargarEstudiantes(): void {
@@ -264,7 +264,7 @@ export class FuncionalidadVistaComponent {
       this.editorOpen.set(true);
       return;
     }
-    if (action === 'delete' && confirm(`¿Eliminar al profesor ${registro['nombre']}?`)) this.profesoresApi.borrar(String(registro['cedula'])).subscribe({ next: () => this.cargarProfesores(), error: () => this.apiError = 'No se pudo eliminar el profesor.' });
+     if (action === 'delete' && confirm(`¿Eliminar al profesor ${registro['nombre']}?`)) this.profesoresApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.datos.eliminarAsignacionesDeProfesor(String(registro['cedula'])); this.cargarProfesores(); }, error: () => this.apiError = 'No se pudo eliminar el profesor.' });
   }
 
   private guardarProfesor(): void {
@@ -344,10 +344,10 @@ export class FuncionalidadVistaComponent {
      return null;
    }
 
-  private sincronizarEstadoProfesor(cedula: string): void {
-    const operation = this.draft['estado'] === 'Inactivo' ? this.profesoresApi.desactivar(cedula) : this.profesoresApi.activar(cedula);
-    operation.subscribe({ next: () => { this.cerrarEditor(); this.cargarProfesores(); }, error: () => this.apiError = 'El profesor se guardó, pero no se pudo actualizar su estado.' });
-  }
+   private sincronizarEstadoProfesor(cedula: string): void {
+     const operation = this.draft['estado'] === 'Inactivo' ? this.profesoresApi.desactivar(cedula) : this.profesoresApi.activar(cedula);
+     operation.subscribe({ next: () => { this.cerrarEditor(); this.cargarProfesores(); }, error: () => this.apiError = 'El profesor se guardó, pero no se pudo actualizar su estado.' });
+   }
 
   private profesorRequest(): ProfesorRequest {
      return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: String(this.draft['numeroCelular'] ?? '') || null, email: String(this.draft['correo'] ?? ''), fechaNacimiento: String(this.draft['fechaNacimiento'] ?? ''), password: String(this.draft['password'] ?? '') };

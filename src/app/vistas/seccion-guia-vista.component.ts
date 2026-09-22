@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { GruposProfesorService, GrupoTrabajo } from '../nucleo/datos/grupos-profesor.service';
+import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 
 @Component({
   selector: 'app-vista-seccion-guia',
@@ -43,7 +44,11 @@ import { GruposProfesorService, GrupoTrabajo } from '../nucleo/datos/grupos-prof
 // Muestra la guía y la información de una sección.
 export class SeccionGuiaVistaComponent {
    protected readonly grupos = inject(GruposProfesorService);
-  protected readonly guideGroups = computed(() => this.grupos.grupos().filter((group) => group.seccion === '11-1'));
+  private readonly datos = inject(PortalDatosService);
+  protected readonly guideGroups = computed(() => {
+    const assignedSections = this.datos.seccionesGuiadasPorProfesor(this.grupos.profesor());
+    return this.grupos.grupos().filter((group) => assignedSections.length > 0 ? assignedSections.includes(group.seccion) : group.seccion === '11-1');
+  });
   protected readonly selectedId = signal(this.guideGroups()[0]?.id ?? '');
   protected readonly selectedGroup = computed(() => this.guideGroups().find((group) => group.id === this.selectedId()) ?? this.guideGroups()[0]);
   protected readonly studentPage = signal(0);

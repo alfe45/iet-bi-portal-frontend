@@ -67,7 +67,7 @@ export class TableroVistaComponent {
       { path: '/matriculas', label: 'Matrículas', description: 'Inscripciones por periodo', icon: 'M', featured: false },
       { path: '/escalas', label: 'Tipos de escala', description: 'Criterios de evaluación', icon: 'E', featured: false },
       { path: '/asignaturas', label: 'Asignaturas', description: 'Catálogo académico', icon: 'A', featured: false },
-      { path: '/asignaciones', label: 'Asignaciones académicas', description: 'Carga docente', icon: 'C', featured: false },
+      { path: '/asignaciones', label: 'Asignación académica', description: 'Carga docente', icon: 'C', featured: false },
     ];
     return [
       { path: '/registro-academico', label: this.registrationLabel(), description: 'Registrar el trabajo de tus estudiantes.', icon: 'RB', featured: true },

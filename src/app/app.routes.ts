@@ -5,6 +5,7 @@ import { FuncionalidadVistaComponent } from './vistas/funcionalidad-vista.compon
 import { SeccionGuiaVistaComponent } from './vistas/seccion-guia-vista.component';
 import { VerificacionMonografiasVistaComponent } from './vistas/verificacion-monografias-vista.component';
 import { AsignacionesMonografiaVistaComponent } from './vistas/asignaciones-monografia-vista.component';
+import { AsignacionesCasGuiaVistaComponent } from './vistas/asignaciones-cas-guia-vista.component';
 import { InicioSesionVistaComponent } from './vistas/inicio-sesion-vista.component';
 import { MonografiasVista } from './vistas/monografias-vista';
 import { PerfilVistaComponent } from './vistas/perfil-vista.component';
@@ -45,6 +46,8 @@ export const routes: Routes = [
       { path: 'asignaturas', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
       { path: 'asignaciones', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'asignaciones-monografia', component: AsignacionesMonografiaVistaComponent, data: { roles: ADMIN } },
+      { path: 'asignaciones-cas', component: AsignacionesCasGuiaVistaComponent, data: { assignmentMode: 'cas', roles: ADMIN } },
+      { path: 'asignaciones-guias', component: AsignacionesCasGuiaVistaComponent, data: { assignmentMode: 'guide', roles: ADMIN } },
       { path: 'evaluaciones', redirectTo: 'registro-academico', pathMatch: 'full' },
       { path: 'ausentismo', redirectTo: 'registro-academico', pathMatch: 'full' },
       { path: 'seccion-guia', component: SeccionGuiaVistaComponent, data: { roles: ['Profesor Guía'] } },
