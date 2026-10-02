@@ -33,7 +33,7 @@ import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.s
 export class HeaderComponent {
   private readonly auth = inject(AutenticacionService);
   menuToggle = output<void>();
-  protected readonly name = computed(() => ({ Administrador: 'Administración general', 'Profesor regular': 'Juan Gabriel Valverde Valverde', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Profesor Coordinador de Monografía': 'Ana Lucía Solano Castro' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Invitado');
+  protected readonly name = computed(() => this.auth.currentDisplayName() || 'Usuario');
   protected readonly username = computed(() => this.auth.currentUsername() || 'sin sesión');
   protected readonly avatar = computed(() => this.name().split(' ').map((part) => part[0]).slice(0, 2).join(''));
   protected cerrarSesion(): void { this.auth.cerrarSesion(); }

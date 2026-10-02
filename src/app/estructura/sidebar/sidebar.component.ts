@@ -171,17 +171,19 @@ export class SidebarComponent {
      const academicRecord = { title: academicLabel, items: [{ label: academicLabel, path: '/registro-academico' }] };
      const communication = { title: 'Comunicación', items: [{ label: 'Compartir archivo', path: '/compartir' }] };
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
-    const role = this.auth.currentRole();
-    const menus: Record<string, typeof common> = {
-          Administrador: [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Escalas', path: '/escalas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] }],
-       'Profesor regular': [...common, teacherWork, academicRecord, communication, account],
-            'Profesor Guía': [...common, teacherWork, academicRecord, communication, { title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }] }, account],
-        'Profesor Coordinador de Monografía': [...common, teacherWork, academicRecord, communication, { title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] }, account],
-        'Profesor CAS': [...common, teacherWork, academicRecord, communication, { title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }] }, account],
-         'Profesor Coordinador de CAS': [...common, teacherWork, academicRecord, communication, { title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }, { label: 'Coordinación CAS', path: '/coordinacion-cas' }] }, account],
-    };
-    return role ? menus[role] ?? [] : [];
-  });
+     const roles = this.auth.currentRoles();
+     if (roles.includes('Administrador')) {
+       return [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Escalas', path: '/escalas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] }, account];
+     }
+
+     if (!roles.length) return [];
+     const menu = [...common, teacherWork, academicRecord, communication];
+     if (roles.includes('Profesor Guía')) menu.push({ title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }] });
+     if (roles.includes('Profesor Coordinador de Monografía')) menu.push({ title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] });
+     if (roles.includes('Profesor CAS') || roles.includes('Profesor Coordinador de CAS')) menu.push({ title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }, ...(roles.includes('Profesor Coordinador de CAS') ? [{ label: 'Coordinación CAS', path: '/coordinacion-cas' }] : [])] });
+     menu.push(account);
+     return menu;
+   });
 
   private registrationLabel(): string {
     const subjects = this.grupos.grupos().map((group) => group.asignatura);

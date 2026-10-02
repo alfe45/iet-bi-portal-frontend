@@ -143,7 +143,7 @@ export class FuncionalidadVistaComponent {
   protected readonly grupos = inject(GruposProfesorService);
   protected readonly key = (this.route.snapshot.routeConfig?.path ?? 'estudiantes') as FuncionalidadAdministrativa;
   protected readonly config = CONFIGURACIONES[this.key];
-   protected readonly isAdmin = computed(() => this.auth.currentRole() === 'Administrador');
+   protected readonly isAdmin = computed(() => this.auth.hasRole('Administrador'));
     private readonly profesoresApiRows = signal<Array<Record<string, unknown>>>([]);
     private readonly estudiantesApiRows = signal<Array<Record<string, unknown>>>([]);
     private readonly matriculasApiRows = signal<Array<Record<string, unknown>>>([]);
@@ -174,7 +174,7 @@ export class FuncionalidadVistaComponent {
    protected studentSearch = '';
    protected readonly selectedGroupId = signal(this.grupos.grupoActual()?.id ?? '');
   protected readonly String = String;
-  protected readonly isTeacher = computed(() => this.auth.currentRole() !== 'Administrador');
+   protected readonly isTeacher = computed(() => !this.auth.hasRole('Administrador'));
   protected readonly pageTitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Mis asignaturas' : this.isTeacher() && this.key === 'secciones' ? 'Mis secciones' : this.config.title);
    protected readonly pageSubtitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Consulta las asignaturas que tienes asignadas en el periodo actual.' : this.isTeacher() && this.key === 'secciones' ? 'Consulta las secciones donde impartes alguna asignatura.' : this.isTeacher() && this.key === 'estudiantes' ? 'Consulta los estudiantes de tus grupos.' : this.config.subtitle);
 

@@ -56,7 +56,7 @@ export class RegistroAcademicoVistaComponent {
   protected readonly savedStudentName = signal('');
   private readonly nextAfterSave = signal<string | null>(null);
   protected readonly currentGroup = computed(() => this.grupos.grupoActual());
-  protected readonly isGuide = computed(() => this.auth.currentRole() === 'Profesor Guía');
+  protected readonly isGuide = computed(() => this.auth.hasRole('Profesor Guía'));
   protected readonly missingMonographReports = computed(() => {
     const studentNames = this.currentGroup()?.estudiantes ?? [];
     const reports = this.datos.monografias();

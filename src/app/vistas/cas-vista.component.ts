@@ -49,7 +49,7 @@ export class CasVistaComponent {
   protected readonly selectedId = signal('');
   protected readonly outcomeNumbers = [1, 2, 3, 4, 5, 6, 7];
   protected readonly outcomes = OUTCOMES;
-  protected teacherFilter = this.auth.currentRole() === 'Profesor Coordinador de CAS' ? 'Todos' : this.assignedCasTeacher() ?? this.datos.casProfesores()[0] ?? 'Todos';
+  protected teacherFilter = this.auth.hasRole('Profesor Coordinador de CAS') ? 'Todos' : this.assignedCasTeacher() ?? this.datos.casProfesores()[0] ?? 'Todos';
   protected readonly sections = computed(() => this.assignedSection ? [this.assignedSection] : [...new Set(this.datos.casEstudiantes().map((student) => student.seccion))]);
   protected readonly selectedSection = signal(this.assignedSection || 'Todas');
   protected readonly selected = computed(() => this.datos.casEstudiantes().find((student) => student.id === this.selectedId()) ?? this.pickerStudents()[0]);

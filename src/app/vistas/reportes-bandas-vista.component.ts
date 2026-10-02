@@ -70,7 +70,7 @@ export class ReportesBandasVistaComponent {
   protected readonly pageSize = 3;
   private printingInProgress = false;
 
-  protected readonly guideName = computed(() => ({ 'Profesor Guía': 'Laura Vanessa Quirós Brenes' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? 'Profesor Guía');
+  protected readonly guideName = computed(() => this.auth.currentDisplayName() || 'Profesor Guía');
   protected readonly period = computed(() => this.datos.listar('periodos').find((item) => this.field(item, 'estado') === 'Activo') ?? this.datos.listar('periodos')[0] ?? { nombre: 'Sin periodo activo', descripcion: '', estado: 'Inactivo' });
   protected readonly periodLabel = computed(() => this.field(this.period(), 'nombre'));
   protected readonly section = computed(() => this.datos.listar('secciones').find((item) => this.field(item, 'guia') === this.guideName() && this.field(item, 'estado') === 'Activa') ?? this.datos.listar('secciones')[0] ?? { nombre: 'Sin sección', nivel: 'Sin nivel', guia: '', estado: 'Inactiva' });
