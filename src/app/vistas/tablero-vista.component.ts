@@ -62,7 +62,7 @@ export class TableroVistaComponent {
       { path: '/usuarios', label: 'Usuarios', description: 'Cuentas y permisos', icon: 'U', featured: true },
       { path: '/profesores', label: 'Profesores', description: 'Personal docente', icon: 'P', featured: false },
       { path: '/estudiantes', label: 'Estudiantes', description: 'Comunidad estudiantil', icon: 'E', featured: false },
-      { path: '/periodos', label: 'Periodos académicos', description: 'Ciclos lectivos', icon: 'T', featured: false },
+      { path: '/periodos', label: 'Cursos lectivos', description: 'Ciclos lectivos', icon: 'T', featured: false },
       { path: '/secciones', label: 'Secciones', description: 'Grupos y profesores guía', icon: 'S', featured: false },
       { path: '/matriculas', label: 'Matrículas', description: 'Inscripciones por periodo', icon: 'M', featured: false },
       { path: '/escalas', label: 'Tipos de escala', description: 'Criterios de evaluación', icon: 'E', featured: false },

@@ -98,6 +98,15 @@ export interface AsignacionResponsabilidadLocal {
   profesor: string;
   responsabilidad: ResponsabilidadProfesor;
   seccion?: string;
+  estado?: string;
+}
+
+export interface AsignacionCasLocal {
+  id: string;
+  estudiante: string;
+  profesor: string;
+  seccion: string;
+  estado?: string;
 }
 
 interface EstadoPortal {
@@ -109,6 +118,7 @@ interface EstadoPortal {
   cas: CasStudentLocal[];
   rolesCas?: Record<string, RolCas>;
   asignacionesResponsabilidad?: AsignacionResponsabilidadLocal[];
+  asignacionesCas?: AsignacionCasLocal[];
   enviosRegistro?: Array<{ grupoId: string; periodo: string; fecha: string }>;
 }
 
@@ -165,45 +175,48 @@ EVALUACIONES_DEMO[2] = { estudianteId: 'E-003', valor: '7', observacion: 'Desemp
 const ESTADO_INICIAL: EstadoPortal = {
   version: 4,
   registros: {
-    usuarios: [
-      { id: 'U-001', nombre: 'Administración general', descripcion: 'Usuario administrador', estado: 'Activo' },
-      { id: 'U-002', nombre: 'Juan Gabriel Valverde Valverde', descripcion: 'Profesor regular', estado: 'Activo' },
-    ],
-    profesores: [
-      { id: 'P-001', nombre: 'Juan Gabriel Valverde Valverde', cedula: '8-700-101', correo: 'juan.valverde@institucion.edu', estado: 'Activo' },
-      { id: 'P-002', nombre: 'Laura Vanessa Quirós Brenes', cedula: '8-701-102', correo: 'laura.quiros@institucion.edu', estado: 'Activo' },
-      { id: 'P-003', nombre: 'Ana Lucía Solano Castro', cedula: '8-702-103', correo: 'ana.solano@institucion.edu', estado: 'Activo' },
-    ],
+      usuarios: [
+       { id: 'U-001', correo: 'admin@institucion.edu', password: 'demo2026', roles: 'Administrador', estado: 'Activo', ultimoLogin: '2026-09-25 08:00', creadoEn: '2026-01-10', intentosFallidosLogin: '0', bloqueadoHasta: '', contrasenaCambiadaEn: '2026-01-10', actualizadoEn: '2026-09-25', tokensInvalidadosDesde: '' },
+       { id: 'U-002', correo: 'juan.valverde@institucion.edu', password: 'demo2026', roles: 'Profesor regular|Profesor Guía', estado: 'Activo', ultimoLogin: '2026-09-24 16:30', creadoEn: '2026-01-12', intentosFallidosLogin: '0', bloqueadoHasta: '', contrasenaCambiadaEn: '2026-01-12', actualizadoEn: '2026-09-24', tokensInvalidadosDesde: '' },
+       { id: 'U-003', correo: 'laura.quiros@institucion.edu', password: 'demo2026', roles: 'Profesor Guía|Profesor CAS', estado: 'Activo', ultimoLogin: '2026-09-23 10:15', creadoEn: '2026-01-14', intentosFallidosLogin: '0', bloqueadoHasta: '', contrasenaCambiadaEn: '2026-01-14', actualizadoEn: '2026-09-23', tokensInvalidadosDesde: '' },
+       { id: 'U-004', correo: 'ana.solano@institucion.edu', password: 'demo2026', roles: 'Profesor Coordinador de Monografía', estado: 'Activo', ultimoLogin: '2026-09-22 14:40', creadoEn: '2026-01-16', intentosFallidosLogin: '0', bloqueadoHasta: '', contrasenaCambiadaEn: '2026-01-16', actualizadoEn: '2026-09-22', tokensInvalidadosDesde: '' },
+      ],
+     profesores: [
+       { id: 'P-001', usuarioId: 'U-002', nombre: 'Juan Gabriel', nombreCompleto: 'Juan Gabriel Valverde Valverde', primerApellido: 'Valverde', segundoApellido: 'Valverde', cedula: '8-700-101', correo: 'juan.valverde@institucion.edu', numeroCelular: '8888-0101', fechaNacimiento: '1983-04-12' },
+       { id: 'P-002', usuarioId: 'U-003', nombre: 'Laura Vanessa', nombreCompleto: 'Laura Vanessa Quirós Brenes', primerApellido: 'Quirós', segundoApellido: 'Brenes', cedula: '8-701-102', correo: 'laura.quiros@institucion.edu', numeroCelular: '8888-0102', fechaNacimiento: '1986-09-23' },
+       { id: 'P-003', usuarioId: 'U-004', nombre: 'Ana Lucía', nombreCompleto: 'Ana Lucía Solano Castro', primerApellido: 'Solano', segundoApellido: 'Castro', cedula: '8-702-103', correo: 'ana.solano@institucion.edu', numeroCelular: '8888-0103', fechaNacimiento: '1981-11-08' },
+     ],
     estudiantes: ESTUDIANTES_DEMO,
-    periodos: [{ id: 'PER-2026-2', nombre: 'Segundo semestre 2026', descripcion: 'Periodo académico vigente', estado: 'Activo' }],
-     secciones: [{ id: 'SEC-11-1', nombre: '11-1', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }, { id: 'SEC-11-2', nombre: '11-2', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }],
-    matriculas: ESTUDIANTES_DEMO.map((student, index) => ({ id: `MAT-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], periodo: 'Segundo semestre 2026', estado: 'Activa' })),
+     periodos: [{ id: 'PER-2026-2', nombre: 'Segundo semestre 2026', yearCiclo: '2026', fechaInicio: '2026-02-09', fechaFin: '2026-12-04', descripcion: 'Periodo académico vigente', estado: 'Activo' }],
+      secciones: [{ id: 'SEC-11-1', nombre: '11-1', yearCiclo: '2026', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }, { id: 'SEC-11-2', nombre: '11-2', yearCiclo: '2026', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }],
+     matriculas: ESTUDIANTES_DEMO.map((student, index) => ({ id: `MAT-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], yearCiclo: '2026', periodo: 'Segundo semestre 2026', estado: 'Activa' })),
     escalas: [
       { id: 'ESC-1-7', nombre: 'Escala 1 a 7', rango: '1-7', estado: 'Activa' },
       { id: 'ESC-1-100', nombre: 'Escala 1 a 100', rango: '1-100', estado: 'Activa' },
       { id: 'ESC-A-E', nombre: 'Escala A a E', rango: 'A-E', estado: 'Activa' },
     ],
     asignaturas: [
-      { id: 'ASG-HIS', nombre: 'Historia', descripcion: 'Procesos históricos contemporáneos', escala: '1-7', estado: 'Activa' },
-      { id: 'ASG-MAT', nombre: 'Matemática AI', descripcion: 'Resolución de problemas y pensamiento lógico', escala: '1-100', estado: 'Activa' },
-      { id: 'ASG-ESS', nombre: 'Estudios Sociales', descripcion: 'Análisis de contexto social y ciudadanía', escala: '1-100', estado: 'Activa' },
-      { id: 'ASG-CIV', nombre: 'Cívica', descripcion: 'Ciudadanía, convivencia y participación democrática', escala: '1-100', estado: 'Activa' },
-      { id: 'ASG-LIT', nombre: 'Literatura', descripcion: 'Lectura, análisis y producción literaria', escala: '1-7', estado: 'Activa' },
-      { id: 'ASG-SDI', nombre: 'Sociedad Digital', descripcion: 'Cultura, comunicación y ciudadanía digital', escala: '1-7', estado: 'Activa' },
-      { id: 'ASG-BIO', nombre: 'Biología', descripcion: 'Estudio de los seres vivos y sus procesos', escala: '1-7', estado: 'Activa' },
-      { id: 'ASG-LEN', nombre: 'Lengua B', descripcion: 'Competencias comunicativas y producción escrita', escala: '1-7', estado: 'Activa' },
-      { id: 'ASG-TDC', nombre: 'Teoría del Conocimiento', descripcion: 'Investigación y pensamiento crítico', escala: 'A-E', estado: 'Activa' },
+       { id: 'ASG-HIS', codigo: 'HIS', nombre: 'Historia', descripcion: 'Procesos históricos contemporáneos', escala: '1-7', estado: 'Activa' },
+       { id: 'ASG-MAT', codigo: 'MAT', nombre: 'Matemática AI', descripcion: 'Resolución de problemas y pensamiento lógico', escala: '1-100', estado: 'Activa' },
+       { id: 'ASG-ESS', codigo: 'ESS', nombre: 'Estudios Sociales', descripcion: 'Análisis de contexto social y ciudadanía', escala: '1-100', estado: 'Activa' },
+       { id: 'ASG-CIV', codigo: 'CIV', nombre: 'Cívica', descripcion: 'Ciudadanía, convivencia y participación democrática', escala: '1-100', estado: 'Activa' },
+       { id: 'ASG-LIT', codigo: 'LIT', nombre: 'Literatura', descripcion: 'Lectura, análisis y producción literaria', escala: '1-7', estado: 'Activa' },
+       { id: 'ASG-SDI', codigo: 'SDI', nombre: 'Sociedad Digital', descripcion: 'Cultura, comunicación y ciudadanía digital', escala: '1-7', estado: 'Activa' },
+       { id: 'ASG-BIO', codigo: 'BIO', nombre: 'Biología', descripcion: 'Estudio de los seres vivos y sus procesos', escala: '1-7', estado: 'Activa' },
+       { id: 'ASG-LEN', codigo: 'LEN', nombre: 'Lengua B', descripcion: 'Competencias comunicativas y producción escrita', escala: '1-7', estado: 'Activa' },
+       { id: 'ASG-TDC', codigo: 'TDC', nombre: 'Teoría del Conocimiento', descripcion: 'Investigación y pensamiento crítico', escala: 'A-E', estado: 'Activa' },
     ],
     asignaciones: [
-      { id: 'ACA-001', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Historia', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
-       { id: 'ACA-002', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Estudios Sociales', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
-       { id: 'ACA-004', profesor: 'Juan Gabriel Valverde Valverde', asignatura: 'Historia', seccion: '11-2', periodo: 'Segundo semestre 2026', estado: 'Activa' },
-      { id: 'ACA-003', profesor: 'Laura Vanessa Quirós Brenes', asignatura: 'Teoría del Conocimiento', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+       { id: 'ACA-001', profesor: 'Juan Gabriel Valverde Valverde', codigo: 'HIS', asignatura: 'Historia', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+        { id: 'ACA-002', profesor: 'Juan Gabriel Valverde Valverde', codigo: 'ESS', asignatura: 'Estudios Sociales', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+        { id: 'ACA-004', profesor: 'Juan Gabriel Valverde Valverde', codigo: 'HIS', asignatura: 'Historia', seccion: '11-2', periodo: 'Segundo semestre 2026', estado: 'Activa' },
+       { id: 'ACA-003', profesor: 'Laura Vanessa Quirós Brenes', codigo: 'TDC', asignatura: 'Teoría del Conocimiento', seccion: '11-1', periodo: 'Segundo semestre 2026', estado: 'Activa' },
     ],
   },
   evaluaciones: EVALUACIONES_DEMO,
   ausentismo: AUSENTISMO_DEMO,
   cas: CAS_DEMO,
+  asignacionesCas: CAS_DEMO.map((item) => ({ id: `CAS-ASSIGN-${item.id}`, estudiante: item.estudiante, profesor: item.profesorCas, seccion: item.seccion, estado: 'Activo' })),
    monografias: [
      { id: 'M-301', estudiante: 'José Luis Rodríguez Mora', titulo: 'Lectura crítica y escritura argumentativa', area: 'Lengua A', coordinador: 'Ana Lucía Solano Castro', estado: 'En desarrollo', fechaInicio: '2026-08-05', descripcion: 'Monografía enfocada en la construcción de la pregunta de investigación y la introducción del trabajo escrito.', observacionReporte: 'Se presenta a las sesiones de coordinación con puntualidad.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-001', fecha: '2026-08-22', estado: 'Revisado', observacion: 'Se presenta a las sesiones de coordinación con puntualidad.', profesor: 'Ana Lucía Solano Castro' }] },
      { id: 'M-204', estudiante: 'María Fernanda Jiménez Vargas', titulo: 'Modelos de reciclaje escolar', area: 'Estudios Sociales', coordinador: 'Ana Lucía Solano Castro', estado: 'Aprobada', fechaInicio: '2026-07-18', descripcion: 'Análisis de prácticas sostenibles aplicables a la institución.', observacionReporte: 'Marco teórico revisado y proyecto aprobado.', fechaInforme: '2026-09-08', seguimientos: [{ id: 'SEG-002', fecha: '2026-08-01', estado: 'Revisado', observacion: 'Marco teórico revisado.', profesor: 'Ana Lucía Solano Castro' }] },
@@ -236,6 +249,47 @@ export class PortalDatosService {
 
   eliminarRegistro(funcionalidad: FuncionalidadAdministrativa, id: string): void {
     this.actualizar((estado) => ({ ...estado, registros: { ...estado.registros, [funcionalidad]: estado.registros[funcionalidad].filter((registro) => registro.id !== id) } }));
+  }
+
+  validarEliminacion(funcionalidad: FuncionalidadAdministrativa, id: string): { permitido: boolean; motivo: string; relaciones: string[] } {
+    const estado = this.estado();
+    const registro = estado.registros[funcionalidad].find((item) => item.id === id);
+    if (!registro) return { permitido: false, motivo: 'No se encontró el registro.', relaciones: [] };
+    const relaciones: string[] = [];
+    const coincide = (items: RegistroPortal[], key: string, value: string) => items.some((item) => item[key] === value);
+    const nombre = registro['nombre'] ?? registro['nombreCompleto'] ?? '';
+    const seccion = registro['seccion'] ?? registro['nombre'] ?? '';
+    switch (funcionalidad) {
+      case 'usuarios':
+        if (coincide(estado.registros.profesores, 'usuarioId', id) || coincide(estado.registros.profesores, 'correo', registro['correo'] ?? '')) relaciones.push('perfil de profesor');
+        break;
+      case 'profesores':
+        if ((estado.asignacionesResponsabilidad ?? []).some((item) => item.cedula === registro['cedula'])) relaciones.push('responsabilidades asignadas');
+        if (coincide(estado.registros.asignaciones, 'profesor', nombre)) relaciones.push('asignaciones de profesores');
+        if (estado.monografias.some((item) => item.coordinador === nombre)) relaciones.push('monografías');
+        if (estado.cas.some((item) => item.profesorCas === nombre)) relaciones.push('participaciones CAS');
+        break;
+      case 'estudiantes':
+        if (coincide(estado.registros.matriculas, 'estudiante', nombre) || coincide(estado.registros.matriculas, 'cedulaEstudiante', registro['cedula'] ?? '')) relaciones.push('matrículas');
+        if (estado.monografias.some((item) => item.estudiante === nombre)) relaciones.push('monografía');
+        if (estado.cas.some((item) => item.estudiante === nombre)) relaciones.push('participación CAS');
+        if (estado.evaluaciones.some((item) => item.estudianteId === id) || estado.ausentismo.some((item) => item.estudianteId === id)) relaciones.push('registros académicos');
+        break;
+      case 'periodos':
+        if (coincide(estado.registros.matriculas, 'periodo', nombre) || coincide(estado.registros.asignaciones, 'periodo', nombre) || estado.cas.some((item) => item.periodo === nombre)) relaciones.push('registros académicos del periodo');
+        break;
+      case 'secciones':
+        if (coincide(estado.registros.matriculas, 'seccion', seccion) || coincide(estado.registros.asignaciones, 'seccion', seccion) || (estado.asignacionesResponsabilidad ?? []).some((item) => item.seccion === seccion)) relaciones.push('matrículas o asignaciones');
+        break;
+      case 'asignaturas':
+        if (coincide(estado.registros.asignaciones, 'asignatura', nombre) || estado.monografias.some((item) => item.area === nombre)) relaciones.push('asignaciones o monografías');
+        if (registro['tipoAsignatura'] === 'Troncal' || registro['tipo'] === 'Troncal') relaciones.push('asignatura troncal');
+        break;
+      case 'asignaciones':
+        if (estado.evaluaciones.some((item) => item.asignatura === nombre) || estado.ausentismo.some((item) => item.asignatura === nombre)) relaciones.push('registros académicos');
+        break;
+    }
+    return relaciones.length ? { permitido: false, motivo: `No se puede eliminar porque tiene relaciones: ${relaciones.join(', ')}.`, relaciones } : { permitido: true, motivo: '', relaciones: [] };
   }
 
   estudiantes(): RegistroPortal[] {
@@ -329,6 +383,18 @@ export class PortalDatosService {
 
   asignacionesResponsabilidad(): AsignacionResponsabilidadLocal[] {
     return this.estado().asignacionesResponsabilidad ?? [];
+  }
+
+  asignacionesCas(): AsignacionCasLocal[] {
+    return this.estado().asignacionesCas ?? [];
+  }
+
+  guardarAsignacionCas(asignacion: AsignacionCasLocal): void {
+    this.actualizar((estado) => ({ ...estado, asignacionesCas: this.upsert(estado.asignacionesCas ?? [], asignacion, 'id') }));
+  }
+
+  eliminarAsignacionCas(id: string): void {
+    this.actualizar((estado) => ({ ...estado, asignacionesCas: (estado.asignacionesCas ?? []).filter((item) => item.id !== id) }));
   }
 
   guardarAsignacionResponsabilidad(asignacion: AsignacionResponsabilidadLocal): void {
@@ -451,16 +517,27 @@ export class PortalDatosService {
   }
 
   private completarDatosFaltantes(estado: EstadoPortal): EstadoPortal {
+    const usuarios = [
+      ...estado.registros.usuarios,
+      ...ESTADO_INICIAL.registros.usuarios.filter((demo) => !estado.registros.usuarios.some((user) => user.id === demo.id)),
+    ];
+    const profesores = estado.registros.profesores.map((item) => {
+      const demo = ESTADO_INICIAL.registros.profesores.find((profesor) => profesor.id === item.id) ?? {};
+      return Object.fromEntries(Object.entries({ ...demo, ...item }).filter(([key]) => key !== 'estado')) as RegistroPortal;
+    });
     const estudiantes = [
       ...estado.registros.estudiantes,
       ...ESTUDIANTES_DEMO.filter((demo) => !estado.registros.estudiantes.some((student) => student.id === demo.id)),
     ];
+    const periodos = estado.registros.periodos.map((item) => ({ ...item, yearCiclo: item['yearCiclo'] ?? '2026', fechaInicio: item['fechaInicio'] ?? '2026-02-09', fechaFin: item['fechaFin'] ?? '2026-12-04' }));
+    const secciones = estado.registros.secciones.map((item) => ({ ...item, yearCiclo: item['yearCiclo'] ?? '2026' }));
+    const asignaturas = estado.registros.asignaturas.map((item) => ({ ...item, codigo: item['codigo'] ?? String(item.id).replace(/^ASG-/, '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() }));
     const periodo = estado.registros.periodos.find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Segundo semestre 2026';
     const matriculas = [
       ...estado.registros.matriculas,
       ...ESTUDIANTES_DEMO
         .filter((demo) => !estado.registros.matriculas.some((matricula) => matricula['estudiante'] === demo['nombre'] && matricula['periodo'] === periodo && matricula['estado'] === 'Activa'))
-        .map((student, index) => ({ id: `MAT-DEMO-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], periodo, estado: 'Activa' })),
+        .map((student, index) => ({ id: `MAT-DEMO-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], yearCiclo: '2026', periodo, estado: 'Activa' })),
     ];
     const evaluaciones = estudiantes.map((student, index) => estado.evaluaciones.find((item) => item.estudianteId === student.id) ?? {
       ...EVALUACIONES_DEMO[index % EVALUACIONES_DEMO.length],
@@ -470,7 +547,7 @@ export class PortalDatosService {
       ...AUSENTISMO_DEMO[index % AUSENTISMO_DEMO.length],
       estudianteId: student.id,
     });
-    return { ...estado, registros: { ...estado.registros, estudiantes, matriculas }, evaluaciones, ausentismo };
+    return { ...estado, registros: { ...estado.registros, usuarios, profesores, estudiantes, periodos, secciones, asignaturas, matriculas }, evaluaciones, ausentismo };
   }
 
   private upsert<T extends Record<K, string>, K extends keyof T>(items: T[], value: T, key: K): T[] {

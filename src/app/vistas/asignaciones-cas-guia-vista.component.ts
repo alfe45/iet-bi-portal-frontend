@@ -1,7 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { AsignacionResponsabilidadLocal, PortalDatosService, ResponsabilidadProfesor } from '../nucleo/datos/portal-datos.service';
+import { AsignacionCasLocal, AsignacionResponsabilidadLocal, PortalDatosService, ResponsabilidadProfesor } from '../nucleo/datos/portal-datos.service';
 import { ProfesoresApiService } from '../nucleo/api/profesores-api.service';
 import { SeccionesApiService } from '../nucleo/api/secciones-api.service';
 
@@ -11,24 +11,35 @@ interface ProfesorAsignable {
   nombre: string;
 }
 
+interface AssignmentRow {
+  id: string;
+  cedula?: string;
+  profesor: string;
+  estudiante?: string;
+  responsabilidad?: string;
+  seccion: string;
+  estado?: string;
+}
+
 @Component({
   selector: 'app-vista-asignaciones-cas-guia',
   imports: [FormsModule],
   template: `
     <section class="assignment-page" aria-labelledby="assignment-title">
-      <header class="surface page-header">
-        <div><p class="eyebrow">Administración</p><h2 id="assignment-title">{{ isGuide ? 'Asignación de profesores guía' : 'Asignación CAS' }}</h2><p>{{ isGuide ? 'Asigne un profesor guía a una sección académica.' : 'Asigne profesores responsables del seguimiento y la coordinación CAS.' }}</p></div>
-        <button type="button" class="primary-button" (click)="nuevo()">{{ isGuide ? 'Asignar profesor guía' : 'Asignar responsabilidad CAS' }}</button>
+       <header class="surface page-header">
+         <div><p class="eyebrow">Administración</p><h2 id="assignment-title">{{ isGuide ? 'Asignación de profesores guía' : 'Coordinación CAS' }}</h2><p>{{ isGuide ? 'Asigne un profesor guía a una sección académica.' : 'Administre la relación entre estudiante, profesor CAS y sección.' }}</p></div>
+         <button type="button" class="primary-button" (click)="nuevo()">{{ isGuide ? 'Asignar profesor guía' : 'Registrar coordinación CAS' }}</button>
       </header>
 
       <section class="surface assignment-list">
-        <div class="table-head"><strong>Profesor</strong><strong>{{ isGuide ? 'Sección' : 'Responsabilidad' }}</strong><strong>{{ isGuide ? 'Tipo' : 'Sección' }}</strong><strong></strong></div>
+         <div class="table-head"><strong>{{ isGuide ? 'Profesor' : 'Estudiante' }}</strong><strong>{{ isGuide ? 'Sección' : 'Profesor' }}</strong><strong>{{ isGuide ? 'Tipo' : 'Sección' }}</strong><strong>Estado</strong><strong></strong></div>
         @for (item of assignments(); track item.id) {
           <div class="assignment-row">
-            <div><strong>{{ item.profesor }}</strong><small>{{ item.cedula }}</small></div>
-            <span>{{ isGuide ? item.seccion : item.responsabilidad }}</span>
-            <span>{{ isGuide ? 'Profesor Guía' : (item.seccion || 'Todas las secciones') }}</span>
-            <div class="row-actions"><button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div>
+             <div><strong>{{ isGuide ? item.profesor : item.estudiante }}</strong><small>{{ isGuide ? item.cedula : 'Estudiante CAS' }}</small></div>
+             <span>{{ isGuide ? item.seccion : item.profesor }}</span>
+             <span>{{ isGuide ? 'Profesor Guía' : (item.seccion || 'Sin sección') }}</span>
+             <span>{{ item.estado || 'Activo' }}</span>
+             <div class="row-actions">@if (isGuide) { <button type="button" class="ghost-button" (click)="editar(item)">Editar</button> }<button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div>
           </div>
         } @empty { <p class="empty">No hay asignaciones registradas.</p> }
       </section>
@@ -36,12 +47,14 @@ interface ProfesorAsignable {
       @if (editorOpen()) {
         <div class="modal-backdrop" role="presentation">
           <form class="editor-modal" (ngSubmit)="guardar()" novalidate>
-            <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Asignación CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
+             <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Coordinación CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
             <div class="form-grid">
-              <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of teachers(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select></label>
-              @if (!isGuide) { <label>Responsabilidad CAS<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor CAS">Profesor CAS</option><option value="Profesor Coordinador de CAS">Profesor Coordinador de CAS</option></select></label> }
-              @if (!isGuide && draft.responsabilidad === 'Profesor CAS') { <label>Sección CAS<select name="seccion" [(ngModel)]="draft.seccion" required><option value="">Seleccione una sección</option>@for (section of sections(); track section) {<option [value]="section">{{ section }}</option>}</select></label> }
-              @if (isGuide) { <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" required><option value="">Seleccione una sección</option>@for (section of sections(); track section) {<option [value]="section">{{ section }}</option>}</select></label> }
+               @if (!isGuide) { <label>Estudiante<select name="estudiante" [(ngModel)]="draft.estudiante" required><option value="">Seleccione un estudiante</option>@for (student of students(); track student.id) {<option [value]="student['nombre']">{{ student['nombre'] }}</option>}</select></label> }
+               <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" [disabled]="!!editingId()" required><option value="">Seleccione un profesor</option>@for (teacher of teachers(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select></label>
+               @if (isGuide) { <label>Responsabilidad<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor Guía">Profesor Guía</option></select></label> }
+               @if (!isGuide) { <label>Sección CAS<select name="seccion" [(ngModel)]="draft.seccion" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of sections(); track section) {<option [value]="section">{{ section }}</option>}</select></label> }
+               @if (isGuide) { <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of sections(); track section) {<option [value]="section">{{ section }}</option>}</select></label> }
+               <label>Estado<select name="estado" [(ngModel)]="draft.estado" required><option value="Activo">Activo</option><option value="Inactivo">Inactivo</option></select></label>
             </div>
             <div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrar()">Cancelar</button><button type="submit" class="primary-button">Guardar asignación</button></div>
           </form>
@@ -59,14 +72,17 @@ export class AsignacionesCasGuiaVistaComponent {
   private readonly profesoresApi = inject(ProfesoresApiService);
   private readonly seccionesApi = inject(SeccionesApiService);
   protected readonly isGuide = this.route.snapshot.data['assignmentMode'] === 'guide';
-  protected readonly assignments = computed(() => this.datos.asignacionesResponsabilidad().filter((item) => this.isGuide ? item.responsabilidad === 'Profesor Guía' : item.responsabilidad !== 'Profesor Guía'));
+   protected readonly assignments = computed<AssignmentRow[]>(() => this.isGuide
+     ? this.datos.asignacionesResponsabilidad().filter((item) => item.responsabilidad === 'Profesor Guía').map((item) => ({ id: item.id, cedula: item.cedula, profesor: item.profesor, seccion: item.seccion ?? '', responsabilidad: item.responsabilidad, estado: item.estado }))
+     : this.datos.asignacionesCas().map((item) => ({ id: item.id, profesor: item.profesor, estudiante: item.estudiante, seccion: item.seccion, estado: item.estado })));
   private readonly apiTeachers = signal<ProfesorAsignable[]>([]);
   private readonly apiSections = signal<string[]>([]);
-  protected readonly teachers = computed<ProfesorAsignable[]>(() => this.apiTeachers().length > 0 ? this.apiTeachers() : this.datos.listar('profesores').filter((item) => item['estado'] !== 'Inactivo').map((item) => ({ id: item.id, cedula: item['cedula'], nombre: item['nombre'] })));
-  protected readonly sections = computed(() => this.apiSections().length > 0 ? this.apiSections() : [...new Set(this.datos.listar('secciones').map((item) => item['nombre']).filter(Boolean))]);
+   protected readonly teachers = computed<ProfesorAsignable[]>(() => this.apiTeachers().length > 0 ? this.apiTeachers() : this.datos.listar('profesores').filter((item) => item['estado'] !== 'Inactivo').map((item) => ({ id: item.id, cedula: item['cedula'], nombre: item['nombreCompleto'] ?? item['nombre'] })));
+   protected readonly sections = computed(() => this.apiSections().length > 0 ? this.apiSections() : [...new Set(this.datos.listar('secciones').map((item) => item['nombre']).filter(Boolean))]);
+   protected readonly students = computed(() => this.datos.estudiantes());
   protected readonly editorOpen = signal(false);
   protected readonly editingId = signal('');
-  protected draft: Partial<AsignacionResponsabilidadLocal> = {};
+   protected draft: Partial<AsignacionResponsabilidadLocal & AsignacionCasLocal> = {};
 
   constructor() {
     this.profesoresApi.listar().subscribe({ next: (items) => this.apiTeachers.set(items.filter((item) => item.activo).map((item) => ({ id: item.idProfesor, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))) });
@@ -76,23 +92,29 @@ export class AsignacionesCasGuiaVistaComponent {
   protected nuevo(): void {
     this.editingId.set('');
     const teacher = this.teachers()[0];
-    this.draft = { id: `RESP-${Date.now()}`, cedula: teacher?.cedula ?? '', profesor: teacher?.nombre ?? '', responsabilidad: this.isGuide ? 'Profesor Guía' : 'Profesor CAS', seccion: this.sections()[0] ?? '' };
+     this.draft = this.isGuide
+       ? { id: `RESP-${Date.now()}`, cedula: teacher?.cedula ?? '', profesor: teacher?.nombre ?? '', responsabilidad: 'Profesor Guía', seccion: this.sections()[0] ?? '', estado: 'Activo' }
+       : { id: `CAS-ASSIGN-${Date.now()}`, estudiante: this.students()[0]?.['nombre'] ?? '', profesor: teacher?.nombre ?? '', seccion: this.sections()[0] ?? '', estado: 'Activo' };
     this.editorOpen.set(true);
   }
 
-  protected editar(item: AsignacionResponsabilidadLocal): void { this.editingId.set(item.id); this.draft = { ...item }; this.editorOpen.set(true); }
+   protected editar(item: AssignmentRow): void { this.editingId.set(item.id); this.draft = this.isGuide ? { ...this.datos.asignacionesResponsabilidad().find((source) => source.id === item.id) } : {}; this.editorOpen.set(true); }
 
   protected seleccionarProfesor(cedula: string): void { this.draft.cedula = cedula; this.draft.profesor = this.teachers().find((teacher) => teacher.cedula === cedula)?.nombre ?? ''; }
 
   protected cambioResponsabilidad(responsabilidad: string): void { if (responsabilidad === 'Profesor Coordinador de CAS') this.draft.seccion = undefined; else if (!this.draft.seccion) this.draft.seccion = this.sections()[0] ?? ''; }
 
   protected guardar(): void {
-    if (!this.draft.id || !this.draft.cedula || !this.draft.profesor || !this.draft.responsabilidad) return;
-    if ((this.isGuide || this.draft.responsabilidad === 'Profesor CAS') && !this.draft.seccion) return;
-    this.datos.guardarAsignacionResponsabilidad({ id: this.draft.id, cedula: this.draft.cedula, profesor: this.draft.profesor, responsabilidad: this.isGuide ? 'Profesor Guía' : this.draft.responsabilidad as ResponsabilidadProfesor, seccion: this.isGuide || this.draft.responsabilidad === 'Profesor CAS' ? this.draft.seccion : undefined });
-    this.cerrar();
-  }
+     if (this.isGuide) {
+       if (!this.draft.id || !this.draft.cedula || !this.draft.profesor || !this.draft.seccion) return;
+       this.datos.guardarAsignacionResponsabilidad({ id: this.draft.id, cedula: this.draft.cedula, profesor: this.draft.profesor, responsabilidad: 'Profesor Guía', seccion: this.draft.seccion, estado: this.draft.estado ?? 'Activo' });
+     } else {
+       if (!this.draft.id || !this.draft.estudiante || !this.draft.profesor || !this.draft.seccion) return;
+       this.datos.guardarAsignacionCas({ id: this.draft.id, estudiante: this.draft.estudiante, profesor: this.draft.profesor, seccion: this.draft.seccion, estado: this.draft.estado ?? 'Activo' });
+     }
+     this.cerrar();
+   }
 
-  protected eliminar(item: AsignacionResponsabilidadLocal): void { if (confirm(`¿Eliminar la asignación de ${item.profesor}?`)) this.datos.eliminarAsignacionResponsabilidad(item.id); }
+   protected eliminar(item: AssignmentRow): void { if (confirm(`¿Eliminar la asignación de ${item.estudiante ?? item.profesor}?`)) this.isGuide ? this.datos.eliminarAsignacionResponsabilidad(item.id) : this.datos.eliminarAsignacionCas(item.id); }
   protected cerrar(): void { this.editorOpen.set(false); }
 }

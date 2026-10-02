@@ -62,7 +62,7 @@ export class EstructuraPrincipalComponent {
   protected readonly breadcrumbs = computed(() => {
     const parts = this.currentUrl().split('?')[0].split('/').filter(Boolean);
     if (!parts.length || parts[0] === 'dashboard') return ['Inicio'];
-     const labels: Record<string, string> = { usuarios: 'Usuarios', profesores: 'Profesores', estudiantes: 'Estudiantes', periodos: 'Periodos académicos', secciones: 'Secciones', grupos: 'Mis grupos', 'registro-academico': 'Registro de bandas', compartir: 'Compartir', matriculas: 'Matrículas', escalas: 'Tipos de escala', asignaturas: 'Asignaturas', asignaciones: 'Asignación académica', monografias: 'Monografías', grupo: 'Grupo', reportes: 'Reportes', evaluaciones: 'Evaluaciones', ausentismo: 'Ausentismo', 'seccion-guia': 'Mi sección guía', perfil: 'Perfil' };
+     const labels: Record<string, string> = { usuarios: 'Usuarios', profesores: 'Profesores', estudiantes: 'Estudiantes', periodos: 'Cursos lectivos', secciones: 'Secciones', grupos: 'Mis grupos', 'registro-academico': 'Registro de bandas', compartir: 'Compartir', matriculas: 'Matrículas', escalas: 'Tipos de escala', asignaturas: 'Asignaturas', asignaciones: 'Asignación académica', monografias: 'Monografías', grupo: 'Grupo', reportes: 'Reportes', evaluaciones: 'Evaluaciones', ausentismo: 'Ausentismo', 'seccion-guia': 'Mi sección guía', perfil: 'Perfil' };
     if (parts[0] === 'reportes' && parts[1]) {
      const reportLabels: Record<string, string> = { asignatura: 'Reporte de asignatura', monografia: 'Reporte de monografía' };
       return ['Inicio', 'Reportes', reportLabels[parts[1]] ?? 'Detalle'];

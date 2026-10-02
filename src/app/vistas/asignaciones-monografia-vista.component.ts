@@ -7,12 +7,12 @@ import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-dato
   imports: [FormsModule],
   template: `
     <section class="assignment-page" aria-labelledby="assignment-title">
-      <header class="surface page-header"><div><p class="eyebrow">Administración</p><h2 id="assignment-title">Asignación de monografía</h2><p>Enlace cada estudiante con su proyecto y Profesor Coordinador de Monografía.</p></div><button type="button" class="primary-button" (click)="nuevo()">Asignar monografía</button></header>
-      <section class="surface assignment-list"><div class="table-head"><strong>Estudiante</strong><strong>Proyecto</strong><strong>Área</strong><strong>Profesor Coordinador</strong><strong></strong></div>
+      <header class="surface page-header"><div><p class="eyebrow">Administración</p><h2 id="assignment-title">Asignación de coordinación de monografía</h2><p>Enlace cada estudiante con su proyecto, asignatura y Profesor Coordinador de Monografía.</p></div><button type="button" class="primary-button" (click)="nuevo()">Asignar coordinación</button></header>
+       <section class="surface assignment-list"><div class="table-head"><strong>Estudiante</strong><strong>Proyecto</strong><strong>Asignatura</strong><strong>Profesor Coordinador</strong><strong></strong></div>
         @for (item of monographs(); track item.id) {<div class="assignment-row"><div><strong>{{ item.estudiante }}</strong><small>{{ item.estado }}</small></div><span>{{ item.titulo }}</span><span>{{ item.area }}</span><span>{{ item.coordinador }}</span><button type="button" class="ghost-button" (click)="editar(item)">Editar</button></div>}
         @empty {<p class="empty">No hay asignaciones de monografía.</p>}
       </section>
-      @if (editorOpen()) {<div class="modal-backdrop" role="presentation"><form class="editor-modal" (ngSubmit)="guardar()"><div class="modal-heading"><div><p class="eyebrow">Asignación de monografía</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3></div><button type="button" class="close-button" (click)="cerrar()">×</button></div><div class="form-grid"><label>Estudiante<select name="estudiante" [(ngModel)]="draft.estudiante" required>@for (student of students(); track student.id) {<option [value]="student['nombre']">{{ student['nombre'] }}</option>}</select></label><label>Profesor Coordinador de Monografía<select name="coordinador" [(ngModel)]="draft.coordinador" required>@for (teacher of teachers(); track teacher.id) {<option [value]="teacher['nombre']">{{ teacher['nombre'] }}</option>}</select></label><label>Proyecto<input name="titulo" [(ngModel)]="draft.titulo" required /></label><label>Área<input name="area" [(ngModel)]="draft.area" required /></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrar()">Cancelar</button><button type="submit" class="primary-button">Guardar asignación</button></div></form></div>}
+       @if (editorOpen()) {<div class="modal-backdrop" role="presentation"><form class="editor-modal" (ngSubmit)="guardar()"><div class="modal-heading"><div><p class="eyebrow">Asignación de coordinación de monografía</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3></div><button type="button" class="close-button" (click)="cerrar()">×</button></div><div class="form-grid"><label>Estudiante<select name="estudiante" [(ngModel)]="draft.estudiante" required>@for (student of students(); track student.id) {<option [value]="student['nombre']">{{ student['nombre'] }}</option>}</select></label><label>Profesor Coordinador de Monografía<select name="coordinador" [(ngModel)]="draft.coordinador" required>@for (teacher of teachers(); track teacher.id) {<option [value]="teacher['nombre']">{{ teacher['nombre'] }}</option>}</select></label><label>Proyecto<input name="titulo" [(ngModel)]="draft.titulo" required /></label><label>Asignatura<select name="area" [(ngModel)]="draft.area" required>@for (subject of subjects(); track subject.id) {<option [value]="subject['nombre']">{{ subject['nombre'] }}</option>}</select></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrar()">Cancelar</button><button type="submit" class="primary-button">Guardar asignación</button></div></form></div>}
     </section>
   `,
   styles: `
@@ -24,7 +24,8 @@ export class AsignacionesMonografiaVistaComponent {
   private readonly datos = inject(PortalDatosService);
   protected readonly monographs = computed(() => this.datos.monografias());
   protected readonly students = computed(() => this.datos.estudiantes());
-  protected readonly teachers = computed(() => this.datos.listar('profesores'));
+   protected readonly teachers = computed(() => this.datos.listar('profesores').map((teacher) => ({ ...teacher, nombre: teacher['nombreCompleto'] ?? teacher['nombre'] })));
+  protected readonly subjects = computed(() => this.datos.listar('asignaturas'));
   protected readonly editorOpen = signal(false);
   protected readonly editingId = signal('');
   protected draft: Partial<MonografiaLocal> = {};
