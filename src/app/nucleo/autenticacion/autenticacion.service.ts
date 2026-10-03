@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { RolUsuario } from '../modelos/modelos-prototipo';
+import { API_URL } from '../api/api.config';
 
 interface RespuestaAutenticacion {
   accessToken: string;
@@ -27,7 +28,6 @@ interface SesionPersistida {
   displayName: string;
 }
 
-const API_URL = 'http://localhost:5149/api';
 const SESSION_KEY = 'iet-bi-portal:sesion:v2';
 
 const ROLES_BACKEND: Record<string, RolUsuario> = {
@@ -74,6 +74,11 @@ export class AutenticacionService {
       ? this.http.post<void>(`${API_URL}/auth/logout`, { refreshToken: token }).pipe(catchError(() => of(undefined)))
       : of(undefined);
     cierre.pipe(finalize(() => { this.limpiarSesion(); void this.router.navigateByUrl('/login'); })).subscribe();
+  }
+
+  expirarSesion(): void {
+    this.limpiarSesion();
+    void this.router.navigateByUrl('/login');
   }
 
   hasRole(role: RolUsuario): boolean {

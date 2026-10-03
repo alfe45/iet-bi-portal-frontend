@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { EMPTY, catchError, switchMap, throwError } from 'rxjs';
 import { AutenticacionService } from './autenticacion.service';
 
 export const autenticacionInterceptor: HttpInterceptorFn = (request, next) => {
@@ -13,12 +13,16 @@ export const autenticacionInterceptor: HttpInterceptorFn = (request, next) => {
 
   return next(requestAutorizada).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (error.status !== 401 || esAuth || !auth.refreshTokenValue()) return throwError(() => error);
+      if (error.status !== 401 || esAuth) return throwError(() => error);
+      if (!auth.refreshTokenValue()) {
+        auth.expirarSesion();
+        return EMPTY;
+      }
       return auth.renovarAccessToken().pipe(
         switchMap((token) => next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
-        catchError((refreshError) => {
-          auth.limpiarSesion();
-          return throwError(() => refreshError);
+        catchError(() => {
+          auth.expirarSesion();
+          return EMPTY;
         }),
       );
     }),

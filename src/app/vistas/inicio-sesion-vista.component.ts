@@ -32,8 +32,8 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
 export class InicioSesionVistaComponent {
   protected readonly auth = inject(AutenticacionService);
   private readonly router = inject(Router);
-  protected usuario = 'admin@iet.test';
-  protected contrasena = 'Cambiar1234';
+  protected usuario = '';
+  protected contrasena = '';
   protected error = '';
   protected readonly cargando = signal(false);
 

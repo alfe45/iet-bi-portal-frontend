@@ -3,15 +3,17 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
 import { BreadcrumbsComponent } from '../compartidos/componentes/breadcrumbs.component';
+import { FeedbackComponent } from '../compartidos/componentes/feedback.component';
 import { FooterComponent } from './footer/footer.component';
 import { HeaderComponent } from './header/header.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent, BreadcrumbsComponent],
+   imports: [RouterOutlet, HeaderComponent, SidebarComponent, FooterComponent, BreadcrumbsComponent, FeedbackComponent],
   template: `
     <div class="app-shell">
+      <app-feedback />
       <a class="skip-link" href="#main-content">Saltar al contenido principal</a>
       <app-header (menuToggle)="sidebarOpen.set(!sidebarOpen())" />
       <div class="app-shell__body">
@@ -29,7 +31,7 @@ import { SidebarComponent } from './sidebar/sidebar.component';
     </div>
   `,
   styles: `
-    :host { display: block; height: 100vh; height: 100dvh; overflow: hidden; }
+    :host { display: block; width: 100%; height: 100vh; height: 100dvh; margin: 0; padding: 0; overflow: hidden; }
     .app-shell { --header-height: 60px; --sidebar-width: 245px; display: grid; grid-template-rows: var(--header-height) minmax(0, 1fr); height: 100%; background: #f6f7fb; }
     .app-shell__body { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 0; }
     .workspace { min-width: 0; min-height: 0; display: grid; grid-template-rows: 58px minmax(0, 1fr) 34px; }

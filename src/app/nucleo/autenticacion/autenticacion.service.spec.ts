@@ -38,4 +38,12 @@ describe('AutenticacionService', () => {
     expect(localStorage.getItem('iet-bi-portal:sesion:v2')).toBeNull();
     http.verify();
   });
+
+  it('redirects to login when the session expires', () => {
+    const service = TestBed.inject(AutenticacionService);
+    service.expirarSesion();
+
+    expect(service.authenticated()).toBe(false);
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
+  });
 });
