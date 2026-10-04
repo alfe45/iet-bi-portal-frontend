@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { API_URL, ResultadoPaginado } from './api-modelos';
 
@@ -14,6 +14,10 @@ export interface UsuarioAdminApi {
   cantidadSesiones: number;
   cedulaProfesor: string | null;
   nombreProfesor: string | null;
+  intentosFallidosLogin?: number;
+  passwordCambiadaEn?: string | null;
+  actualizadoEn?: string | null;
+  tokensInvalidadosDesde?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -21,8 +25,14 @@ export class UsuariosApiService {
   private readonly http = inject(HttpClient);
   private readonly url = `${API_URL}/admin/usuarios`;
 
-  listar(): Observable<ResultadoPaginado<UsuarioAdminApi>> {
-    return this.http.get<ResultadoPaginado<UsuarioAdminApi>>(this.url);
+  listar(busqueda = '', pagina = 1, tamanoPagina = 20): Observable<ResultadoPaginado<UsuarioAdminApi>> {
+    let params = new HttpParams().set('pagina', pagina).set('tamanoPagina', tamanoPagina);
+    if (busqueda.trim()) params = params.set('busqueda', busqueda.trim());
+    return this.http.get<ResultadoPaginado<UsuarioAdminApi>>(this.url, { params });
+  }
+
+  obtener(id: string): Observable<UsuarioAdminApi> {
+    return this.http.get<UsuarioAdminApi>(`${this.url}/${id}`);
   }
 
   registrar(email: string, contrasena: string): Observable<{ id: string; email: string }> {

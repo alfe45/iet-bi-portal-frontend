@@ -56,8 +56,8 @@ input[readonly],select:disabled { background:#f3f5f7; color:#5b6b79; }
 .primary-button:hover,.ghost-button:hover,.danger-button:hover { transform:translateY(-1px); box-shadow:0 4px 10px rgba(27,46,94,.14); }
 .tag { padding:.35rem .65rem; color:#287edc; background:rgba(64,153,255,.1); border:1px solid rgba(64,153,255,.12); font-size:.78rem; font-weight:600; }
 
-app-vista-funcionalidad,app-vista-evaluaciones,app-vista-ausentismo,app-vista-tablero,app-vista-seccion-guia,app-vista-reportes,app-vista-monografias,app-vista-detalle-monografia,app-follow-ups-page,app-vista-perfil { display:block; height:100%; min-height:0; overflow:hidden; }
-.page-grid,.stack-grid,.workspace { min-height:0; overflow:hidden; }
+app-vista-funcionalidad,app-vista-evaluaciones,app-vista-ausentismo,app-vista-tablero,app-vista-seccion-guia,app-vista-reportes,app-vista-monografias,app-vista-detalle-monografia,app-follow-ups-page,app-vista-perfil { display:block; min-height:100%; overflow:visible; }
+.page-grid,.stack-grid,.workspace { min-height:0; }
 .page-grid > .surface,.workspace > .surface { min-height:0; }
 
 @media(max-width:900px){.split-grid{grid-template-columns:1fr}.section-heading{align-items:flex-start;flex-direction:column}}

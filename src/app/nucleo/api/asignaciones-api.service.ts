@@ -22,12 +22,26 @@ export interface RegistrarAsignacionRequest {
   cedulaProfesor: string;
 }
 
+export interface ConsultaAsignaciones {
+  anio?: number;
+  nivel?: number;
+  numero?: number;
+  codigoAsignatura?: string;
+  cedulaProfesor?: string;
+  pagina?: number;
+  tamanoPagina?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AsignacionesApiService {
   private readonly http = inject(HttpClient);
   private readonly url = `${API_URL}/admin/asignaciones`;
 
-  listar(): Observable<ResultadoPaginado<AsignacionApi>> { return this.http.get<ResultadoPaginado<AsignacionApi>>(this.url); }
+  listar(consulta: ConsultaAsignaciones = {}): Observable<ResultadoPaginado<AsignacionApi>> {
+    let params = new URLSearchParams();
+    for (const [key, value] of Object.entries(consulta)) if (value !== undefined) params.set(key, String(value));
+    return this.http.get<ResultadoPaginado<AsignacionApi>>(this.url, { params: Object.fromEntries(params.entries()) });
+  }
   registrar(request: RegistrarAsignacionRequest): Observable<void> { return this.http.post<void>(this.url, request); }
   cambiarProfesor(anio: number, nivel: number, numero: number, codigo: string, cedula: string, cedulaProfesorNuevo: string): Observable<void> {
     return this.http.put<void>(`${this.url}/${anio}/${nivel}/${numero}/${encodeURIComponent(codigo)}/${encodeURIComponent(cedula)}/profesor`, { cedulaProfesorNuevo });

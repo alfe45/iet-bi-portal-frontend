@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
 import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadisticas.component';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
@@ -64,7 +64,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
         </div>
       </section>
 
-      <app-stat-grid [cards]="[{ label: 'Registros', value: String(rows().length), tone: 'primary' }]" />
+   <app-stat-grid [cards]="[{ label: 'Registros', value: cantidadRegistros(), tone: 'primary' }]" />
 
        @if (editorOpen()) {
            <div class="modal-backdrop" role="presentation"><form class="surface editor" [class.user-editor]="key === 'usuarios'" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
@@ -86,7 +86,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                        @if (editingId) {
                          <div class="selected-student"><strong>{{ estudianteSeleccionadoMatricula() }}</strong><span>{{ draft[field.key] }}</span><small>El estudiante no se puede cambiar al editar una matrícula.</small></div>
                        } @else {
-                         <div class="student-picker"><div class="student-search"><span class="search-label">Buscar estudiante</span><input type="search" name="buscarEstudiante" [(ngModel)]="studentSearch" placeholder="Nombre completo o número de cédula" autocomplete="off" [readonly]="readOnly" /><small>{{ estudiantesDisponiblesMatricula().length }} estudiantes disponibles</small></div><div class="student-results" role="listbox" aria-label="Resultados de estudiantes">@for (student of estudiantesResultadosMatricula(); track student.cedula) { <button type="button" class="student-result" [class.selected]="draft[field.key] === student.cedula" (click)="seleccionarEstudianteMatricula(student)"><span class="student-avatar">{{ inicialesEstudiante(student) }}</span><span class="student-result-copy"><strong>{{ nombreCompletoEstudiante(student) }}</strong><small>{{ student.cedula }}{{ student.email ? ' · ' + student.email : '' }}</small></span><span class="student-check" aria-hidden="true">{{ draft[field.key] === student.cedula ? 'Seleccionado' : 'Elegir' }}</span></button>} @empty { <p class="student-empty">No encontramos estudiantes con esa búsqueda.</p> }</div>@if (draft[field.key]) { <p class="student-selection">Estudiante seleccionado: <strong>{{ estudianteSeleccionadoMatricula() }}</strong></p> }</div>
+                          <div class="student-picker"><div class="student-search"><span class="search-label">Buscar estudiante</span><input type="search" name="buscarEstudiante" [(ngModel)]="studentSearch" (ngModelChange)="buscarEstudiantesMatricula($event)" placeholder="Nombre completo o número de cédula" autocomplete="off" [readonly]="readOnly" /><small>{{ estudiantesDisponiblesMatricula().length }} estudiantes disponibles</small></div><div class="student-results" role="listbox" aria-label="Resultados de estudiantes">@for (student of estudiantesResultadosMatricula(); track student.cedula) { <button type="button" class="student-result" [class.selected]="draft[field.key] === student.cedula" (click)="seleccionarEstudianteMatricula(student)"><span class="student-avatar">{{ inicialesEstudiante(student) }}</span><span class="student-result-copy"><strong>{{ nombreCompletoEstudiante(student) }}</strong><small>{{ student.cedula }}{{ student.email ? ' · ' + student.email : '' }}</small></span><span class="student-check" aria-hidden="true">{{ draft[field.key] === student.cedula ? 'Seleccionado' : 'Elegir' }}</span></button>} @empty { <p class="student-empty">No encontramos estudiantes con esa búsqueda.</p> }</div>@if (draft[field.key]) { <p class="student-selection">Estudiante seleccionado: <strong>{{ estudianteSeleccionadoMatricula() }}</strong></p> }</div>
                        }
                    } @else if (key === 'matriculas' && field.key === 'yearCiclo') {
                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
@@ -119,15 +119,24 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        }
 
        <section class="surface">
-         @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo activo: {{ grupos.periodoActivo() }}</span></div> }
-         <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
+          @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo activo: {{ grupos.periodoActivo() }}</span></div> }
+          <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
+          @if (busquedaDisponible()) {
+            <div class="table-tools">
+              <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
+              <div class="table-search-actions"><button type="button" class="primary-button" (click)="buscarRegistros()">Buscar</button>@if (adminSearch) { <button type="button" class="ghost-button" (click)="limpiarBusqueda()">Limpiar</button> }</div>
+            </div>
+          }
            @if (apiError && !editorOpen()) { <p class="api-error" role="alert">{{ apiError }}</p> }
-          <app-data-table [columns]="columns()" [rows]="rows()" (actionSelected)="accion($event)" />
-      </section>
+           <app-data-table [columns]="columns()" [rows]="rows()" (actionSelected)="accion($event)" />
+           @if (paginacionVisible()) {
+             <nav class="pagination-bar" aria-label="Paginación de registros"><span>Mostrando {{ rangoInicio() }}-{{ rangoFin() }} de {{ totalRegistros() }}</span><div class="pagination-actions"><button type="button" class="ghost-button" [disabled]="paginaActual() === 1" (click)="cambiarPagina(paginaActual() - 1)">Anterior</button><span>Página {{ paginaActual() }} de {{ totalPaginas() }}</span><button type="button" class="ghost-button" [disabled]="paginaActual() >= totalPaginas()" (click)="cambiarPagina(paginaActual() + 1)">Siguiente</button></div></nav>
+           }
+       </section>
     </section>
   `,
   styles: `
-     .page-grid { height: 100%; grid-template-rows: auto auto minmax(0, 1fr); }
+     .page-grid { min-height: 100%; grid-template-rows: auto auto auto; }
      .eyebrow { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .74rem; color: #2f6b9a; font-weight: 700; }
     .section-heading p { margin: .35rem 0 0; color: #667085; }
       .modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(13,25,39,.52)}
@@ -139,7 +148,9 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
       .user-editor .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem; margin-top:1.2rem; }
       .user-editor .roles-field { grid-column:1 / -1; }
       .user-editor .roles-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem .75rem; padding:.75rem; }
-      .group-filter { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; padding:.7rem; background:#f2f7fa; border-radius:7px; }.group-filter label { display:flex; align-items:center; gap:.7rem; }.group-filter span { color:#667085; font-size:.82rem; }
+       .group-filter { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; padding:.7rem; background:#f2f7fa; border-radius:7px; }.group-filter label { display:flex; align-items:center; gap:.7rem; }.group-filter span { color:#667085; font-size:.82rem; }
+        .table-tools{display:flex;align-items:end;justify-content:space-between;gap:.8rem;margin:0 0 1rem;padding:.75rem;background:#f8fafc;border:1px solid #e6edf3;border-radius:8px}.table-search{display:grid;gap:.25rem;flex:1;max-width:520px}.table-search span{color:#475467;font-size:.72rem;font-weight:800}.table-search input{width:100%;box-sizing:border-box}.table-search-actions{display:flex;gap:.5rem}.table-search-actions button{white-space:nowrap}
+        .pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem .2rem 0;color:#667085;font-size:.76rem}.pagination-actions{display:flex;align-items:center;gap:.7rem}.pagination-actions button{padding:.35rem .65rem;font-size:.72rem}.pagination-actions button:disabled{opacity:.45;cursor:not-allowed}
        label { display: grid; gap: .25rem; font-weight: 700; }.student-picker{display:grid;gap:.55rem;padding:.7rem;border:1px solid #cfdbe5;border-radius:9px;background:#f8fbfd}.student-search{display:grid;gap:.3rem}.search-label{color:#1e3a5f;font-size:.76rem;font-weight:800}.student-search input{width:100%;box-sizing:border-box}.student-search small{color:#667085;font-size:.72rem;font-weight:500}.student-results{display:grid;gap:.35rem;max-height:220px;overflow:auto;padding-right:.15rem}.student-result{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;align-items:center;gap:.55rem;width:100%;padding:.55rem;border:1px solid #dbe5ef;border-radius:7px;background:#fff;color:#25364a;text-align:left;cursor:pointer}.student-result:hover,.student-result.selected{border-color:#2f6b9a;background:#eaf3f8}.student-avatar{display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:#d9eaf3;color:#1e5a78;font-size:.68rem;font-weight:800}.student-result-copy{display:grid;min-width:0;gap:.12rem}.student-result-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem}.student-result-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#667085;font-size:.7rem}.student-check{color:#2f6b9a;font-size:.65rem;font-weight:800}.student-empty{margin:0;padding:.8rem;color:#667085;font-size:.78rem;text-align:center}.selected-student{display:grid;gap:.2rem;padding:.75rem;border:1px solid #b9d3e5;border-radius:9px;background:#f0f8fc}.selected-student strong{color:#1e3a5f}.selected-student span,.selected-student small{color:#667085;font-size:.75rem}.student-selection{margin:0;color:#1e5a78;font-size:.75rem}
      .form-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1rem; }
      .field-error { display: block; color: #b42318; font-size: .72rem; line-height: 1.2; font-weight: 600; }
@@ -152,6 +163,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
 // Administra los formularios y tablas de las funcionalidades seleccionadas.
 export class FuncionalidadVistaComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly auth = inject(AutenticacionService);
   private readonly datos = inject(PortalDatosService);
   private readonly profesoresApi = inject(ProfesoresApiService);
@@ -178,7 +190,12 @@ export class FuncionalidadVistaComponent {
      private readonly usuariosApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignaturasApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignacionesApiRows = signal<Array<Record<string, unknown>>>([]);
-   protected apiError = '';
+     protected apiError = '';
+     protected adminSearch = '';
+     protected readonly paginaActual = signal(1);
+     protected readonly totalRegistros = signal(0);
+     protected readonly tamanoPagina = 10;
+     protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
    protected readonly columns = computed(() => [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
    protected readonly rows = computed<Array<Record<string, unknown>>>(() => {
        if (this.isTeacher()) return this.teacherRows();
@@ -204,7 +221,56 @@ export class FuncionalidadVistaComponent {
   protected readonly String = String;
    protected readonly isTeacher = computed(() => !this.auth.hasRole('Administrador'));
   protected readonly pageTitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Mis asignaturas' : this.isTeacher() && this.key === 'secciones' ? 'Mis secciones' : this.config.title);
-   protected readonly pageSubtitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Consulta las asignaturas que tienes asignadas en el periodo actual.' : this.isTeacher() && this.key === 'secciones' ? 'Consulta las secciones donde impartes alguna asignatura.' : this.isTeacher() && this.key === 'estudiantes' ? 'Consulta los estudiantes de tus grupos.' : this.config.subtitle);
+    protected readonly pageSubtitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Consulta las asignaturas que tienes asignadas en el periodo actual.' : this.isTeacher() && this.key === 'secciones' ? 'Consulta las secciones donde impartes alguna asignatura.' : this.isTeacher() && this.key === 'estudiantes' ? 'Consulta los estudiantes de tus grupos.' : this.config.subtitle);
+
+    protected busquedaDisponible(): boolean { return this.isAdmin() && ['usuarios', 'profesores', 'estudiantes', 'matriculas'].includes(this.key); }
+    protected etiquetaBusqueda(): string { return this.key === 'matriculas' ? 'Buscar matrícula' : `Buscar ${this.config.title.toLowerCase()}`; }
+     protected placeholderBusqueda(): string { return this.key === 'matriculas' ? 'Nombre o cédula del estudiante' : 'Correo, nombre o cédula'; }
+
+     protected cantidadRegistros(): string { return this.paginacionAdministrativa() ? String(this.totalRegistros()) : String(this.rows().length); }
+     protected paginacionAdministrativa(): boolean { return this.isAdmin() && ['usuarios', 'profesores', 'estudiantes', 'periodos', 'secciones', 'matriculas', 'asignaturas', 'asignaciones'].includes(this.key); }
+     protected paginacionVisible(): boolean { return this.paginacionAdministrativa() && this.totalRegistros() > this.tamanoPagina; }
+     protected rangoInicio(): number { return this.totalRegistros() ? (this.paginaActual() - 1) * this.tamanoPagina + 1 : 0; }
+     protected rangoFin(): number { return Math.min(this.paginaActual() * this.tamanoPagina, this.totalRegistros()); }
+
+     protected cambiarPagina(page: number): void {
+       if (page < 1 || page > this.totalPaginas() || page === this.paginaActual()) return;
+       this.paginaActual.set(page);
+       this.cargarPaginaActual();
+     }
+
+     protected buscarRegistros(): void {
+       this.apiError = '';
+       this.paginaActual.set(1);
+       if (this.key === 'usuarios') this.cargarUsuarios(this.adminSearch);
+      if (this.key === 'profesores') this.cargarProfesores(this.adminSearch);
+      if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch);
+      if (this.key === 'matriculas') this.cargarMatriculas(this.adminSearch);
+    }
+
+     protected limpiarBusqueda(): void { this.adminSearch = ''; this.buscarRegistros(); }
+
+     private cargarPaginaActual(): void {
+       const pagina = this.paginaActual();
+       if (this.key === 'usuarios') this.cargarUsuarios(this.adminSearch, pagina);
+       if (this.key === 'profesores') this.cargarProfesores(this.adminSearch, pagina);
+       if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch, pagina);
+       if (this.key === 'periodos') this.cargarCursosAdministracion(pagina);
+       if (this.key === 'secciones') this.cargarSeccionesAdministracion(pagina);
+       if (this.key === 'matriculas') this.cargarMatriculas(this.adminSearch, pagina);
+       if (this.key === 'asignaturas') this.cargarAsignaturas(pagina);
+       if (this.key === 'asignaciones') this.cargarAsignaciones(pagina);
+     }
+
+     private actualizarPaginacion<T>(response: { pagina: number; total: number; elementos: T[] }): void {
+       this.totalRegistros.set(response.total);
+       if (response.pagina !== this.paginaActual()) this.paginaActual.set(response.pagina);
+       const lastPage = Math.max(1, Math.ceil(response.total / this.tamanoPagina));
+       if (!response.elementos.length && response.total > 0 && this.paginaActual() > lastPage) {
+         this.paginaActual.set(lastPage);
+         this.cargarPaginaActual();
+       }
+     }
 
     protected camposFormulario(): CampoFormulario[] {
       if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
@@ -243,7 +309,7 @@ export class FuncionalidadVistaComponent {
     }
 
     constructor() {
-       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios(); }
+       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios('', 1, false); }
       if (this.isAdmin() && this.key === 'estudiantes') this.cargarEstudiantes();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarMatriculas();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarSecciones();
@@ -253,7 +319,7 @@ export class FuncionalidadVistaComponent {
        if (this.isAdmin() && this.key === 'secciones') this.cargarSeccionesAdministracion();
        if (this.isAdmin() && this.key === 'usuarios') this.cargarUsuarios();
        if (this.isAdmin() && this.key === 'asignaturas') this.cargarAsignaturas();
-        if (this.isAdmin() && this.key === 'asignaciones') { this.cargarAsignaciones(); this.cargarProfesores(); this.cargarAsignaturas(); this.cargarSeccionesAdministracion(); this.cargarCursosLectivos(); }
+        if (this.isAdmin() && this.key === 'asignaciones') { this.cargarAsignaciones(); this.cargarProfesores('', 1, false); this.cargarAsignaturas(1, false); this.cargarSeccionesAdministracion(1, false); this.cargarCursosLectivos(); }
     }
 
   protected abrirNuevo(): void {
@@ -428,22 +494,22 @@ export class FuncionalidadVistaComponent {
      }));
    }
 
-      private cargarProfesores(): void {
-     this.apiError = '';
-       this.profesoresApi.listar().subscribe({ next: (items) => this.profesoresApiRows.set(items.map((item) => ({ id: item.cedula, usuarioId: item.idUsuario, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor() }))), error: () => { this.profesoresApiRows.set([]); this.apiError = 'No se pudieron consultar los profesores.'; } });
-   }
+         private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
+      this.apiError = '';
+          this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => ({ id: item.cedula, usuarioId: item.idUsuario, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor() }))); }, error: () => { this.profesoresApiRows.set([]); this.apiError = 'No se pudieron consultar los profesores.'; } });
+    }
 
-   private cargarEstudiantes(): void {
-     this.apiError = '';
-       this.estudiantesApi.listar().subscribe({ next: (items) => this.estudiantesApiRows.set(items.map((item) => ({ id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: item.fechaRegistro, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: this.accionesEstudiante() }))), error: () => { this.estudiantesApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes.'; } });
-   }
+    private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
+      this.apiError = '';
+         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => ({ id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: item.fechaRegistro, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: [...this.accionesEstudiante(), { label: 'Historial', code: 'history' }] }))); }, error: () => { this.estudiantesApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes.'; } });
+    }
 
-   private cargarMatriculas(): void {
-     this.apiError = '';
-      this.estudiantesApi.listar().subscribe({ next: (students) => {
-        this.estudiantesMatricula.set(students);
-         this.matriculasApi.listar().subscribe({ next: (response) => this.matriculasApiRows.set(response.elementos.map((item) => ({ id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: item.estado, fechaRetiro: item.fechaRetiro, nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Editar', code: 'edit' }, ...(item.nivel === 10 ? [{ label: 'Subir de nivel', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))), error: () => this.apiError = 'No se pudieron consultar las matrículas.' });
-        }, error: () => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes para las matrículas.'; } });
+     private cargarMatriculas(busqueda = '', pagina = this.paginaActual()): void {
+      this.apiError = '';
+       this.estudiantesApi.listar().subscribe({ next: (students) => {
+         this.estudiantesMatricula.set(students);
+           this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => ({ id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: item.estado, fechaRetiro: item.fechaRetiro, nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Editar', code: 'edit' }, ...(item.nivel === 10 ? [{ label: 'Subir de nivel', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
+         }, error: () => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes para las matrículas.'; } });
    }
 
    private cargarSecciones(): void {
@@ -454,12 +520,12 @@ export class FuncionalidadVistaComponent {
        this.cursosLectivosApi.listar().subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: () => { this.cursosLectivosMatricula.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
    }
 
-   private cargarCursosAdministracion(): void {
-       this.cursosLectivosApi.listar().subscribe({ next: (courses) => this.cursosApiRows.set(courses.map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))), error: () => { this.cursosApiRows.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
+    private cargarCursosAdministracion(pagina = this.paginaActual()): void {
+        this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: () => { this.cursosApiRows.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
    }
 
-    private cargarSeccionesAdministracion(): void {
-       this.seccionesApi.listar().subscribe({ next: (sections) => this.seccionesApiRows.set(sections.map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; })), error: () => { this.seccionesApiRows.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
+      private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
+         this.seccionesApi.listarPaginado({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; })); }, error: () => { this.seccionesApiRows.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
     }
 
     private notificarError(error: unknown, fallback: string): void {
@@ -468,9 +534,9 @@ export class FuncionalidadVistaComponent {
       this.feedback.error(mensaje);
     }
 
-    private cargarUsuarios(): void {
-      this.usuariosApi.listar().subscribe({
-        next: (response) => this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))),
+    private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
+      this.usuariosApi.listar(busqueda, pagina, this.tamanoPagina).subscribe({
+        next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))); },
         error: (error) => { this.usuariosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
       });
     }
@@ -483,22 +549,28 @@ export class FuncionalidadVistaComponent {
         rolesBackend: item.roles.join('|'),
         estado: item.activo ? 'Activo' : 'Inactivo',
         activo: item.activo,
-        bloqueadoHasta: item.bloqueadoHasta ?? '',
-        ultimoLogin: item.ultimoLogin ?? '',
-        creadoEn: item.creadoEn,
-        intentosFallidosLogin: '',
-        contrasenaCambiadaEn: '',
-        actualizadoEn: '',
-        tokensInvalidadosDesde: '',
+        bloqueadoHasta: this.fechaHoraLabel(item.bloqueadoHasta),
+        ultimoLogin: this.fechaHoraLabel(item.ultimoLogin, 'No registrado'),
+        creadoEn: this.fechaHoraLabel(item.creadoEn),
+        intentosFallidosLogin: item.intentosFallidosLogin ?? 'No disponible',
+        contrasenaCambiadaEn: this.fechaHoraLabel(item.passwordCambiadaEn, 'No disponible'),
+        actualizadoEn: this.fechaHoraLabel(item.actualizadoEn, 'No disponible'),
+        tokensInvalidadosDesde: this.fechaHoraLabel(item.tokensInvalidadosDesde, 'No disponible'),
         cedulaProfesor: item.cedulaProfesor ?? '',
         nombreProfesor: item.nombreProfesor ?? '',
-        acciones: this.accionesCrud(),
+        acciones: [{ label: 'Ver detalle', code: 'view' }, ...this.accionesCrud()],
       };
     }
 
-    private cargarAsignaturas(): void {
-      this.asignaturasApi.listar().subscribe({
-        next: (response) => this.asignaturasApiRows.set(response.elementos.map((item) => ({
+    private fechaHoraLabel(value: string | null | undefined, empty = 'No registrado'): string {
+      if (!value) return empty;
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+    }
+
+    private cargarAsignaturas(pagina = this.paginaActual(), actualizaPaginacion = true): void {
+      this.asignaturasApi.listar({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({
+        next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.asignaturasApiRows.set(response.elementos.map((item) => ({
           id: item.codigo,
           codigo: item.codigo,
           tipoAsignatura: this.tipoAsignaturaLabel(item.tipo),
@@ -508,7 +580,7 @@ export class FuncionalidadVistaComponent {
           imparteNivel10: item.imparteNivel10,
           imparteNivel11: item.imparteNivel11,
           acciones: this.accionesCrud(),
-        }))),
+        }))); },
         error: (error) => { this.asignaturasApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaturas.'); },
       });
     }
@@ -517,9 +589,9 @@ export class FuncionalidadVistaComponent {
       return tipo === 'TRONCAL' ? 'Troncal' : tipo === 'SUPERIOR' ? 'Superior' : tipo === 'MEDIO' ? 'Medio' : 'MEP';
     }
 
-    private cargarAsignaciones(): void {
-      this.asignacionesApi.listar().subscribe({
-        next: (response) => this.asignacionesApiRows.set(response.elementos.map((item) => ({
+    private cargarAsignaciones(pagina = this.paginaActual()): void {
+      this.asignacionesApi.listar({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({
+        next: (response) => { this.actualizarPaginacion(response); this.asignacionesApiRows.set(response.elementos.map((item) => ({
           id: `${item.anio}-${item.nivel}-${item.numero}-${item.codigoAsignatura}-${item.cedulaProfesor}`,
           anio: item.anio,
           nivel: item.nivel,
@@ -532,7 +604,7 @@ export class FuncionalidadVistaComponent {
            seccion: item.seccion,
            yearCiclo: item.anio,
           acciones: this.accionesCrud(),
-        }))),
+         }))); },
         error: (error) => { this.asignacionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaciones.'); },
       });
     }
@@ -542,18 +614,34 @@ export class FuncionalidadVistaComponent {
         this.usuariosApi.borrar(String(registro.id)).subscribe({ next: () => { this.feedback.exito('El usuario fue eliminado.'); this.cargarUsuarios(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el usuario.') });
         return;
       }
-       if (action === 'view' || action === 'edit') {
+       if (action === 'view') {
+         this.usuariosApi.obtener(String(registro.id)).subscribe({ next: (item) => this.abrirDetalleUsuario(item), error: (error) => this.notificarError(error, 'No se pudo consultar el detalle del usuario.') });
+         return;
+       }
+       if (action === 'edit') {
         this.editingId = registro.id;
-        this.readOnly = action === 'view';
+         this.readOnly = false;
         this.editorTitle = this.readOnly ? 'Detalle de usuario' : 'Editar usuario';
         this.validationAttempted = false;
         this.apiError = '';
         this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
         this.draft['rolesBackend'] = String(registro['rolesBackend'] ?? '');
         this.draft['emailOriginal'] = String(registro['correo'] ?? '');
-        this.editorOpen.set(true);
-      }
-    }
+         this.editorOpen.set(true);
+       }
+     }
+
+     private abrirDetalleUsuario(item: UsuarioAdminApi): void {
+       this.editingId = item.id;
+       this.readOnly = true;
+       this.editorTitle = 'Detalle de usuario';
+       this.validationAttempted = false;
+       this.apiError = '';
+       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(this.usuarioRow(item)[field.key] ?? '')]));
+       this.draft['rolesBackend'] = item.roles.join('|');
+       this.draft['emailOriginal'] = item.email;
+       this.editorOpen.set(true);
+     }
 
     private guardarUsuario(): void {
       const email = String(this.draft['correo'] ?? '').trim();
@@ -666,8 +754,12 @@ export class FuncionalidadVistaComponent {
       }
    }
 
-   private accionEstudiante(action: string, registro: RegistroPortal): void {
-     if (action === 'view' || action === 'edit') {
+    private accionEstudiante(action: string, registro: RegistroPortal): void {
+      if (action === 'history') {
+        this.router.navigate(['/estudiantes', encodeURIComponent(String(registro['cedula'])), 'historial']);
+        return;
+      }
+      if (action === 'view' || action === 'edit') {
        this.editingId = registro.id;
        this.readOnly = action === 'view';
        this.editorTitle = this.readOnly ? 'Detalle de estudiante' : 'Editar estudiante';
@@ -709,14 +801,11 @@ export class FuncionalidadVistaComponent {
       if ((key === 'cedula' || key === 'cedulaEstudiante') && value.length > 0 && value.length < 5) return `El campo '${label}' debe tener al menos 5 caracteres.`;
       if (this.key === 'matriculas' && (key === 'yearCiclo' || key === 'numeroSeccion') && value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) return `El campo '${label}' debe ser un número válido mayor que cero.`;
       if (key === 'correo' && value && !/^\S+@\S+\.\S+$/.test(value)) return "El campo 'Correo electrónico' no tiene un formato válido.";
-     if (key === 'fechaNacimiento' && value) {
-       const today = new Date();
-       const minDate = this.key === 'estudiantes' ? new Date(today.getFullYear() - 19, today.getMonth(), today.getDate()) : new Date('1900-01-01T00:00:00');
-       const maxDate = this.key === 'estudiantes' ? new Date(today.getFullYear() - 16, today.getMonth(), today.getDate()) : today;
-       const date = new Date(`${value}T00:00:00`);
-       if (this.key === 'estudiantes' && (date < minDate || date > maxDate)) return "El campo 'fechaNacimiento' debe corresponder a una edad entre 16 y 19 años.";
-       if (this.key === 'profesores' && (value < '1900-01-01' || date > maxDate)) return "El campo 'fechaNacimiento' debe estar entre 1900-01-01 y hoy.";
-     }
+      if (key === 'fechaNacimiento' && value) {
+        const date = new Date(`${value}T00:00:00`);
+        const today = new Date();
+        if (date < new Date('1900-01-01T00:00:00') || date > today) return "El campo 'Fecha de nacimiento' debe estar entre 1900 y hoy.";
+      }
       return '';
     }
 
@@ -741,11 +830,8 @@ export class FuncionalidadVistaComponent {
      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido.';
      const birthDate = String(this.draft['fechaNacimiento'] ?? '');
-     const today = new Date();
-     const maxDate = new Date(today.getFullYear() - 16, today.getMonth(), today.getDate()).toISOString().slice(0, 10);
-     const minDate = new Date(today.getFullYear() - 19, today.getMonth(), today.getDate()).toISOString().slice(0, 10);
-     if (!birthDate || birthDate < minDate || birthDate > maxDate) return 'El estudiante debe tener entre 16 y 19 años.';
-     return null;
+      if (!birthDate || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe estar entre 1900 y hoy.';
+      return null;
    }
 
     private profesorRequest(): RegistrarProfesorRequest {
@@ -965,10 +1051,17 @@ export class FuncionalidadVistaComponent {
        return this.estudiantesMatricula().filter((student) => !matriculados.has(student.cedula)).filter((student) => !term || this.nombreCompletoEstudiante(student).toLowerCase().includes(term) || student.cedula.toLowerCase().includes(term));
     }
 
-    protected estudiantesResultadosMatricula(): EstudianteApi[] {
+     protected estudiantesResultadosMatricula(): EstudianteApi[] {
       const disponibles = this.estudiantesDisponiblesMatricula();
       return this.studentSearch.trim() ? disponibles : disponibles.slice(0, 8);
-    }
+     }
+
+     protected buscarEstudiantesMatricula(value: string): void {
+       this.studentSearch = value;
+       const busqueda = value.trim();
+       if (busqueda.length === 1) return;
+       this.estudiantesApi.listar(busqueda).subscribe({ next: (students) => this.estudiantesMatricula.set(students), error: () => this.apiError = 'No se pudieron buscar estudiantes.' });
+     }
 
     protected seleccionarEstudianteMatricula(student: EstudianteApi): void {
       this.draft['cedulaEstudiante'] = student.cedula;
