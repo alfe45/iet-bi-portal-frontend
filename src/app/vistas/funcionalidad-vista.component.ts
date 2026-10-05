@@ -16,7 +16,7 @@ import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.
 import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucleo/api/asignaturas-api.service';
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
 import { forkJoin, of } from 'rxjs';
-import { switchMap } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 interface CampoFormulario {
@@ -36,15 +36,24 @@ interface ConfiguracionCrud {
   fields: CampoFormulario[];
 }
 
+interface PromotionTarget {
+  estudiante: string;
+  cedula: string;
+  seccion: string;
+  cursoActual: number;
+  cursoDestino: number;
+  numeroSeccion: number;
+}
+
 const ESTADOS = ['Activo', 'Inactivo'];
 const ROLES_USUARIO = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const ROLES_BACKEND: Record<string, string> = { 'Administrador': 'ADMIN', 'Profesor regular': 'PROFESOR_REGULAR', 'Profesor Guía': 'GUIA', 'Profesor Coordinador de Monografía': 'COORD_MONOGRAFIA', 'Profesor CAS': 'PROFESOR_CAS', 'Profesor Coordinador de CAS': 'COORD_CAS' };
 const ROLES_FRONTEND: Record<string, string> = Object.fromEntries(Object.entries(ROLES_BACKEND).map(([label, role]) => [role, label]));
 const ESCALAS_FIJAS: Array<Record<string, unknown>> = [
-  { id: 'SUPERIOR', nombre: 'Superior', rango: 'Bandas 1 a 7', estado: 'Fija' },
-  { id: 'MEDIO', nombre: 'Medio', rango: 'Bandas 1 a 7', estado: 'Fija' },
-  { id: 'TRONCAL', nombre: 'Troncal', rango: 'Letras A a E', estado: 'Fija' },
-  { id: 'MEP', nombre: 'MEP', rango: 'Valores 0 a 100', estado: 'Fija' },
+  { id: 'SUPERIOR', nombre: 'Superior', rango: 'Bandas 1 a 7' },
+  { id: 'MEDIO', nombre: 'Medio', rango: 'Bandas 1 a 7' },
+  { id: 'TRONCAL', nombre: 'Troncal', rango: 'Letras A a E' },
+  { id: 'MEP', nombre: 'MEP', rango: 'Valores 0 a 100' },
 ];
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
   usuarios: { title: 'Usuarios', singular: 'usuario', subtitle: 'Administre las cuentas y roles del portal.', columns: [{ key: 'correo', label: 'Correo' }, { key: 'roles', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado', type: 'select', options: ESTADOS }, { key: 'ultimoLogin', label: 'Último login', readOnly: true, required: false }, { key: 'creadoEn', label: 'Creado en', readOnly: true, required: false }, { key: 'intentosFallidosLogin', label: 'Intentos fallidos de login', readOnly: true, required: false }, { key: 'bloqueadoHasta', label: 'Bloqueado hasta', readOnly: true, required: false }, { key: 'contrasenaCambiadaEn', label: 'Contraseña cambiada en', readOnly: true, required: false }, { key: 'actualizadoEn', label: 'Actualizado en', readOnly: true, required: false }, { key: 'tokensInvalidadosDesde', label: 'Tokens invalidados desde', readOnly: true, required: false }] },
@@ -53,7 +62,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'fechaInicio', label: 'Inicio' }, { key: 'fechaFin', label: 'Fin' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
-  escalas: { title: 'Tipos de escala', singular: 'escala', subtitle: 'Las escalas están definidas por el tipo de asignatura y son informativas.', columns: [{ key: 'nombre', label: 'Tipo' }, { key: 'rango', label: 'Rango permitido' }, { key: 'estado', label: 'Configuración', type: 'badge' }], fields: [] },
+  escalas: { title: 'Tipos de escala', singular: 'escala', subtitle: 'Las escalas están definidas por el tipo de asignatura y son informativas.', columns: [{ key: 'nombre', label: 'Tipo' }, { key: 'rango', label: 'Rango permitido' }], fields: [] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (3 letras)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel10', label: 'Imparte en nivel 10', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
 };
@@ -74,7 +83,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
 
        @if (editorOpen()) {
            <div class="modal-backdrop" role="presentation"><form class="surface editor" [class.user-editor]="key === 'usuarios'" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
-            <div class="section-heading"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3><p>{{ readOnly ? 'Información de solo lectura.' : 'Complete los campos requeridos.' }}</p></div><button type="button" class="ghost-button" (click)="cerrarEditor()">Cerrar</button></div>
+           <div class="section-heading modal-header"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3><p>{{ readOnly ? 'Información de solo lectura.' : 'Complete los campos requeridos.' }}</p></div><button type="button" class="modal-close" aria-label="Cerrar modal" (click)="cerrarEditor()">×</button></div>
             <div class="editor-grid">
               @for (field of camposFormulario(); track field.key) {
                   <label [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="key === 'usuarios' && field.key === 'roles'"><span>{{ field.label }}</span>
@@ -93,7 +102,8 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                          <div class="selected-student"><strong>{{ estudianteSeleccionadoMatricula() }}</strong><span>{{ draft[field.key] }}</span><small>El estudiante no se puede cambiar al editar una matrícula.</small></div>
                        } @else {
                           <div class="student-picker"><div class="student-search"><span class="search-label">Buscar estudiante</span><input type="search" name="buscarEstudiante" [(ngModel)]="studentSearch" (ngModelChange)="buscarEstudiantesMatricula($event)" placeholder="Nombre completo o número de cédula" autocomplete="off" [readonly]="readOnly" /><small>{{ estudiantesDisponiblesMatricula().length }} estudiantes disponibles</small></div><div class="student-results" role="listbox" aria-label="Resultados de estudiantes">@for (student of estudiantesResultadosMatricula(); track student.cedula) { <button type="button" class="student-result" [class.selected]="draft[field.key] === student.cedula" (click)="seleccionarEstudianteMatricula(student)"><span class="student-avatar">{{ inicialesEstudiante(student) }}</span><span class="student-result-copy"><strong>{{ nombreCompletoEstudiante(student) }}</strong><small>{{ student.cedula }}{{ student.email ? ' · ' + student.email : '' }}</small></span><span class="student-check" aria-hidden="true">{{ draft[field.key] === student.cedula ? 'Seleccionado' : 'Elegir' }}</span></button>} @empty { <p class="student-empty">No encontramos estudiantes con esa búsqueda.</p> }</div>@if (draft[field.key]) { <p class="student-selection">Estudiante seleccionado: <strong>{{ estudianteSeleccionadoMatricula() }}</strong></p> }</div>
-                       }
+        }
+
                    } @else if (key === 'matriculas' && field.key === 'yearCiclo') {
                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                    } @else if (key === 'matriculas' && field.key === 'nivel') {
@@ -121,10 +131,22 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
            </div>
             @if (apiError && !readOnly) { <p class="api-error" role="alert">{{ apiError }}</p> }
             @if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> }
-         </form></div>
-       }
+          </form></div>
+        }
 
-       <section class="surface">
+        @if (promotionTarget(); as target) {
+          <div class="modal-backdrop" role="presentation" (click)="cancelarPromocion()">
+            <section class="promotion-modal" role="dialog" aria-modal="true" aria-labelledby="promotion-title" (click)="$event.stopPropagation()">
+              <div class="promotion-icon" aria-hidden="true">↑</div>
+              <div class="promotion-copy"><p class="modal-kicker">Cambio académico</p><h3 id="promotion-title">Confirmar subida de nivel</h3><p>Esta acción trasladará la matrícula de <strong>{{ target.estudiante }}</strong> a undécimo.</p></div>
+              <dl class="promotion-summary"><div><dt>Identificación</dt><dd>{{ target.cedula }}</dd></div><div><dt>Sección actual</dt><dd>{{ target.cursoActual }} · {{ target.seccion }}</dd></div><div><dt>Nuevo curso</dt><dd>{{ target.cursoDestino }} · Sección {{ target.numeroSeccion }}</dd></div></dl>
+              <p class="promotion-warning">La operación actualizará la sección académica de esta matrícula.</p>
+              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarPromocion()">Cancelar</button><button type="button" class="primary-button" (click)="confirmarPromocion()">Subir a undécimo</button></div>
+            </section>
+          </div>
+        }
+
+        <section class="surface">
           @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo activo: {{ grupos.periodoActivo() }}</span></div> }
           <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
           @if (busquedaDisponible()) {
@@ -145,25 +167,27 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
      .page-grid { min-height: 100%; grid-template-rows: auto auto auto; }
      .eyebrow { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .74rem; color: #2f6b9a; font-weight: 700; }
     .section-heading p { margin: .35rem 0 0; color: #667085; }
-      .modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(13,25,39,.52)}
-       .editor { width:min(100%,760px);max-height:calc(100vh - 2rem);overflow:auto;border-left:5px solid #2f6b9a; }
-      .user-editor { width:min(100%,680px); padding:1.35rem 1.5rem; border-left-color:#1e7a68; }
+      .modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(18,32,49,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:modal-fade-in .18s ease-out}
+       .editor { width:min(100%,760px);max-height:calc(100vh - 2rem);overflow:auto;padding:0;border:1px solid #dbe5ef;border-left:5px solid #2f6b9a;border-radius:14px;box-shadow:0 24px 70px rgba(18,32,49,.26); }
+      .editor .modal-header{align-items:flex-start;margin:0;padding:1.5rem 1.75rem .95rem;border-bottom:1px solid #edf1f4}.editor .modal-header h3{margin:0;color:#29344a;font-size:1.2rem}.editor .modal-header p:last-child{margin:.3rem 0 0;color:#667085;font-size:.8rem}.editor .modal-close{flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid #d7e0e8;border-radius:8px;color:#475467;background:#f8fafc;font-size:1.45rem;line-height:1;cursor:pointer}.editor .modal-close:hover{border-color:#9bb6c9;background:#eef5f8;color:#1e5578}
+      .user-editor { width:min(100%,700px); border-left-color:#1e7a68; }
       .modal-kicker { margin:0 0 .2rem; color:#1e7a68; font-size:.72rem; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
-      .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem .85rem; }
-       .student-field, .course-field, .registration-field { grid-column: span 2; }.student-field select, .course-field select, .registration-field input { width: 100%; min-width: 0; }.registration-field input { min-width: 240px; }
-      .user-editor .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem; margin-top:1.2rem; }
+       .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding:1.35rem 1.75rem 0; }
+       .student-field { grid-column: 1 / -1; }.course-field, .registration-field { grid-column: span 2; }.student-field select, .course-field select, .registration-field input { width: 100%; min-width: 0; }.student-field .student-picker{width:100%}.registration-field input { min-width: 240px; }
+       .user-editor .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem; margin-top:0; }.user-editor .editor-grid>label{align-content:start}.user-editor .editor-grid>label>input:not([type="checkbox"]),.user-editor .editor-grid>label>select,.user-editor .password-input>input{height:50px;min-height:50px;align-self:start}
       .user-editor .roles-field { grid-column:1 / -1; }
-      .user-editor .roles-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem .75rem; padding:.75rem; }
+       .user-editor .roles-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:.7rem .9rem; padding:.95rem 1rem; border:1px solid #c9dbe5; border-radius:10px; background:#f5fafc; }
        .group-filter { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; padding:.7rem; background:#f2f7fa; border-radius:7px; }.group-filter label { display:flex; align-items:center; gap:.7rem; }.group-filter span { color:#667085; font-size:.82rem; }
         .table-tools{display:flex;align-items:end;justify-content:space-between;gap:.8rem;margin:0 0 1rem;padding:.75rem;background:#f8fafc;border:1px solid #e6edf3;border-radius:8px}.table-search{display:grid;gap:.25rem;flex:1;max-width:520px}.table-search span{color:#475467;font-size:.72rem;font-weight:800}.table-search input{width:100%;box-sizing:border-box}.table-search-actions{display:flex;gap:.5rem}.table-search-actions button{white-space:nowrap}
         .pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem .2rem 0;color:#667085;font-size:.76rem}.pagination-actions{display:flex;align-items:center;gap:.7rem}.pagination-actions button{padding:.35rem .65rem;font-size:.72rem}.pagination-actions button:disabled{opacity:.45;cursor:not-allowed}
        label { display: grid; gap: .25rem; font-weight: 700; }.student-picker{display:grid;gap:.55rem;padding:.7rem;border:1px solid #cfdbe5;border-radius:9px;background:#f8fbfd}.student-search{display:grid;gap:.3rem}.search-label{color:#1e3a5f;font-size:.76rem;font-weight:800}.student-search input{width:100%;box-sizing:border-box}.student-search small{color:#667085;font-size:.72rem;font-weight:500}.student-results{display:grid;gap:.35rem;max-height:220px;overflow:auto;padding-right:.15rem}.student-result{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;align-items:center;gap:.55rem;width:100%;padding:.55rem;border:1px solid #dbe5ef;border-radius:7px;background:#fff;color:#25364a;text-align:left;cursor:pointer}.student-result:hover,.student-result.selected{border-color:#2f6b9a;background:#eaf3f8}.student-avatar{display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:#d9eaf3;color:#1e5a78;font-size:.68rem;font-weight:800}.student-result-copy{display:grid;min-width:0;gap:.12rem}.student-result-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem}.student-result-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#667085;font-size:.7rem}.student-check{color:#2f6b9a;font-size:.65rem;font-weight:800}.student-empty{margin:0;padding:.8rem;color:#667085;font-size:.78rem;text-align:center}.selected-student{display:grid;gap:.2rem;padding:.75rem;border:1px solid #b9d3e5;border-radius:9px;background:#f0f8fc}.selected-student strong{color:#1e3a5f}.selected-student span,.selected-student small{color:#667085;font-size:.75rem}.student-selection{margin:0;color:#1e5a78;font-size:.75rem}
-     .form-actions { display: flex; justify-content: flex-end; gap: .75rem; margin-top: 1rem; }
+      .form-actions { display: flex; justify-content: flex-end; gap: .75rem; margin:1.4rem 0 0; padding:1rem 1.75rem 1.35rem; border-top:1px solid #edf1f4; background:#fbfcfd; }
      .field-error { display: block; color: #b42318; font-size: .72rem; line-height: 1.2; font-weight: 600; }
-      .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; }.roles-grid{display:grid;gap:.45rem;padding:.55rem;border:1px solid #cfdbe5;border-radius:5px;background:#f8fafc}.role-option{display:flex;grid-template-columns:none;align-items:center;gap:.4rem;font-size:.8rem;font-weight:500}.role-option input{width:auto}
-       @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: span 2; } }
-       @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } }
-      @media (max-width: 700px) { .user-editor { padding:1rem; } .user-editor .editor-grid { grid-template-columns:1fr; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid { grid-template-columns:1fr; } }
+       .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; min-height: 0; padding: 0; }.roles-grid{display:grid;gap:.45rem;padding:.55rem;border:1px solid #cfdbe5;border-radius:5px;background:#f8fafc}.role-option{display:flex;grid-template-columns:none;align-items:center;gap:.4rem;font-size:.8rem;font-weight:500}.role-option input{width:auto;min-height:0;padding:0}
+        @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: 1 / -1; } }
+        @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } }
+       .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #238d78;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
+       @media (max-width: 700px) { .user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.promotion-summary{grid-template-columns:1fr} }
   `,
 })
 // Administra los formularios y tablas de las funcionalidades seleccionadas.
@@ -199,9 +223,10 @@ export class FuncionalidadVistaComponent {
      protected apiError = '';
      protected adminSearch = '';
      protected readonly paginaActual = signal(1);
-     protected readonly totalRegistros = signal(0);
-     protected readonly tamanoPagina = 10;
-     protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
+      protected readonly totalRegistros = signal(0);
+      protected readonly tamanoPagina = 10;
+      protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
+    protected readonly promotionTarget = signal<PromotionTarget | null>(null);
     protected readonly columns = computed(() => this.key === 'escalas' ? this.config.columns : [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
    protected readonly rows = computed<Array<Record<string, unknown>>>(() => {
        if (this.isTeacher()) return this.teacherRows();
@@ -316,7 +341,7 @@ export class FuncionalidadVistaComponent {
     }
 
     constructor() {
-       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios('', 1, false); }
+       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }
       if (this.isAdmin() && this.key === 'estudiantes') this.cargarEstudiantes();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarMatriculas();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarSecciones();
@@ -513,18 +538,18 @@ export class FuncionalidadVistaComponent {
 
      private cargarMatriculas(busqueda = '', pagina = this.paginaActual()): void {
       this.apiError = '';
-       this.estudiantesApi.listar().subscribe({ next: (students) => {
+        this.estudiantesApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (students) => {
          this.estudiantesMatricula.set(students);
            this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => ({ id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: item.estado, fechaRetiro: item.fechaRetiro, nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Editar', code: 'edit' }, ...(item.nivel === 10 ? [{ label: 'Subir de nivel', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
          }, error: () => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes para las matrículas.'; } });
    }
 
    private cargarSecciones(): void {
-       this.seccionesApi.listar().subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: () => { this.seccionesMatricula.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
+        this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).pipe(map((response) => response.elementos)).subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: () => { this.seccionesMatricula.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
    }
 
    private cargarCursosLectivos(): void {
-       this.cursosLectivosApi.listar().subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: () => { this.cursosLectivosMatricula.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
+        this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: () => { this.cursosLectivosMatricula.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
    }
 
     private cargarCursosAdministracion(pagina = this.paginaActual()): void {
@@ -541,8 +566,8 @@ export class FuncionalidadVistaComponent {
       this.feedback.error(mensaje);
     }
 
-    private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
-      this.usuariosApi.listar(busqueda, pagina, this.tamanoPagina).subscribe({
+    private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
+      this.usuariosApi.listar(busqueda, pagina, tamanoPagina).subscribe({
         next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))); },
         error: (error) => { this.usuariosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
       });
@@ -806,14 +831,22 @@ export class FuncionalidadVistaComponent {
       if (required.has(key) && !value) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
       if ((key === 'nombre' || key === 'primerApellido') && value.length > 0 && value.length < 2) return `El campo '${label}' debe tener al menos 2 caracteres.`;
       if ((key === 'cedula' || key === 'cedulaEstudiante') && value.length > 0 && value.length < 5) return `El campo '${label}' debe tener al menos 5 caracteres.`;
-      if (this.key === 'matriculas' && (key === 'yearCiclo' || key === 'numeroSeccion') && value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) return `El campo '${label}' debe ser un número válido mayor que cero.`;
-      if (key === 'correo' && value && !/^\S+@\S+\.\S+$/.test(value)) return "El campo 'Correo electrónico' no tiene un formato válido.";
-      if (key === 'fechaNacimiento' && value) {
+       if (this.key === 'matriculas' && (key === 'yearCiclo' || key === 'numeroSeccion') && value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) return `El campo '${label}' debe ser un número válido mayor que cero.`;
+       if (key === 'correo' && value && !/^\S+@\S+\.\S+$/.test(value)) return "El campo 'Correo electrónico' no tiene un formato válido.";
+       if (['fechaNacimiento', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'].includes(key) && value && !this.esFechaIsoValida(value)) return `El campo '${label}' debe contener una fecha real.`;
+       if (key === 'fechaNacimiento' && value) {
         const date = new Date(`${value}T00:00:00`);
         const today = new Date();
         if (date < new Date('1900-01-01T00:00:00') || date > today) return "El campo 'Fecha de nacimiento' debe estar entre 1900 y hoy.";
       }
-      return '';
+       return '';
+     }
+
+    private esFechaIsoValida(value: string): boolean {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+      const [year, month, day] = value.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day));
+      return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
     }
 
   private validarUsuarioDraft(): string | null {
@@ -837,7 +870,7 @@ export class FuncionalidadVistaComponent {
      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido.';
      const birthDate = String(this.draft['fechaNacimiento'] ?? '');
-      if (!birthDate || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe estar entre 1900 y hoy.';
+       if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900 y hoy.';
       return null;
    }
 
@@ -856,7 +889,7 @@ export class FuncionalidadVistaComponent {
     if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
     if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido.';
     const birthDate = String(this.draft['fechaNacimiento'] ?? '');
-    if (!birthDate || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe estar entre 1900-01-01 y hoy.';
+     if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900-01-01 y hoy.';
      return null;
   }
 
@@ -938,7 +971,10 @@ export class FuncionalidadVistaComponent {
         this.editorOpen.set(true);
         return;
       }
-       if (action === 'promote' && confirm('¿Subir esta sección de décimo a undécimo?')) this.matriculasApi.subirSeccion({ anio: anio + 1, numero: Number(registro['numeroSeccion']) }).subscribe({ next: () => { this.feedback.exito('La sección fue subida a undécimo.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo subir la sección a undécimo.') });
+       if (action === 'promote') {
+         this.promotionTarget.set({ estudiante: String(registro['estudiante'] ?? 'Estudiante'), cedula, seccion: String(registro['seccion'] ?? ''), cursoActual: anio, cursoDestino: anio + 1, numeroSeccion: Number(registro['numeroSeccion']) });
+         return;
+       }
       if (action === 'retire' && confirm('¿Registrar el retiro de esta matrícula?')) {
         const fecha = prompt('Fecha de retiro (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
         if (!fecha) return;
@@ -1006,18 +1042,19 @@ export class FuncionalidadVistaComponent {
        else this.cursosLectivosApi.abrir(request).subscribe({ next: success, error: failure });
    }
 
-   private validarCursoLectivoDraft(): string | null {
-     const fields: Array<[string, string]> = [['yearCiclo', 'Curso lectivo'], ['fechaInicioI', 'Inicio del I semestre'], ['fechaFinI', 'Fin del I semestre'], ['fechaInicioII', 'Inicio del II semestre'], ['fechaFinII', 'Fin del II semestre']];
-     for (const [key, label] of fields) if (!String(this.draft[key] ?? '').trim()) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
-     const year = Number(this.draft['yearCiclo']);
-     const dates = ['fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'].map((key) => String(this.draft[key]));
-     if (!Number.isInteger(year) || year <= 0) return "El campo 'Curso lectivo' debe ser válido.";
-     if (dates.some((date) => new Date(`${date}T00:00:00`).getFullYear() !== year)) return 'Todas las fechas deben pertenecer al curso lectivo seleccionado.';
-     if (dates[1] <= dates[0]) return 'El fin del I semestre debe ser posterior a su inicio.';
-     if (dates[3] <= dates[2]) return 'El fin del II semestre debe ser posterior a su inicio.';
-     if (dates[2] <= dates[1]) return 'El II semestre debe iniciar después del I semestre.';
-     return null;
-   }
+    private validarCursoLectivoDraft(): string | null {
+      const fields: Array<[string, string]> = [['yearCiclo', 'Curso lectivo'], ['fechaInicioI', 'Inicio del I semestre'], ['fechaFinI', 'Fin del I semestre'], ['fechaInicioII', 'Inicio del II semestre'], ['fechaFinII', 'Fin del II semestre']];
+      for (const [key, label] of fields) if (!String(this.draft[key] ?? '').trim()) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
+      const year = Number(this.draft['yearCiclo']);
+      const dates = ['fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'].map((key) => String(this.draft[key]));
+      if (!Number.isInteger(year) || year < 1900 || year > 2100) return "El campo 'Curso lectivo' debe estar entre 1900 y 2100.";
+      if (dates.some((date) => !this.esFechaIsoValida(date))) return 'Todas las fechas deben ser fechas reales con formato AAAA-MM-DD.';
+      if (dates.some((date) => Number(date.slice(0, 4)) !== year)) return 'Todas las fechas deben pertenecer al curso lectivo seleccionado.';
+      if (dates[1] <= dates[0]) return 'El fin del I semestre debe ser posterior a su inicio.';
+      if (dates[3] <= dates[2]) return 'El fin del II semestre debe ser posterior a su inicio.';
+      if (dates[2] <= dates[1]) return 'El II semestre debe iniciar después del I semestre.';
+      return null;
+    }
 
    private accionSeccion(action: string, registro: RegistroPortal): void {
      if (action === 'view') {
@@ -1056,6 +1093,14 @@ export class FuncionalidadVistaComponent {
        const matriculados = new Set(this.matriculasApiRows().filter((row) => String(row['yearCiclo']) === year).map((row) => String(row['cedulaEstudiante'])));
        const term = this.studentSearch.trim().toLowerCase();
        return this.estudiantesMatricula().filter((student) => !matriculados.has(student.cedula)).filter((student) => !term || this.nombreCompletoEstudiante(student).toLowerCase().includes(term) || student.cedula.toLowerCase().includes(term));
+    }
+
+    protected cancelarPromocion(): void { this.promotionTarget.set(null); }
+
+    protected confirmarPromocion(): void {
+      const target = this.promotionTarget();
+      if (!target) return;
+      this.matriculasApi.subirSeccion({ anio: target.cursoDestino, numero: target.numeroSeccion }).subscribe({ next: () => { this.promotionTarget.set(null); this.feedback.exito('La sección fue subida a undécimo.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo subir la sección a undécimo.') });
     }
 
      protected estudiantesResultadosMatricula(): EstudianteApi[] {
