@@ -40,6 +40,12 @@ const ESTADOS = ['Activo', 'Inactivo'];
 const ROLES_USUARIO = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const ROLES_BACKEND: Record<string, string> = { 'Administrador': 'ADMIN', 'Profesor regular': 'PROFESOR_REGULAR', 'Profesor Guía': 'GUIA', 'Profesor Coordinador de Monografía': 'COORD_MONOGRAFIA', 'Profesor CAS': 'PROFESOR_CAS', 'Profesor Coordinador de CAS': 'COORD_CAS' };
 const ROLES_FRONTEND: Record<string, string> = Object.fromEntries(Object.entries(ROLES_BACKEND).map(([label, role]) => [role, label]));
+const ESCALAS_FIJAS: Array<Record<string, unknown>> = [
+  { id: 'SUPERIOR', nombre: 'Superior', rango: 'Bandas 1 a 7', estado: 'Fija' },
+  { id: 'MEDIO', nombre: 'Medio', rango: 'Bandas 1 a 7', estado: 'Fija' },
+  { id: 'TRONCAL', nombre: 'Troncal', rango: 'Letras A a E', estado: 'Fija' },
+  { id: 'MEP', nombre: 'MEP', rango: 'Valores 0 a 100', estado: 'Fija' },
+];
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
   usuarios: { title: 'Usuarios', singular: 'usuario', subtitle: 'Administre las cuentas y roles del portal.', columns: [{ key: 'correo', label: 'Correo' }, { key: 'roles', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado', type: 'select', options: ESTADOS }, { key: 'ultimoLogin', label: 'Último login', readOnly: true, required: false }, { key: 'creadoEn', label: 'Creado en', readOnly: true, required: false }, { key: 'intentosFallidosLogin', label: 'Intentos fallidos de login', readOnly: true, required: false }, { key: 'bloqueadoHasta', label: 'Bloqueado hasta', readOnly: true, required: false }, { key: 'contrasenaCambiadaEn', label: 'Contraseña cambiada en', readOnly: true, required: false }, { key: 'actualizadoEn', label: 'Actualizado en', readOnly: true, required: false }, { key: 'tokensInvalidadosDesde', label: 'Tokens invalidados desde', readOnly: true, required: false }] },
   profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre la información del personal docente.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }], fields: [{ key: 'usuarioId', label: 'Usuario disponible', type: 'select' }, { key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email', readOnly: true }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }] },
@@ -47,7 +53,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'fechaInicio', label: 'Inicio' }, { key: 'fechaFin', label: 'Fin' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
-  escalas: { title: 'Tipos de escala', singular: 'escala', subtitle: 'Administre las escalas utilizadas en las asignaturas.', columns: [{ key: 'nombre', label: 'Nombre' }, { key: 'rango', label: 'Rango' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'rango', label: 'Rango' }, { key: 'estado', label: 'Estado', type: 'select', options: ['Activa', 'Inactiva'] }] },
+  escalas: { title: 'Tipos de escala', singular: 'escala', subtitle: 'Las escalas están definidas por el tipo de asignatura y son informativas.', columns: [{ key: 'nombre', label: 'Tipo' }, { key: 'rango', label: 'Rango permitido' }, { key: 'estado', label: 'Configuración', type: 'badge' }], fields: [] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (3 letras)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel10', label: 'Imparte en nivel 10', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
 };
@@ -60,7 +66,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
       <section class="surface">
         <div class="section-heading">
           <div><p class="eyebrow">{{ isTeacher() ? 'Mi trabajo' : 'Gestión' }}</p><h2>{{ pageTitle() }}</h2><p>{{ pageSubtitle() }}</p></div>
-           @if (isAdmin()) { <button type="button" class="primary-button" (click)="abrirNuevo()">Registrar {{ config.singular }}</button> }
+           @if (isAdmin() && key !== 'escalas') { <button type="button" class="primary-button" (click)="abrirNuevo()">Registrar {{ config.singular }}</button> }
         </div>
       </section>
 
@@ -196,7 +202,7 @@ export class FuncionalidadVistaComponent {
      protected readonly totalRegistros = signal(0);
      protected readonly tamanoPagina = 10;
      protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
-   protected readonly columns = computed(() => [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
+    protected readonly columns = computed(() => this.key === 'escalas' ? this.config.columns : [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
    protected readonly rows = computed<Array<Record<string, unknown>>>(() => {
        if (this.isTeacher()) return this.teacherRows();
        if (this.key === 'profesores') return this.profesoresApiRows();
@@ -207,7 +213,8 @@ export class FuncionalidadVistaComponent {
         if (this.key === 'usuarios') return this.usuariosApiRows();
         if (this.key === 'asignaturas') return this.asignaturasApiRows();
         if (this.key === 'asignaciones') return this.asignacionesRows();
-        return this.datos.listar(this.key).map((registro) => ({ ...registro, acciones: this.isAdmin() ? [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Ver detalle', code: 'view' }] }));
+        if (this.key === 'escalas') return ESCALAS_FIJAS;
+         return this.datos.listar(this.key).map((registro) => ({ ...registro, acciones: this.isAdmin() ? [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Ver detalle', code: 'view' }] }));
    });
    protected readonly editorOpen = signal(false);
   protected readOnly = false;
