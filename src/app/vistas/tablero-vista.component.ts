@@ -62,7 +62,7 @@ export class TableroVistaComponent {
       { path: '/usuarios', label: 'Usuarios', description: 'Cuentas y permisos', icon: 'U', featured: true },
       { path: '/profesores', label: 'Profesores', description: 'Personal docente', icon: 'P', featured: false },
       { path: '/estudiantes', label: 'Estudiantes', description: 'Comunidad estudiantil', icon: 'E', featured: false },
-      { path: '/periodos', label: 'Periodos académicos', description: 'Ciclos lectivos', icon: 'T', featured: false },
+      { path: '/periodos', label: 'Cursos lectivos', description: 'Ciclos lectivos', icon: 'T', featured: false },
       { path: '/secciones', label: 'Secciones', description: 'Grupos y profesores guía', icon: 'S', featured: false },
       { path: '/matriculas', label: 'Matrículas', description: 'Inscripciones por periodo', icon: 'M', featured: false },
       { path: '/escalas', label: 'Tipos de escala', description: 'Criterios de evaluación', icon: 'E', featured: false },
@@ -79,7 +79,8 @@ export class TableroVistaComponent {
     const username = this.auth.currentUsername();
     const knownTeacher = this.datos.listar('profesores').find((teacher) => teacher['nombre'] === username)?.['nombre'];
     if (knownTeacher) return knownTeacher;
-    if (this.auth.currentRole() !== 'Profesor regular') return (({ Administrador: 'Administración general', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Profesor Coordinador de Monografía': 'Ana Lucía Solano Castro' } as Record<string, string>)[this.auth.currentRole() ?? ''] ?? username) || 'Usuario';
+     if (this.auth.hasRole('Administrador')) return 'Administración general';
+     if (this.auth.currentDisplayName()) return this.auth.currentDisplayName();
     return this.datos.listar('asignaciones').find((assignment) => assignment['periodo'] === this.period())?.['profesor'] ?? 'Profesor regular';
   });
   protected readonly username = computed(() => this.auth.currentUsername() || 'usuario.demostracion');
@@ -90,9 +91,9 @@ export class TableroVistaComponent {
   protected readonly sectionCount = computed(() => new Set(this.assignments().map((item) => item['seccion'])).size);
   protected readonly subjectCount = computed(() => new Set(this.assignments().map((item) => item['asignatura'])).size);
   protected readonly studentCount = computed(() => new Set(this.assignments().flatMap((item) => this.datos.estudiantes().filter((student) => student['seccion'] === item['seccion']).map((student) => student.id))).size);
-  protected readonly isAdmin = computed(() => this.auth.currentRole() === 'Administrador');
-  protected readonly isGuide = computed(() => this.auth.currentRole() === 'Profesor Guía');
-   protected readonly isMonographCoordinator = computed(() => this.auth.currentRole() === 'Profesor Coordinador de Monografía');
+   protected readonly isAdmin = computed(() => this.auth.hasRole('Administrador'));
+   protected readonly isGuide = computed(() => this.auth.hasRole('Profesor Guía'));
+    protected readonly isMonographCoordinator = computed(() => this.auth.hasRole('Profesor Coordinador de Monografía'));
    private registrationLabel(): string { const subjects = this.grupos.grupos().map((group) => group.asignatura); return subjects.length > 0 && subjects.every((subject) => ['Estudios Sociales', 'Civica', 'Cívica'].includes(subject)) ? 'Registro de notas' : 'Registro de bandas'; }
    protected readonly reportPath = computed(() => this.isGuide() ? '/reportes/bandas' : this.isMonographCoordinator() ? '/monografias' : '/reportes/asignatura');
    protected studentsFor(section: string): number { return this.datos.estudiantes().filter((student) => student['seccion'] === section).length; }

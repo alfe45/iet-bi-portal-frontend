@@ -16,6 +16,7 @@ import { GruposProfesorVistaComponent } from './vistas/grupos-profesor-vista.com
 import { RegistroAcademicoVistaComponent } from './vistas/registro-academico-vista.component';
 import { CompartirSeccionVistaComponent } from './vistas/compartir-seccion-vista.component';
 import { CasVistaComponent } from './vistas/cas-vista.component';
+import { HistorialEstudianteVistaComponent } from './vistas/historial-estudiante-vista.component';
 import { authGuard, roleGuard } from './nucleo/autenticacion/autenticacion.guards';
 import { RolUsuario } from './nucleo/modelos/modelos-prototipo';
 
@@ -39,6 +40,7 @@ export const routes: Routes = [
       { path: 'usuarios', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'profesores', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'estudiantes', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
+      { path: 'estudiantes/:cedula/historial', component: HistorialEstudianteVistaComponent, data: { roles: ADMIN } },
       { path: 'periodos', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'secciones', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
       { path: 'matriculas', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },

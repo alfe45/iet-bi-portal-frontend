@@ -1,9 +1,10 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
+import { API_URL, ResultadoPaginado } from './api-modelos';
 
 export interface ProfesorApi {
-  idProfesor: number;
+  idProfesor: string;
   nombre: string;
   primerApellido: string;
   segundoApellido: string | null;
@@ -11,32 +12,53 @@ export interface ProfesorApi {
   numeroCelular: string | null;
   email: string;
   fechaNacimiento: string;
+  idUsuario: string;
   fechaRegistro: string;
   activo: boolean;
 }
 
-export interface ProfesorRequest {
+interface ProfesorBackend {
   nombre: string;
   primerApellido: string;
   segundoApellido: string | null;
   cedula: string;
   numeroCelular: string | null;
-  email: string;
   fechaNacimiento: string;
-  password: string;
+  idUsuario: string;
+  email: string;
+}
+
+export interface RegistrarProfesorRequest {
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  cedula: string;
+  numeroCelular: string | null;
+  fechaNacimiento: string;
+  idUsuario: string;
+}
+
+export interface ActualizarProfesorRequest {
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  numeroCelular: string | null;
+  fechaNacimiento: string;
 }
 
 @Injectable({ providedIn: 'root' })
 // Cliente HTTP del CRUD de profesores; el backend aplica las reglas SQL.
 export class ProfesoresApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = 'http://localhost:5149/api/profesores';
+  private readonly url = `${API_URL}/admin/profesores`;
 
-  // Consulta la vista pública de profesores.
-  listar(): Observable<ProfesorApi[]> { return this.http.get<ProfesorApi[]>(this.url); }
-  registrar(request: ProfesorRequest): Observable<{ idProfesor: number }> { return this.http.post<{ idProfesor: number }>(this.url, request); }
-  actualizar(cedulaActual: string, request: ProfesorRequest): Observable<{ idProfesor: number }> { return this.http.put<{ idProfesor: number }>(`${this.url}/${encodeURIComponent(cedulaActual)}`, request); }
-  activar(cedula: string): Observable<{ idProfesor: number }> { return this.http.patch<{ idProfesor: number }>(`${this.url}/${encodeURIComponent(cedula)}/activar`, {}); }
-  desactivar(cedula: string): Observable<{ idProfesor: number }> { return this.http.patch<{ idProfesor: number }>(`${this.url}/${encodeURIComponent(cedula)}/desactivar`, {}); }
-  borrar(cedula: string): Observable<{ idProfesor: number }> { return this.http.delete<{ idProfesor: number }>(`${this.url}/${encodeURIComponent(cedula)}`); }
+  listarPaginado(busqueda = '', pagina = 1, tamanoPagina = 20): Observable<ResultadoPaginado<ProfesorApi>> {
+    let params = new HttpParams().set('pagina', pagina).set('tamanoPagina', tamanoPagina);
+    if (busqueda.trim()) params = params.set('busqueda', busqueda.trim());
+    return this.http.get<ResultadoPaginado<ProfesorBackend>>(this.url, { params }).pipe(map((response) => ({ ...response, elementos: response.elementos.map((item) => ({ ...item, idProfesor: item.cedula, fechaRegistro: '', activo: true })) })));
+  }
+  listar(busqueda = ''): Observable<ProfesorApi[]> { return this.listarPaginado(busqueda).pipe(map((response) => response.elementos)); }
+  registrar(request: RegistrarProfesorRequest): Observable<{ cedula: string }> { return this.http.post<{ cedula: string }>(this.url, request); }
+  actualizar(cedula: string, request: ActualizarProfesorRequest): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(cedula)}`, request); }
+  borrar(cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedula)}`); }
 }

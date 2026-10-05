@@ -1,32 +1,67 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { API_URL, ResultadoPaginado } from './api-modelos';
 
 export interface MatriculaApi {
-  idMatricula: number;
-  yearCiclo: number;
-  idSeccion: number;
+  anio: number;
+  nivel: number;
+  numero: number;
   seccion: string;
+  cedulaEstudiante: string;
+  nombreEstudiante: string;
   fechaMatricula: string;
   estado: string;
-  fechaFinalizacion: string | null;
+  fechaRetiro: string | null;
+  motivoRetiro: string | null;
 }
 
-export interface MatriculaNivel10Request {
+export interface RegistrarMatriculaRequest {
+  anio: number;
+  nivel: number;
+  numero: number;
   cedulaEstudiante: string;
-  yearCiclo: number;
-  numeroSeccion: number;
+  fechaMatricula?: string;
+}
+
+export interface SubirSeccionRequest {
+  anio: number;
+  numero: number;
+  fechaMatricula?: string;
+}
+
+export interface CambiarSeccionRequest {
+  nivel: number;
+  numero: number;
+}
+
+export interface ConsultaMatriculas {
+  anio?: number;
+  nivel?: number;
+  numero?: number;
+  cedulaEstudiante?: string;
+  busqueda?: string;
+  pagina?: number;
+  tamanoPagina?: number;
 }
 
 @Injectable({ providedIn: 'root' })
 // Cliente de las acciones de matrícula definidas por el SQL.
 export class MatriculasApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = 'http://localhost:5149/api/matriculas';
+  private readonly url = `${API_URL}/admin/matriculas`;
 
-  listarPorCedula(cedula: string): Observable<MatriculaApi[]> { return this.http.get<MatriculaApi[]>(`${this.url}/estudiante/${encodeURIComponent(cedula)}`); }
-  registrarNivel10(request: MatriculaNivel10Request): Observable<{ idMatricula: number }> { return this.http.post<{ idMatricula: number }>(`${this.url}/nivel-10`, request); }
-  registrarNivel11(cedula: string): Observable<{ idMatricula: number }> { return this.http.post<{ idMatricula: number }>(`${this.url}/nivel-11`, JSON.stringify(cedula), { headers: { 'Content-Type': 'application/json' } }); }
-  finalizar(idMatricula: number): Observable<{ idMatricula: number }> { return this.http.patch<{ idMatricula: number }>(`${this.url}/${idMatricula}/finalizar`, {}); }
-  borrar(idMatricula: number): Observable<{ idMatricula: number }> { return this.http.delete<{ idMatricula: number }>(`${this.url}/${idMatricula}`); }
+  listar(consulta: ConsultaMatriculas = {}): Observable<ResultadoPaginado<MatriculaApi>> {
+    let params = new HttpParams();
+    for (const [key, value] of Object.entries(consulta)) {
+      if (value !== undefined && value !== null && String(value).trim() !== '') params = params.set(key, String(value));
+    }
+    return this.http.get<ResultadoPaginado<MatriculaApi>>(this.url, { params });
+  }
+  registrar(request: RegistrarMatriculaRequest): Observable<void> { return this.http.post<void>(this.url, request); }
+  subirSeccion(request: SubirSeccionRequest): Observable<{ seccionCreada: boolean; matriculados: string[]; omitidos: string[] }> { return this.http.post<{ seccionCreada: boolean; matriculados: string[]; omitidos: string[] }>(`${this.url}/subir-seccion`, request); }
+  cambiarSeccion(anio: number, cedula: string, request: CambiarSeccionRequest): Observable<void> { return this.http.put<void>(`${this.url}/${anio}/${encodeURIComponent(cedula)}/seccion`, request); }
+  retirar(anio: number, cedula: string, fechaRetiro: string, motivo?: string): Observable<void> { return this.http.put<void>(`${this.url}/${anio}/${encodeURIComponent(cedula)}/retiro`, { fechaRetiro, motivo }); }
+  quitarRetiro(anio: number, cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${anio}/${encodeURIComponent(cedula)}/retiro`); }
+  borrar(anio: number, cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${anio}/${encodeURIComponent(cedula)}`); }
 }
