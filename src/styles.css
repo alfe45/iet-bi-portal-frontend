@@ -29,7 +29,7 @@ a { color: inherit; }
 .skip-link { position: fixed; top: .5rem; left: .5rem; z-index: 1100; padding: .65rem .9rem; border-radius: 4px; color:#fff; background:#29344a; transform:translateY(-160%); }
 .skip-link:focus { transform:translateY(0); }
 .visually-hidden { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
-:where(.modal-backdrop) { isolation:isolate; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); animation:app-modal-enter .18s ease-out; }
+:where(.modal-backdrop) { isolation:isolate; overflow:auto; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); animation:app-modal-enter .18s ease-out; }
 :where(.modal-backdrop > form,.modal-backdrop > section) { border:1px solid rgba(207,224,231,.95); box-shadow:0 28px 90px rgba(18,32,49,.28); }
 :where(.modal-backdrop > .editor-modal,.modal-backdrop > .monograph-modal,.modal-backdrop > .record-modal,.modal-backdrop > .help-modal) { border-radius:14px!important; box-shadow:0 28px 90px rgba(18,32,49,.28)!important; }
 :where(.modal-backdrop > .editor-modal,.modal-backdrop > .monograph-modal) { border-top:4px solid #238d78!important; }
@@ -94,7 +94,7 @@ body.printing-bands,body.printing-bands html{height:auto!important;overflow:visi
   .cas-page .meta-grid { gap: .6rem; margin: .6rem 0; }
   .cas-page .milestones { gap: .55rem; padding: .45rem; }
   .cas-page .table-heading { margin-top: .65rem; padding-top: .55rem; }
-  .cas-page .table-scroll { margin-top: .35rem; }
+  .cas-page .table-scroll { max-width:100%; margin-top: .35rem; overflow-x:auto; -webkit-overflow-scrolling:touch; }
   .cas-page .cas-entry-table { font-size: .64rem; }
   .cas-page .cas-entry-table th, .cas-page .cas-entry-table td { padding: .15rem; }
   .cas-page .cas-entry-table input { padding: .28rem .35rem; }

@@ -56,7 +56,8 @@ import { CursosLectivosApiService, PeriodoActualApi } from '../nucleo/api/cursos
     @media (max-width: 575.98px) {
       .workspace { grid-template-rows: 52px minmax(0, 1fr); }
       .workspace__bar { padding: .45rem .9rem; }
-      .workspace__period, app-footer { display: none; }
+       app-footer { display: none; }
+       .workspace__period { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; font-size: .65rem; }
        .workspace__content { padding: 10px; }
     }
   `,
@@ -78,7 +79,7 @@ export class EstructuraPrincipalComponent {
   protected readonly breadcrumbs = computed(() => {
     const parts = this.currentUrl().split('?')[0].split('/').filter(Boolean);
     if (!parts.length || parts[0] === 'dashboard') return ['Inicio'];
-     const labels: Record<string, string> = { usuarios: 'Usuarios', profesores: 'Profesores', estudiantes: 'Estudiantes', periodos: 'Cursos lectivos', secciones: 'Secciones', grupos: 'Mis grupos', 'registro-academico': 'Registro de bandas', compartir: 'Compartir', matriculas: 'Matrículas', escalas: 'Tipos de escala', asignaturas: 'Asignaturas', asignaciones: 'Asignación académica', monografias: 'Monografías', grupo: 'Grupo', reportes: 'Reportes', evaluaciones: 'Evaluaciones', ausentismo: 'Ausentismo', 'seccion-guia': 'Mi sección guía', perfil: 'Perfil' };
+     const labels: Record<string, string> = { usuarios: 'Usuarios', profesores: 'Profesores', estudiantes: 'Estudiantes', periodos: 'Cursos lectivos', secciones: 'Secciones', grupos: 'Mis grupos', 'registro-academico': 'Registro de bandas', compartir: 'Compartir', matriculas: 'Matrículas', asignaturas: 'Asignaturas', asignaciones: 'Asignación académica', monografias: 'Monografías', grupo: 'Grupo', reportes: 'Reportes', evaluaciones: 'Evaluaciones', ausentismo: 'Ausentismo', 'seccion-guia': 'Mi sección guía', perfil: 'Perfil' };
      if (parts[0] === 'estudiantes' && parts[2] === 'historial') return ['Inicio', 'Estudiantes', 'Historial académico'];
     if (parts[0] === 'reportes' && parts[1]) {
      const reportLabels: Record<string, string> = { asignatura: 'Reporte de asignatura', monografia: 'Reporte de monografía' };

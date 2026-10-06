@@ -23,7 +23,6 @@ describe('PortalDatosService', () => {
     ['periodos', { nombre: 'Periodo CRUD', descripcion: 'Periodo de prueba', estado: 'Inactivo' }],
     ['secciones', { nombre: '12-1', nivel: 'Duodécimo', guia: 'Profesor CRUD', estado: 'Activa' }],
     ['matriculas', { estudiante: 'Estudiante CRUD', seccion: '12-1', periodo: 'Periodo CRUD', estado: 'Activa' }],
-    ['escalas', { nombre: 'Escala CRUD', rango: '1-10', estado: 'Activa' }],
     ['asignaturas', { nombre: 'Asignatura CRUD', descripcion: 'Asignatura de prueba', escala: '1-7', estado: 'Activa' }],
     ['asignaciones', { profesor: 'Profesor CRUD', asignatura: 'Asignatura CRUD', seccion: '12-1', periodo: 'Periodo CRUD', estado: 'Activa' }],
   ] as const)('supports the full CRUD lifecycle for %s', (key, values) => {

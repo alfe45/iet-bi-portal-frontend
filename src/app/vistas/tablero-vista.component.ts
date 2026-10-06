@@ -1,8 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { PortalDatosService, RegistroPortal } from '../nucleo/datos/portal-datos.service';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { RouterLink } from '@angular/router';
+import { CursosLectivosApiService, PeriodoActualApi } from '../nucleo/api/cursos-lectivos-api.service';
 
 @Component({
   selector: 'app-vista-tablero',
@@ -57,6 +58,8 @@ export class TableroVistaComponent {
    private readonly auth = inject(AutenticacionService);
    private readonly datos = inject(PortalDatosService);
    private readonly grupos = inject(GruposProfesorService);
+   private readonly cursosLectivosApi = inject(CursosLectivosApiService);
+   private readonly periodoActual = signal<PeriodoActualApi | null>(null);
   protected readonly quickLinks = computed(() => {
     if (this.isAdmin()) return [
       { path: '/usuarios', label: 'Usuarios', description: 'Cuentas y permisos', icon: 'U', featured: true },
@@ -65,7 +68,6 @@ export class TableroVistaComponent {
       { path: '/periodos', label: 'Cursos lectivos', description: 'Ciclos lectivos', icon: 'T', featured: false },
       { path: '/secciones', label: 'Secciones', description: 'Grupos y profesores guía', icon: 'S', featured: false },
       { path: '/matriculas', label: 'Matrículas', description: 'Inscripciones por periodo', icon: 'M', featured: false },
-      { path: '/escalas', label: 'Tipos de escala', description: 'Criterios de evaluación', icon: 'E', featured: false },
       { path: '/asignaturas', label: 'Asignaturas', description: 'Catálogo académico', icon: 'A', featured: false },
       { path: '/asignaciones', label: 'Asignación académica', description: 'Carga docente', icon: 'C', featured: false },
     ];
@@ -76,17 +78,18 @@ export class TableroVistaComponent {
     ];
   });
    protected readonly teacherName = computed(() => {
-    const username = this.auth.currentUsername();
-    const knownTeacher = this.datos.listar('profesores').find((teacher) => teacher['nombre'] === username)?.['nombre'];
-    if (knownTeacher) return knownTeacher;
-     if (this.auth.hasRole('Administrador')) return 'Administración general';
-     if (this.auth.currentDisplayName()) return this.auth.currentDisplayName();
-    return this.datos.listar('asignaciones').find((assignment) => assignment['periodo'] === this.period())?.['profesor'] ?? 'Profesor regular';
-  });
-  protected readonly username = computed(() => this.auth.currentUsername() || 'usuario.demostracion');
-  protected readonly email = computed(() => 'portal@institucion.edu');
+      if (this.auth.currentDisplayName()) return this.auth.currentDisplayName();
+      if (this.auth.hasRole('Administrador')) return 'Administracion general';
+     return this.datos.listar('asignaciones').find((assignment) => assignment['periodo'] === this.period())?.['profesor'] ?? 'Profesor regular';
+   });
+   protected readonly username = computed(() => this.auth.currentUsername() || 'usuario.demostracion');
+   protected readonly email = computed(() => this.auth.currentUsername() || '-');
   protected readonly initials = computed(() => this.teacherName().split(' ').map((part) => part[0]).slice(0, 2).join(''));
-  protected readonly period = computed(() => this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Sin periodo activo');
+   protected readonly period = computed(() => {
+     const current = this.periodoActual();
+     if (current) return `${current.semestreActual === 'I_SEMESTRE' ? 'Primer semestre' : current.semestreActual === 'II_SEMESTRE' ? 'Segundo semestre' : 'Receso academico'} ${current.anio}`;
+     return this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Sin periodo activo';
+   });
   protected readonly assignments = computed(() => this.datos.listar('asignaciones').filter((item) => item['profesor'] === this.auth.currentUsername() && item['periodo'] === this.period() && item['estado'] === 'Activa'));
   protected readonly sectionCount = computed(() => new Set(this.assignments().map((item) => item['seccion'])).size);
   protected readonly subjectCount = computed(() => new Set(this.assignments().map((item) => item['asignatura'])).size);
@@ -95,7 +98,8 @@ export class TableroVistaComponent {
    protected readonly isGuide = computed(() => this.auth.hasRole('Profesor Guía'));
     protected readonly isMonographCoordinator = computed(() => this.auth.hasRole('Profesor Coordinador de Monografía'));
    private registrationLabel(): string { const subjects = this.grupos.grupos().map((group) => group.asignatura); return subjects.length > 0 && subjects.every((subject) => ['Estudios Sociales', 'Civica', 'Cívica'].includes(subject)) ? 'Registro de notas' : 'Registro de bandas'; }
-   protected readonly reportPath = computed(() => this.isGuide() ? '/reportes/bandas' : this.isMonographCoordinator() ? '/monografias' : '/reportes/asignatura');
+    protected readonly reportPath = computed(() => this.isGuide() ? '/reportes/bandas' : this.isMonographCoordinator() ? '/monografias' : '/reportes/asignatura');
+    constructor() { this.cursosLectivosApi.obtenerActual().subscribe({ next: (periodo) => this.periodoActual.set(periodo), error: () => this.periodoActual.set(null) }); }
    protected studentsFor(section: string): number { return this.datos.estudiantes().filter((student) => student['seccion'] === section).length; }
    protected groupParams(assignment: RegistroPortal): Record<string, string> { return { asignatura: assignment['asignatura'], seccion: assignment['seccion'], periodo: assignment['periodo'] }; }
 }

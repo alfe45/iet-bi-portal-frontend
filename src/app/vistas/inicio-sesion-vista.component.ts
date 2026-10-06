@@ -17,7 +17,6 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
              <label for="contrasena">Contraseña</label><input id="contrasena" class="form-control" type="password" name="contrasena" [(ngModel)]="contrasena" autocomplete="current-password" [disabled]="cargando()" required />
              <button type="submit" class="btn btn-primary btn-lg w-100 login-button" [disabled]="cargando()" [attr.aria-label]="cargando() ? 'Iniciando sesión' : 'Iniciar sesión'">Iniciar sesión</button>
            </form>
-           <footer>Acceso local de demostración · Segundo semestre 2026</footer>
          </div>
        </section>
        @if(cargando()){<div class="auth-loading" role="status" aria-live="polite" aria-label="Iniciando sesión"><div class="auth-loading-card"><span class="loading-spinner" aria-hidden="true"></span><strong>Iniciando sesión</strong><span>Validando sus credenciales...</span></div></div>}

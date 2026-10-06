@@ -30,7 +30,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     </section>
   `,
   styles: `
-     .table-card { padding:0; overflow:hidden; }.table-wrapper{overflow:hidden}.table{width:100%;font-size:.72rem;table-layout:fixed}.table>:not(caption)>*>*{padding:.52rem .65rem;border-bottom-color:#edf0f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.table thead th{color:#5b6b79;background:#f8f9fa;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+     .table-card { padding:0; overflow:hidden; }.table-wrapper{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}.table{width:100%;font-size:.72rem;table-layout:fixed}.table>:not(caption)>*>*{padding:.52rem .65rem;border-bottom-color:#edf0f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.table thead th{color:#5b6b79;background:#f8f9fa;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
     .badge { display:inline-flex;padding:.26rem .5rem;border-radius:3px;background:rgba(64,153,255,.1);color:#287edc;font-size:.66rem;font-weight:600}.badge--success{background:rgba(46,216,182,.13);color:#168d76}.badge--danger{background:rgba(255,83,112,.12);color:#d63854}
     .action-list, .list-cell { display: flex; flex-wrap: wrap; gap: 0.45rem; }
      .table-action{padding:.22rem .48rem;border-radius:3px;font-size:.66rem}

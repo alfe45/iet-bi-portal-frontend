@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AutenticacionService } from '../../nucleo/autenticacion/autenticacion.service';
 import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.service';
@@ -14,30 +14,32 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
       </div>
 
       <nav class="sidebar__nav">
-        @for (section of menu(); track section.title) {
-          <div class="sidebar__group">
-            <p class="sidebar__group-title">{{ section.title }}</p>
+         @for (section of menu(); track section.title) {
+           <div class="sidebar__group">
+             <button type="button" class="sidebar__group-title" [attr.aria-expanded]="!seccionColapsada(section.title)" (click)="alternarSeccion(section.title)"><span>{{ section.title }}</span><span class="sidebar__group-chevron" aria-hidden="true">{{ seccionColapsada(section.title) ? '+' : '−' }}</span></button>
 
-            @for (item of section.items; track item.label) {
-              @if (item.path) {
-                <a
-                  [routerLink]="item.path"
-                  routerLinkActive="is-active"
-                  [routerLinkActiveOptions]="{ exact: true }"
-                  #activeLink="routerLinkActive"
-                  [attr.aria-current]="activeLink.isActive ? 'page' : null"
-                  class="sidebar__link"
-                  (click)="close.emit()"
-                >
-                  <span class="sidebar__icon" aria-hidden="true">{{ item.label.charAt(0) }}</span><span>{{ item.label }}</span>
-                </a>
-              } @else {
-                <button type="button" class="sidebar__link sidebar__link--button">
-                  {{ item.label }}
-                </button>
-              }
-            }
-          </div>
+             @if (!seccionColapsada(section.title)) {
+               @for (item of section.items; track item.label) {
+                 @if (item.path) {
+                   <a
+                     [routerLink]="item.path"
+                     routerLinkActive="is-active"
+                     [routerLinkActiveOptions]="{ exact: true }"
+                     #activeLink="routerLinkActive"
+                     [attr.aria-current]="activeLink.isActive ? 'page' : null"
+                     class="sidebar__link"
+                     (click)="close.emit()"
+                   >
+                     <span class="sidebar__icon" aria-hidden="true">{{ item.label.charAt(0) }}</span><span>{{ item.label }}</span>
+                   </a>
+                 } @else {
+                   <button type="button" class="sidebar__link sidebar__link--button">
+                     {{ item.label }}
+                   </button>
+                 }
+               }
+             }
+           </div>
         }
         <button type="button" class="sidebar__link sidebar__logout" (click)="cerrarSesion()"><span class="sidebar__icon" aria-hidden="true">×</span><span>Cerrar sesión</span></button>
       </nav>
@@ -91,14 +93,26 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
       gap: .15rem;
     }
 
-    .sidebar__group-title {
-      margin: .45rem 1.25rem .2rem;
-      color: #8996a4;
-     font-size: .74rem;
-      font-weight: 600;
-      letter-spacing: .08em;
-      text-transform: uppercase;
-    }
+     .sidebar__group-title {
+       display:flex;
+       align-items:center;
+       justify-content:space-between;
+       width:calc(100% - 2.5rem);
+       margin: .45rem 1.25rem .2rem;
+       padding:0 .15rem;
+       border:0;
+       background:transparent;
+       color: #8996a4;
+      font-size: .74rem;
+       font-weight: 600;
+       letter-spacing: .08em;
+       text-transform: uppercase;
+       text-align:left;
+       cursor:pointer;
+     }
+
+     .sidebar__group-title:hover { color:#4099ff; }
+     .sidebar__group-chevron { font-size:1rem; line-height:1; text-transform:none; }
 
     .sidebar__link {
       width: 100%;
@@ -163,6 +177,7 @@ export class SidebarComponent {
 
   isOpen = input(false);
   close = output<void>();
+  private readonly collapsedSections = signal<Set<string>>(new Set());
 
   protected readonly menu = computed(() => {
      const common = [{ title: 'Principal', items: [{ label: 'Tablero', path: '/dashboard' }] }];
@@ -173,7 +188,7 @@ export class SidebarComponent {
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
      const roles = this.auth.currentRoles();
      if (roles.includes('Administrador')) {
-       return [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Escalas', path: '/escalas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] }, account];
+        return [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] }, account];
      }
 
      if (!roles.length) return [];
@@ -183,7 +198,15 @@ export class SidebarComponent {
      if (roles.includes('Profesor CAS') || roles.includes('Profesor Coordinador de CAS')) menu.push({ title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }, ...(roles.includes('Profesor Coordinador de CAS') ? [{ label: 'Coordinación CAS', path: '/coordinacion-cas' }] : [])] });
      menu.push(account);
      return menu;
-   });
+  });
+
+  protected seccionColapsada(title: string): boolean { return this.collapsedSections().has(title); }
+
+  protected alternarSeccion(title: string): void {
+    const collapsed = new Set(this.collapsedSections());
+    collapsed.has(title) ? collapsed.delete(title) : collapsed.add(title);
+    this.collapsedSections.set(collapsed);
+  }
 
   private registrationLabel(): string {
     const subjects = this.grupos.grupos().map((group) => group.asignatura);
