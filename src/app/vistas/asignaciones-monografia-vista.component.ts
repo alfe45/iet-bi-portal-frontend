@@ -89,9 +89,9 @@ export class AsignacionesMonografiaVistaComponent {
      const operation = this.editingId() ? this.monografiasApi.actualizar(request.cedulaEstudiante, request.cedulaCoordinador, request.codigoAsignatura) : this.monografiasApi.registrar(request);
      operation.subscribe({ next: () => { this.feedback.exito(this.editingId() ? 'La coordinación de monografía fue actualizada.' : 'La coordinación de monografía fue registrada.'); this.cargarMonografias(); this.cerrar(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo guardar la coordinación de monografía.') });
    }
-   protected eliminar(item: MonografiaLocal): void {
-     if (!confirm(`¿Eliminar la coordinación de ${item.estudiante}?`)) return;
-     this.monografiasApi.borrar(String(item.id)).subscribe({ next: () => { this.feedback.exito('La coordinación de monografía fue eliminada.'); this.cargarMonografias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la coordinación de monografía.') });
+    protected async eliminar(item: MonografiaLocal): Promise<void> {
+      if (!await this.feedback.confirmar(`¿Eliminar la coordinación de ${item.estudiante}?`, 'Eliminar coordinación', 'Eliminar')) return;
+      this.monografiasApi.borrar(String(item.id)).subscribe({ next: () => { this.feedback.exito('La coordinación de monografía fue eliminada.'); this.cargarMonografias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la coordinación de monografía.') });
    }
   protected cerrar(): void { this.editorOpen.set(false); }
 }

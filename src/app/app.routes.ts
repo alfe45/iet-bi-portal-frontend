@@ -44,7 +44,6 @@ export const routes: Routes = [
       { path: 'periodos', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'secciones', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
       { path: 'matriculas', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
-      { path: 'escalas', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'asignaturas', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
       { path: 'asignaciones', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'asignaciones-monografia', component: AsignacionesMonografiaVistaComponent, data: { roles: ADMIN } },

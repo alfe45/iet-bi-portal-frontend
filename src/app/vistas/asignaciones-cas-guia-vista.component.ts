@@ -45,15 +45,29 @@ interface AssignmentDraft {
          </header>
 
        <section class="surface assignment-list" [class.assignment-list--cas]="!isGuide">
-           <div class="table-head"><strong>{{ isGuide ? 'Profesor' : 'Sección' }}</strong><strong>Profesor</strong><strong>{{ isGuide ? 'Tipo' : 'Estudiantes' }}</strong>@if (!isGuide) { <strong>Estado</strong> }<strong></strong></div>
-         @for (item of assignments(); track item.id) {
-           <div class="assignment-row">
-             <div><strong>{{ isGuide ? item.profesor : item.seccion }}</strong><small>{{ isGuide ? item.cedula : 'Asignatura CAS' }}</small></div>
-             <span>{{ item.profesor }}</span>
-             <span>{{ isGuide ? 'Profesor Guía' : (item.cantidadEstudiantes ?? 0) + ' estudiantes' }}</span>
-               @if (!isGuide) { <span>{{ item.estado || 'Activo' }}</span> }
-              <div class="row-actions"><button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div>
-           </div>
+            @if (isGuide) {
+              <div class="table-head guide-table-head"><strong>Profesor</strong><strong>Año</strong><strong>Sección</strong><strong>Tipo</strong><strong></strong></div>
+            } @else {
+              <div class="table-head"><strong>Sección</strong><strong>Profesor</strong><strong>Estudiantes</strong><strong>Estado</strong><strong></strong></div>
+            }
+          @for (item of assignments(); track item.id) {
+            @if (isGuide) {
+              <div class="assignment-row guide-assignment-row">
+                <div><strong>{{ item.profesor }}</strong><small>{{ item.cedula }}</small></div>
+                <span>{{ item.anio }}</span>
+                <span>{{ item.seccion }}</span>
+                <span>Profesor Guía</span>
+                <div class="row-actions"><button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div>
+              </div>
+            } @else {
+              <div class="assignment-row">
+                <div><strong>{{ item.seccion }}</strong><small>Asignatura CAS</small></div>
+                <span>{{ item.profesor }}</span>
+                <span>{{ (item.cantidadEstudiantes ?? 0) + ' estudiantes' }}</span>
+                <span>{{ item.estado || 'Activo' }}</span>
+                <div class="row-actions"><button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div>
+              </div>
+            }
         } @empty { <p class="empty">No hay asignaciones registradas.</p> }
       </section>
 
@@ -73,7 +87,7 @@ interface AssignmentDraft {
     </section>
   `,
    styles: `
-     .assignment-list--cas .table-head,.assignment-list--cas .assignment-row{grid-template-columns:1.25fr 1.35fr 1fr 100px 180px}
+     .assignment-list--cas .table-head,.assignment-list--cas .assignment-row{grid-template-columns:1.25fr 1.35fr 1fr 100px 180px}.assignment-list:not(.assignment-list--cas) .table-head,.assignment-list:not(.assignment-list--cas) .assignment-row{grid-template-columns:1.35fr 1fr 1fr 1fr 180px}
     .assignment-page{display:grid;gap:1rem;align-content:start}.page-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-left:5px solid #2f6b9a}.page-header h2,.page-header p:last-child{margin:0}.page-header p:last-child{margin-top:.35rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.assignment-list{padding:1rem 1.2rem}.table-head,.assignment-row{display:grid;grid-template-columns:1.35fr 1.2fr 1.2fr 180px;gap:1rem;align-items:center}.table-head{padding:.2rem 0 .65rem;color:#667085;font-size:.75rem;text-transform:uppercase}.assignment-row{padding:.75rem 0;border-top:1px solid #e6edf3}.assignment-row strong,.assignment-row small{display:block}.assignment-row small{margin-top:.15rem;color:#667085}.assignment-row span{color:#475467}.row-actions{display:flex;justify-content:flex-end;gap:.45rem}.danger-button{border:0;border-radius:5px;padding:.5rem .7rem;background:#fff0f1;color:#b42318;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}.empty{padding:1rem 0;color:#667085}.modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(13,25,39,.52)}.editor-modal{width:min(100%,620px);padding:1.2rem;border-radius:10px;background:#fff;box-shadow:0 20px 60px rgba(4,26,55,.3)}.modal-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}.modal-heading h3{margin:0;color:#1e3a5f}.close-button{width:32px;height:32px;border:0;border-radius:50%;background:#f2f5f7;color:#667085;font-size:1.25rem;cursor:pointer}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.form-grid label{display:grid;gap:.4rem;font-weight:700}.form-grid select{width:100%;box-sizing:border-box;border:1px solid #cfdbe5;border-radius:5px;padding:.55rem;background:#fff;font:inherit;color:#25364a}.modal-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem}@media(max-width:700px){.page-header{align-items:flex-start;flex-direction:column}.table-head{display:none}.assignment-row{grid-template-columns:1fr;gap:.35rem}.row-actions{justify-content:stretch}.row-actions button{flex:1}.form-grid{grid-template-columns:1fr}}
   `,
 })
@@ -138,8 +152,8 @@ export class AsignacionesCasGuiaVistaComponent {
 
   private cargarGuias(): void { this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => { this.apiSections.set(response.elementos); this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos)); } }); }
 
-  protected eliminar(item: AssignmentRow): void {
-    if (!confirm(`¿Eliminar la asignación de ${item.profesor}?`)) return;
+  protected async eliminar(item: AssignmentRow): Promise<void> {
+    if (!await this.feedback.confirmar(`¿Eliminar la asignación de ${item.profesor}?`, 'Eliminar asignación', 'Eliminar')) return;
     if (this.isGuide) {
       this.seccionesApi.quitarGuia(item.anio!, item.nivel!, item.numero!).subscribe({ next: () => { this.feedback.exito('La asignación de guía fue eliminada.'); this.cargarGuias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la asignación de guía.') });
       return;

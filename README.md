@@ -1,25 +1,43 @@
 # IET BI Portal Frontend
 
-Prototipo funcional local del portal institucional construido con Angular 22. Permite iniciar sesión por rol, administrar registros, guardar evaluaciones y ausentismo, gestionar monografías y consultar o imprimir reportes. Los datos se conservan en `localStorage`; no existe backend ni seguridad productiva.
+Frontend institucional construido con Angular 22. Consume la API del portal para autenticacion, administracion academica, matriculas, asignaciones, evaluaciones, ausentismo, monografias y reportes.
+
+## Requisitos
+
+- Node.js compatible con Angular 22.
+- npm.
+- Backend del portal disponible.
 
 ## Desarrollo
 
+Inicie el backend y luego ejecute:
+
 ```bash
+npm install
 npm start
 ```
 
-Abra `http://localhost:4200/`. La navegación Angular se mantiene para recorrer tablero, estudiantes, monografías, detalles y reportes.
+La aplicacion queda disponible en `http://localhost:4200/` y usa la configuracion de `src/env/environment.development.ts`. La URL base de la API se define en `apiUrl`.
 
-## Roles de demostración
+## Configuracion por ambiente
 
-El inicio de sesión requiere usuario y contraseña no vacíos y permite seleccionar un rol. La sesión se conserva localmente hasta cerrar sesión. Los guards restringen las rutas según el rol, pero esta validación ocurre únicamente en el navegador.
+- `src/env/environment.ts`: configuracion base.
+- `src/env/environment.development.ts`: desarrollo local.
+- `src/env/environment.production.ts`: compilacion de produccion.
 
-Los roles disponibles son Administrador, Profesor regular, Profesor Guía y Profesor Coordinador de Monografía. El Profesor Guía y el Profesor Coordinador conservan las funciones docentes del Profesor regular y agregan, respectivamente, las funciones de sección guía y de monografía. El menú lateral y el tablero cambian según el rol seleccionado.
+Angular selecciona el archivo mediante los reemplazos definidos en `angular.json`. No se deben guardar secretos en estos archivos porque forman parte del frontend publicado.
 
-## Compilación y pruebas
+## Compilacion y pruebas
 
 ```bash
-npm run build
-npm test
+npm run build -- --configuration development
+npm run build -- --configuration production
+npm test -- --watch=false
 git diff --check
 ```
+
+La compilacion de produccion genera los archivos en `dist/iet_bi_frontend`.
+
+## Roles
+
+El backend determina los roles y permisos de la sesion. La interfaz adapta el menu y las rutas para Administrador, Profesor regular, Profesor Guia, Profesor CAS, Coordinador CAS y Coordinador de Monografia.

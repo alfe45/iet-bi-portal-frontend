@@ -6,8 +6,7 @@ export type FuncionalidadAdministrativa =
   | 'estudiantes'
   | 'periodos'
   | 'secciones'
-  | 'matriculas'
-  | 'escalas'
+   | 'matriculas'
   | 'asignaturas'
   | 'asignaciones';
 
@@ -190,11 +189,6 @@ const ESTADO_INICIAL: EstadoPortal = {
      periodos: [{ id: 'PER-2026-2', nombre: 'Segundo semestre 2026', yearCiclo: '2026', fechaInicio: '2026-02-09', fechaFin: '2026-12-04', descripcion: 'Periodo académico vigente', estado: 'Activo' }],
       secciones: [{ id: 'SEC-11-1', nombre: '11-1', yearCiclo: '2026', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }, { id: 'SEC-11-2', nombre: '11-2', yearCiclo: '2026', nivel: 'Undécimo', guia: 'Laura Vanessa Quirós Brenes', estado: 'Activa' }],
      matriculas: ESTUDIANTES_DEMO.map((student, index) => ({ id: `MAT-${String(index + 1).padStart(3, '0')}`, estudiante: student['nombre'], seccion: student['seccion'], yearCiclo: '2026', periodo: 'Segundo semestre 2026', estado: 'Activa' })),
-    escalas: [
-      { id: 'ESC-1-7', nombre: 'Escala 1 a 7', rango: '1-7', estado: 'Activa' },
-      { id: 'ESC-1-100', nombre: 'Escala 1 a 100', rango: '1-100', estado: 'Activa' },
-      { id: 'ESC-A-E', nombre: 'Escala A a E', rango: 'A-E', estado: 'Activa' },
-    ],
     asignaturas: [
        { id: 'ASG-HIS', codigo: 'HIS', nombre: 'Historia', descripcion: 'Procesos históricos contemporáneos', escala: '1-7', estado: 'Activa' },
        { id: 'ASG-MAT', codigo: 'MAT', nombre: 'Matemática AI', descripcion: 'Resolución de problemas y pensamiento lógico', escala: '1-100', estado: 'Activa' },

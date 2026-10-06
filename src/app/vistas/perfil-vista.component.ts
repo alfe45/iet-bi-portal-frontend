@@ -43,9 +43,8 @@ export class PerfilVistaComponent {
   private readonly location = inject(Location);
 
   protected readonly user = computed(() => {
-    const role = this.auth.currentRole();
-    const names: Record<string, string> = { Administrador: 'Administración general', 'Profesor regular': 'Juan Gabriel Valverde Valverde', 'Profesor Guía': 'Laura Vanessa Quirós Brenes', 'Profesor Coordinador de Monografía': 'Ana Lucía Solano Castro' };
-    return { fullName: role ? names[role] : 'Invitado', role, username: this.auth.currentUsername() || '-', email: role ? 'portal@institucion.edu' : '-' };
+     const role = this.auth.currentRole();
+     return { fullName: this.auth.currentDisplayName() || 'Invitado', role, username: this.auth.currentUsername() || '-', email: this.auth.currentUsername() || '-' };
   });
   protected readonly avatar = computed(() => this.user().role?.split(' ').map((part) => part[0]).slice(0, 2).join('') ?? '--');
   protected readonly cards = computed(() => [
