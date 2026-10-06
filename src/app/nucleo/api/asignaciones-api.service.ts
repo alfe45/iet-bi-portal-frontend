@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface AsignacionApi {
   anio: number;
@@ -35,7 +36,7 @@ export interface ConsultaAsignaciones {
 @Injectable({ providedIn: 'root' })
 export class AsignacionesApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/asignaciones`;
+  private readonly url = `${environment.apiUrl}/admin/asignaciones`;
 
   listar(consulta: ConsultaAsignaciones = {}): Observable<ResultadoPaginado<AsignacionApi>> {
     let params = new URLSearchParams();

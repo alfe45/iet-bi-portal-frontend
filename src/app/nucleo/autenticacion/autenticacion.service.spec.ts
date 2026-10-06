@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router } from '@angular/router';
 import { AutenticacionService } from './autenticacion.service';
+import { environment } from '../../../env/environment';
 
 describe('AutenticacionService', () => {
   const router = { navigateByUrl: vi.fn() };
@@ -25,15 +26,15 @@ describe('AutenticacionService', () => {
     const http = TestBed.inject(HttpTestingController);
     service.iniciarSesion('docente@iet.test', 'demo1234').subscribe();
 
-    http.expectOne('http://localhost:5149/api/auth/login').flush({ accessToken: 'access', accessTokenExpiresAt: '2026-09-25T12:00:00Z', refreshToken: 'refresh' });
-    http.expectOne('http://localhost:5149/api/perfil').flush({ id: 'user-1', email: 'docente@iet.test', activo: true, roles: ['PROFESOR_REGULAR'], nombreProfesor: 'Docente Demo' });
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush({ accessToken: 'access', accessTokenExpiresAt: '2026-09-25T12:00:00Z', refreshToken: 'refresh' });
+    http.expectOne(`${environment.apiUrl}/perfil`).flush({ id: 'user-1', email: 'docente@iet.test', activo: true, roles: ['PROFESOR_REGULAR'], nombreProfesor: 'Docente Demo' });
 
     expect(service.authenticated()).toBe(true);
     expect(service.currentRole()).toBe('Profesor regular');
     expect(service.currentDisplayName()).toBe('Docente Demo');
 
     service.cerrarSesion();
-    http.expectOne('http://localhost:5149/api/auth/logout').flush({});
+    http.expectOne(`${environment.apiUrl}/auth/logout`).flush({});
     expect(service.currentRole()).toBeNull();
     expect(localStorage.getItem('iet-bi-portal:sesion:v2')).toBeNull();
     http.verify();

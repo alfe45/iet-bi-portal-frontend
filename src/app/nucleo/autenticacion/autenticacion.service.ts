@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { catchError, finalize, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { RolUsuario } from '../modelos/modelos-prototipo';
-import { API_URL } from '../api/api.config';
+import { environment } from '../../../env/environment';
 
 interface RespuestaAutenticacion {
   accessToken: string;
@@ -56,9 +56,9 @@ export class AutenticacionService {
     const correo = email.trim();
     if (!correo || !contrasena.trim()) return throwError(() => new Error('Ingrese correo y contraseña.'));
 
-    return this.http.post<RespuestaAutenticacion>(`${API_URL}/auth/login`, { email: correo, contrasena }).pipe(
+    return this.http.post<RespuestaAutenticacion>(`${environment.apiUrl}/auth/login`, { email: correo, contrasena }).pipe(
       tap((tokens) => this.guardarTokens(tokens)),
-      switchMap(() => this.http.get<PerfilBackend>(`${API_URL}/perfil`)),
+      switchMap(() => this.http.get<PerfilBackend>(`${environment.apiUrl}/perfil`)),
       tap((perfil) => this.establecerPerfil(perfil)),
       map(() => undefined),
       catchError((error) => {
@@ -71,7 +71,7 @@ export class AutenticacionService {
   cerrarSesion(): void {
     const token = this.refreshToken();
     const cierre = token
-      ? this.http.post<void>(`${API_URL}/auth/logout`, { refreshToken: token }).pipe(catchError(() => of(undefined)))
+      ? this.http.post<void>(`${environment.apiUrl}/auth/logout`, { refreshToken: token }).pipe(catchError(() => of(undefined)))
       : of(undefined);
     cierre.pipe(finalize(() => { this.limpiarSesion(); void this.router.navigateByUrl('/login'); })).subscribe();
   }
@@ -96,7 +96,7 @@ export class AutenticacionService {
   renovarAccessToken(): Observable<string> {
     const token = this.refreshToken();
     if (!token) return throwError(() => new Error('No existe una sesión renovable.'));
-    return this.http.post<RespuestaAutenticacion>(`${API_URL}/auth/refresh`, { refreshToken: token }).pipe(
+    return this.http.post<RespuestaAutenticacion>(`${environment.apiUrl}/auth/refresh`, { refreshToken: token }).pipe(
       tap((tokens) => this.guardarTokens(tokens)),
       map((tokens) => tokens.accessToken),
     );

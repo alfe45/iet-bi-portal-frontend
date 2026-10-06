@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface EstudianteApi {
   idEstudiante: string | number;
@@ -29,7 +30,7 @@ export interface EstudianteRequest {
 // Cliente HTTP de estudiantes; no contiene reglas de negocio propias.
 export class EstudiantesApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/estudiantes`;
+  private readonly url = `${environment.apiUrl}/admin/estudiantes`;
 
   listarPaginado(busqueda = '', pagina = 1, tamanoPagina = 20): Observable<ResultadoPaginado<EstudianteApi>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanoPagina', tamanoPagina);
