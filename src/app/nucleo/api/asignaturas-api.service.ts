@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface AsignaturaApi {
   codigo: string;
@@ -31,7 +32,7 @@ export interface ConsultaAsignaturas {
 @Injectable({ providedIn: 'root' })
 export class AsignaturasApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/asignaturas`;
+  private readonly url = `${environment.apiUrl}/admin/asignaturas`;
 
   listar(consulta: ConsultaAsignaturas = {}): Observable<ResultadoPaginado<AsignaturaApi>> {
     let params = new URLSearchParams();

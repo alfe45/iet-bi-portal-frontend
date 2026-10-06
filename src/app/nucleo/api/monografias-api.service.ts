@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface ConsultaMonografias {
   pagina?: number;
@@ -37,7 +38,7 @@ export interface RegistrarMonografiaRequest {
 @Injectable({ providedIn: 'root' })
 export class MonografiasApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/monografias`;
+  private readonly url = `${environment.apiUrl}/admin/monografias`;
 
   listar(consulta: ConsultaMonografias = {}): Observable<ResultadoPaginado<MonografiaApi>> {
     const params = Object.fromEntries(Object.entries(consulta).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]));

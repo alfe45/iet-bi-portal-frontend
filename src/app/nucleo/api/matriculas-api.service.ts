@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface MatriculaApi {
   anio: number;
@@ -49,7 +50,7 @@ export interface ConsultaMatriculas {
 // Cliente de las acciones de matrícula definidas por el SQL.
 export class MatriculasApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/matriculas`;
+  private readonly url = `${environment.apiUrl}/admin/matriculas`;
 
   listar(consulta: ConsultaMatriculas = {}): Observable<ResultadoPaginado<MatriculaApi>> {
     let params = new HttpParams();

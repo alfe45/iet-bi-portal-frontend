@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface ConsultaSecciones {
   anio?: number;
@@ -33,7 +34,7 @@ export interface SeccionRequest {
 // Cliente HTTP de secciones académicas.
 export class SeccionesApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/secciones`;
+  private readonly url = `${environment.apiUrl}/admin/secciones`;
 
   listarPaginado(consulta: ConsultaSecciones = {}): Observable<ResultadoPaginado<SeccionApi>> {
     let params = new URLSearchParams();

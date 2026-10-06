@@ -1,7 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { API_URL, ResultadoPaginado } from './api-modelos';
+import { ResultadoPaginado } from './api-modelos';
+import { environment } from '../../../env/environment';
 
 export interface UsuarioAdminApi {
   id: string;
@@ -23,7 +24,7 @@ export interface UsuarioAdminApi {
 @Injectable({ providedIn: 'root' })
 export class UsuariosApiService {
   private readonly http = inject(HttpClient);
-  private readonly url = `${API_URL}/admin/usuarios`;
+  private readonly url = `${environment.apiUrl}/admin/usuarios`;
 
   listar(busqueda = '', pagina = 1, tamanoPagina = 20): Observable<ResultadoPaginado<UsuarioAdminApi>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanoPagina', tamanoPagina);
