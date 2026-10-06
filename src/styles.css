@@ -35,6 +35,12 @@ a { color: inherit; }
 :where(.modal-backdrop > .editor-modal,.modal-backdrop > .monograph-modal) { border-top:4px solid #238d78!important; }
 :where(.modal-backdrop .modal-close,.modal-backdrop .close-button) { transition:color .15s ease,background .15s ease,border-color .15s ease,transform .15s ease; }
 :where(.modal-backdrop .modal-close:hover,.modal-backdrop .close-button:hover) { transform:translateY(-1px); }
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) { user-select:none; cursor:default; }
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) input,
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) select,
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) textarea,
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) [contenteditable="true"] { user-select:text; cursor:text; }
+:where(.modal-backdrop > form,.modal-backdrop > section,.feedback-dialog,.auth-feedback-card) button { cursor:pointer; }
 @keyframes app-modal-enter { from { opacity:0; } to { opacity:1; } }
 :focus-visible { outline: 3px solid rgba(64,153,255,.55); outline-offset: 2px; }
 

@@ -1,9 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { PortalDatosService, RegistroPortal } from '../nucleo/datos/portal-datos.service';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { RouterLink } from '@angular/router';
-import { CursosLectivosApiService, PeriodoActualApi } from '../nucleo/api/cursos-lectivos-api.service';
+import { PeriodoActualService } from '../nucleo/datos/periodo-actual.service';
 
 @Component({
   selector: 'app-vista-tablero',
@@ -58,8 +58,7 @@ export class TableroVistaComponent {
    private readonly auth = inject(AutenticacionService);
    private readonly datos = inject(PortalDatosService);
    private readonly grupos = inject(GruposProfesorService);
-   private readonly cursosLectivosApi = inject(CursosLectivosApiService);
-   private readonly periodoActual = signal<PeriodoActualApi | null>(null);
+   private readonly periodoActualService = inject(PeriodoActualService);
   protected readonly quickLinks = computed(() => {
     if (this.isAdmin()) return [
       { path: '/usuarios', label: 'Usuarios', description: 'Cuentas y permisos', icon: 'U', featured: true },
@@ -86,8 +85,8 @@ export class TableroVistaComponent {
    protected readonly email = computed(() => this.auth.currentUsername() || '-');
   protected readonly initials = computed(() => this.teacherName().split(' ').map((part) => part[0]).slice(0, 2).join(''));
    protected readonly period = computed(() => {
-     const current = this.periodoActual();
-     if (current) return `${current.semestreActual === 'I_SEMESTRE' ? 'Primer semestre' : current.semestreActual === 'II_SEMESTRE' ? 'Segundo semestre' : 'Receso academico'} ${current.anio}`;
+     const current = this.periodoActualService.periodo();
+     if (current) return this.periodoActualService.etiqueta();
      return this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Sin periodo activo';
    });
   protected readonly assignments = computed(() => this.datos.listar('asignaciones').filter((item) => item['profesor'] === this.auth.currentUsername() && item['periodo'] === this.period() && item['estado'] === 'Activa'));
@@ -99,7 +98,6 @@ export class TableroVistaComponent {
     protected readonly isMonographCoordinator = computed(() => this.auth.hasRole('Profesor Coordinador de Monografía'));
    private registrationLabel(): string { const subjects = this.grupos.grupos().map((group) => group.asignatura); return subjects.length > 0 && subjects.every((subject) => ['Estudios Sociales', 'Civica', 'Cívica'].includes(subject)) ? 'Registro de notas' : 'Registro de bandas'; }
     protected readonly reportPath = computed(() => this.isGuide() ? '/reportes/bandas' : this.isMonographCoordinator() ? '/monografias' : '/reportes/asignatura');
-    constructor() { this.cursosLectivosApi.obtenerActual().subscribe({ next: (periodo) => this.periodoActual.set(periodo), error: () => this.periodoActual.set(null) }); }
    protected studentsFor(section: string): number { return this.datos.estudiantes().filter((student) => student['seccion'] === section).length; }
    protected groupParams(assignment: RegistroPortal): Record<string, string> { return { asignatura: assignment['asignatura'], seccion: assignment['seccion'], periodo: assignment['periodo'] }; }
 }

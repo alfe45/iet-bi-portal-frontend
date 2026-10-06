@@ -45,6 +45,11 @@ interface PromotionTarget {
   numeroSeccion: number;
 }
 
+interface ProfessorDeleteTarget {
+  nombre: string;
+  cedula: string;
+}
+
 const ESTADOS = ['Activo', 'Inactivo'];
 const ROLES_USUARIO = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const ROLES_BACKEND: Record<string, string> = { 'Administrador': 'ADMIN', 'Profesor regular': 'PROFESOR_REGULAR', 'Profesor Guía': 'GUIA', 'Profesor Coordinador de Monografía': 'COORD_MONOGRAFIA', 'Profesor CAS': 'PROFESOR_CAS', 'Profesor Coordinador de CAS': 'COORD_CAS' };
@@ -141,6 +146,17 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
           </div>
         }
 
+        @if (professorDeleteTarget(); as target) {
+          <div class="modal-backdrop" role="presentation" (click)="cancelarEliminacionProfesor()">
+            <section class="promotion-modal delete-profile-modal" role="dialog" aria-modal="true" aria-labelledby="delete-profile-title" (click)="$event.stopPropagation()">
+              <div class="promotion-icon" aria-hidden="true">!</div>
+              <div class="promotion-copy"><p class="modal-kicker">Confirmación</p><h3 id="delete-profile-title">Eliminar perfil de profesor</h3><p>¿Desea eliminar el perfil de <strong>{{ target.nombre }}</strong>?</p></div>
+              <p class="promotion-warning">Esta acción no se puede deshacer.</p>
+              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarEliminacionProfesor()">Cancelar</button><button type="button" class="danger-button" (click)="confirmarEliminacionProfesor()">Eliminar perfil</button></div>
+            </section>
+          </div>
+        }
+
         <section class="surface">
           @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo activo: {{ grupos.periodoActivo() }}</span></div> }
           <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
@@ -221,7 +237,8 @@ export class FuncionalidadVistaComponent {
       protected readonly totalRegistros = signal(0);
       protected readonly tamanoPagina = 10;
       protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
-    protected readonly promotionTarget = signal<PromotionTarget | null>(null);
+     protected readonly promotionTarget = signal<PromotionTarget | null>(null);
+     protected readonly professorDeleteTarget = signal<ProfessorDeleteTarget | null>(null);
      protected readonly columns = computed(() => [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
      protected readonly rows = computed<Array<Record<string, unknown>>>(() => {
        if (this.isTeacher()) return this.teacherRows();
@@ -370,7 +387,7 @@ export class FuncionalidadVistaComponent {
       this.editorOpen.set(true);
   }
 
-  protected accion(event: { action: string; row: Record<string, unknown> }): void {
+  protected async accion(event: { action: string; row: Record<string, unknown> }): Promise<void> {
     const registro = event.row as RegistroPortal;
     if (this.isAdmin() && this.key === 'profesores') { this.accionProfesor(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'estudiantes') { this.accionEstudiante(event.action, registro); return; }
@@ -383,7 +400,7 @@ export class FuncionalidadVistaComponent {
     if (event.action === 'delete' && this.isAdmin()) {
       const deletion = this.datos.validarEliminacion(this.key, registro.id);
       if (!deletion.permitido) { this.apiError = deletion.motivo; return; }
-      if (confirm(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`)) this.datos.eliminarRegistro(this.key, registro.id);
+      if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.datos.eliminarRegistro(this.key, registro.id);
       return;
     }
     this.editingId = registro.id;
@@ -451,8 +468,8 @@ export class FuncionalidadVistaComponent {
      return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
    }
 
-     private accionesProfesor(): Array<{ label: string; code: string; tone?: string }> {
-       return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
+      private accionesProfesor(): Array<{ label: string; code: string; tone?: string }> {
+        return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
     }
 
     protected normalizarCodigoAsignatura(value: string): void {
@@ -589,7 +606,7 @@ export class FuncionalidadVistaComponent {
         tokensInvalidadosDesde: this.fechaHoraLabel(item.tokensInvalidadosDesde, 'No disponible'),
         cedulaProfesor: item.cedulaProfesor ?? '',
         nombreProfesor: item.nombreProfesor ?? '',
-        acciones: [{ label: 'Ver detalle', code: 'view' }, ...this.accionesCrud()],
+         acciones: [{ label: 'Ver detalle', code: 'view' }, ...this.accionesCrud()],
       };
     }
 
@@ -645,8 +662,8 @@ export class FuncionalidadVistaComponent {
       });
     }
 
-    private accionUsuario(action: string, registro: RegistroPortal): void {
-      if (action === 'delete' && confirm(`¿Eliminar el usuario ${registro['correo']}?`)) {
+     private async accionUsuario(action: string, registro: RegistroPortal): Promise<void> {
+       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar el usuario ${registro['correo']}?`, 'Eliminar usuario', 'Eliminar')) {
         this.usuariosApi.borrar(String(registro.id)).subscribe({ next: () => { this.feedback.exito('El usuario fue eliminado.'); this.cargarUsuarios(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el usuario.') });
         return;
       }
@@ -706,8 +723,8 @@ export class FuncionalidadVistaComponent {
       forkJoin(operations.length ? operations : [of(void 0)]).subscribe({ next: finish, error: fail });
     }
 
-    private accionAsignatura(action: string, registro: RegistroPortal): void {
-      if (action === 'delete' && confirm(`¿Eliminar la asignatura ${registro['codigo']}?`)) {
+    private async accionAsignatura(action: string, registro: RegistroPortal): Promise<void> {
+      if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la asignatura ${registro['codigo']}?`, 'Eliminar asignatura', 'Eliminar')) {
         this.asignaturasApi.borrar(String(registro['codigo'])).subscribe({ next: () => { this.feedback.exito('La asignatura fue eliminada.'); this.cargarAsignaturas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la asignatura.') });
         return;
       }
@@ -738,8 +755,8 @@ export class FuncionalidadVistaComponent {
       return tipo === 'Troncal' ? 'TRONCAL' : tipo === 'Superior' ? 'SUPERIOR' : tipo === 'Medio' ? 'MEDIO' : 'MEP';
     }
 
-    private accionAsignacion(action: string, registro: RegistroPortal): void {
-      if (action === 'delete' && confirm('¿Eliminar esta asignación académica?')) {
+    private async accionAsignacion(action: string, registro: RegistroPortal): Promise<void> {
+      if (action === 'delete' && await this.feedback.confirmar('¿Eliminar esta asignación académica?', 'Eliminar asignación', 'Eliminar')) {
         this.asignacionesApi.borrar(Number(registro['anio']), Number(registro['nivel']), Number(registro['numero']), String(registro['codigo'] ?? ''), String(registro['cedulaProfesor'] ?? '')).subscribe({ next: () => { this.feedback.exito('La asignación fue eliminada.'); this.cargarAsignaciones(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la asignación.') });
         return;
       }
@@ -759,8 +776,8 @@ export class FuncionalidadVistaComponent {
     }
 
    private accionProfesor(action: string, registro: RegistroPortal): void {
-     if (action === 'delete' && confirm(`¿Eliminar el perfil del profesor ${registro['nombreCompleto'] ?? registro['cedula']}?`)) {
-       this.profesoresApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('El perfil del profesor fue eliminado.'); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el perfil del profesor.') });
+     if (action === 'delete') {
+       this.professorDeleteTarget.set({ nombre: String(registro['nombreCompleto'] ?? registro['cedula']), cedula: String(registro['cedula']) });
        return;
      }
      if (action === 'view' || action === 'edit') {
@@ -794,7 +811,7 @@ export class FuncionalidadVistaComponent {
       }
    }
 
-    private accionEstudiante(action: string, registro: RegistroPortal): void {
+    private async accionEstudiante(action: string, registro: RegistroPortal): Promise<void> {
       if (action === 'history') {
         this.router.navigate(['/estudiantes', encodeURIComponent(String(registro['cedula'])), 'historial']);
         return;
@@ -811,7 +828,7 @@ export class FuncionalidadVistaComponent {
        this.editorOpen.set(true);
        return;
      }
-      if (action === 'delete' && confirm(`¿Eliminar al estudiante ${registro['nombreCompleto']}?`)) this.estudiantesApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('El estudiante fue eliminado.'); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el estudiante.') });
+       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar al estudiante ${registro['nombreCompleto']}?`, 'Eliminar estudiante', 'Eliminar')) this.estudiantesApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('El estudiante fue eliminado.'); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el estudiante.') });
    }
 
    private guardarEstudiante(): void {
@@ -980,7 +997,7 @@ export class FuncionalidadVistaComponent {
     return this.datos.listar(this.key).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
   }
 
-    private accionMatricula(action: string, registro: RegistroPortal): void {
+    private async accionMatricula(action: string, registro: RegistroPortal): Promise<void> {
       const anio = Number(registro['yearCiclo']);
       const cedula = String(registro['cedulaEstudiante'] ?? '');
       if (action === 'edit') {
@@ -997,15 +1014,16 @@ export class FuncionalidadVistaComponent {
          this.promotionTarget.set({ estudiante: String(registro['estudiante'] ?? 'Estudiante'), cedula, seccion: String(registro['seccion'] ?? ''), cursoActual: anio, cursoDestino: anio + 1, numeroSeccion: Number(registro['numeroSeccion']) });
          return;
        }
-      if (action === 'retire' && confirm('¿Registrar el retiro de esta matrícula?')) {
-        const fecha = prompt('Fecha de retiro (AAAA-MM-DD):', new Date().toISOString().slice(0, 10));
+      if (action === 'retire' && await this.feedback.confirmar('¿Registrar el retiro de esta matrícula?', 'Registrar retiro', 'Continuar')) {
+        const fecha = await this.feedback.solicitarTexto('Indique la fecha de retiro con formato AAAA-MM-DD.', new Date().toISOString().slice(0, 10), 'Fecha de retiro');
         if (!fecha) return;
-        const motivo = prompt('Motivo del retiro (opcional):', '') ?? '';
+        const motivo = await this.feedback.solicitarTexto('Indique el motivo del retiro si corresponde.', '', 'Motivo del retiro');
+        if (motivo === null) return;
         this.matriculasApi.retirar(anio, cedula, fecha, motivo || undefined).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue registrado.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo registrar el retiro.') });
         return;
       }
-      if (action === 'unretire' && confirm('¿Anular el retiro de esta matrícula?')) this.matriculasApi.quitarRetiro(anio, cedula).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue anulado.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo anular el retiro.') });
-      if (action === 'delete' && confirm('¿Eliminar esta matrícula?')) this.matriculasApi.borrar(anio, cedula).subscribe({ next: () => { this.feedback.exito('La matrícula fue eliminada.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la matrícula.') });
+      if (action === 'unretire' && await this.feedback.confirmar('¿Anular el retiro de esta matrícula?', 'Anular retiro', 'Anular')) this.matriculasApi.quitarRetiro(anio, cedula).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue anulado.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo anular el retiro.') });
+      if (action === 'delete' && await this.feedback.confirmar('¿Eliminar esta matrícula?', 'Eliminar matrícula', 'Eliminar')) this.matriculasApi.borrar(anio, cedula).subscribe({ next: () => { this.feedback.exito('La matrícula fue eliminada.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la matrícula.') });
    }
 
    private guardarMatricula(): void {
@@ -1038,7 +1056,7 @@ export class FuncionalidadVistaComponent {
      return null;
    }
 
-   private accionCursoLectivo(action: string, registro: RegistroPortal): void {
+    private async accionCursoLectivo(action: string, registro: RegistroPortal): Promise<void> {
      if (action === 'view' || action === 'edit') {
        this.editingId = registro.id;
        this.readOnly = action === 'view';
@@ -1049,7 +1067,7 @@ export class FuncionalidadVistaComponent {
        this.editorOpen.set(true);
        return;
      }
-      if (action === 'delete' && confirm(`¿Eliminar el curso lectivo ${registro['yearCiclo']}?`)) this.cursosLectivosApi.borrar(Number(registro['yearCiclo'])).subscribe({ next: () => { this.feedback.exito('El curso lectivo fue eliminado.'); this.cargarCursosAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el curso lectivo.') });
+       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar el curso lectivo ${registro['yearCiclo']}?`, 'Eliminar curso lectivo', 'Eliminar')) this.cursosLectivosApi.borrar(Number(registro['yearCiclo'])).subscribe({ next: () => { this.feedback.exito('El curso lectivo fue eliminado.'); this.cargarCursosAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el curso lectivo.') });
    }
 
    private guardarCursoLectivo(): void {
@@ -1078,7 +1096,7 @@ export class FuncionalidadVistaComponent {
       return null;
     }
 
-   private accionSeccion(action: string, registro: RegistroPortal): void {
+    private async accionSeccion(action: string, registro: RegistroPortal): Promise<void> {
      if (action === 'view') {
        this.readOnly = true;
        this.editorTitle = 'Detalle de sección';
@@ -1088,7 +1106,7 @@ export class FuncionalidadVistaComponent {
        this.editorOpen.set(true);
        return;
      }
-      if (action === 'delete' && confirm(`¿Eliminar la sección ${registro['seccion']} del curso ${registro['yearCiclo']}?`)) this.seccionesApi.borrar(Number(registro['yearCiclo']), Number(registro['nivel']), Number(registro['numeroSeccion'])).subscribe({ next: () => { this.feedback.exito('La sección fue eliminada.'); this.cargarSeccionesAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la sección.') });
+       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la sección ${registro['seccion']} del curso ${registro['yearCiclo']}?`, 'Eliminar sección', 'Eliminar')) this.seccionesApi.borrar(Number(registro['yearCiclo']), Number(registro['nivel']), Number(registro['numeroSeccion'])).subscribe({ next: () => { this.feedback.exito('La sección fue eliminada.'); this.cargarSeccionesAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la sección.') });
    }
 
    private guardarSeccion(): void {
@@ -1118,6 +1136,14 @@ export class FuncionalidadVistaComponent {
     }
 
     protected cancelarPromocion(): void { this.promotionTarget.set(null); }
+
+    protected cancelarEliminacionProfesor(): void { this.professorDeleteTarget.set(null); }
+
+    protected confirmarEliminacionProfesor(): void {
+      const target = this.professorDeleteTarget();
+      if (!target) return;
+      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el perfil de profesor.') });
+    }
 
     protected confirmarPromocion(): void {
       const target = this.promotionTarget();

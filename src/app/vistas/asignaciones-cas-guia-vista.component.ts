@@ -152,8 +152,8 @@ export class AsignacionesCasGuiaVistaComponent {
 
   private cargarGuias(): void { this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => { this.apiSections.set(response.elementos); this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos)); } }); }
 
-  protected eliminar(item: AssignmentRow): void {
-    if (!confirm(`¿Eliminar la asignación de ${item.profesor}?`)) return;
+  protected async eliminar(item: AssignmentRow): Promise<void> {
+    if (!await this.feedback.confirmar(`¿Eliminar la asignación de ${item.profesor}?`, 'Eliminar asignación', 'Eliminar')) return;
     if (this.isGuide) {
       this.seccionesApi.quitarGuia(item.anio!, item.nivel!, item.numero!).subscribe({ next: () => { this.feedback.exito('La asignación de guía fue eliminada.'); this.cargarGuias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la asignación de guía.') });
       return;

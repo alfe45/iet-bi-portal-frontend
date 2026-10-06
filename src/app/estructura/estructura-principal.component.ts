@@ -7,7 +7,7 @@ import { FeedbackComponent } from '../compartidos/componentes/feedback.component
 import { FooterComponent } from './footer/footer.component';
 import { HeaderComponent } from './header/header.component';
 import { SidebarComponent } from './sidebar/sidebar.component';
-import { CursosLectivosApiService, PeriodoActualApi } from '../nucleo/api/cursos-lectivos-api.service';
+import { PeriodoActualService } from '../nucleo/datos/periodo-actual.service';
 
 @Component({
   selector: 'app-shell',
@@ -66,16 +66,10 @@ import { CursosLectivosApiService, PeriodoActualApi } from '../nucleo/api/cursos
 export class EstructuraPrincipalComponent {
   private readonly router = inject(Router);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
-  private readonly cursosLectivosApi = inject(CursosLectivosApiService);
+   private readonly periodoActualService = inject(PeriodoActualService);
   private readonly currentUrl = toSignal(this.router.events.pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd), map((event) => event.urlAfterRedirects), startWith(this.router.url)), { initialValue: this.router.url });
   protected readonly sidebarOpen = signal(false);
-  private readonly periodoActual = signal<PeriodoActualApi | null>(null);
-  protected readonly periodoLabel = computed(() => {
-    const periodo = this.periodoActual();
-    if (!periodo) return 'Sin periodo activo';
-    const semestre = periodo.semestreActual === 'I_SEMESTRE' ? 'Primer semestre' : periodo.semestreActual === 'II_SEMESTRE' ? 'Segundo semestre' : 'Receso académico';
-    return `${semestre} ${periodo.anio}`;
-  });
+   protected readonly periodoLabel = this.periodoActualService.etiqueta;
   protected readonly breadcrumbs = computed(() => {
     const parts = this.currentUrl().split('?')[0].split('/').filter(Boolean);
     if (!parts.length || parts[0] === 'dashboard') return ['Inicio'];
@@ -87,10 +81,6 @@ export class EstructuraPrincipalComponent {
     }
     return ['Inicio', labels[parts[0]] ?? 'Gestión', ...(parts[1] ? ['Detalle'] : [])];
   });
-
-  constructor() {
-    this.cursosLectivosApi.obtenerActual().subscribe({ next: (periodo) => this.periodoActual.set(periodo), error: () => this.periodoActual.set(null) });
-  }
 
   @HostListener('window:keydown', ['$event'])
   protected navegarConFlechas(event: KeyboardEvent): void {
