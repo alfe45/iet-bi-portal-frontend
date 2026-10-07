@@ -16,7 +16,7 @@ export interface TarjetaEstadistica {
 export interface ColumnaTabla {
   key: string;
   label: string;
-  type?: 'text' | 'badge' | 'avatar' | 'actions' | 'list';
+  type?: 'text' | 'badge' | 'badge-periodo' | 'avatar' | 'actions' | 'list';
 }
 
 export interface AccionTabla {
