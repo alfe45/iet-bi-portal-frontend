@@ -154,7 +154,7 @@ export class ReportesBandasVistaComponent {
       const reports = Array.from(document.querySelectorAll('.reports-preview app-reporte-bandas-estudiante')).map((element) => `<div class="report-copy">${element.innerHTML}</div>`).join('');
       const styles = Array.from(document.head.querySelectorAll('style')).map((style) => style.textContent ?? '').join('\n');
       printWindow.document.open();
-      printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Reportes de bandas</title><style>${styles}</style><style>@page{size:A4 portrait;margin:10mm}html,body{margin:0;background:#fff}.report-copy{display:block;break-after:page;page-break-after:always;overflow:visible}.report-copy:last-child{break-after:auto;page-break-after:auto}app-reporte-bandas-estudiante{display:block}.report-copy .report-page{break-after:auto!important;page-break-after:auto!important}</style></head><body>${reports}</body></html>`);
+      printWindow.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Reportes de bandas</title><style>${styles}</style><style>@page{size:210mm 297mm;margin:0}html,body{margin:0;background:#fff}.report-copy{display:block;min-height:297mm;padding:10mm;box-sizing:border-box;break-after:page;page-break-after:always;overflow:visible}.report-copy:last-child{break-after:auto;page-break-after:auto}app-reporte-bandas-estudiante{display:block}.report-copy .report-page{break-after:auto!important;page-break-after:auto!important}</style></head><body>${reports}</body></html>`);
       printWindow.document.close();
       setTimeout(() => {
         printWindow.addEventListener('afterprint', () => { restorePage(); printWindow.close(); }, { once: true });
