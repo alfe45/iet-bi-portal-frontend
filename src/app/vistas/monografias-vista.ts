@@ -7,34 +7,21 @@ import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-dato
   imports: [FormsModule],
   template: `
     <section class="monographs-page" aria-labelledby="monographs-title">
-      <header class="page-header"><div><p class="eyebrow">Acompañamiento de investigación</p><h2 id="monographs-title">Mis estudiantes de monografía</h2><p>Seleccione un estudiante para consultar y gestionar su monografía.</p></div></header>
+      <header class="page-header"><div><h2 id="monographs-title">Mis estudiantes de monografía</h2></div></header>
 
       <section class="student-selector" aria-label="Monografías asignadas">
         <strong>Monografías asignadas</strong>
-        <div class="student-options">@for(item of monographs(); track item.id){<button type="button" [class.selected]="item.id === selectedId()" (click)="seleccionar(item)"><span>{{ item.estudiante }}</span><small>{{ item.titulo }}</small></button>}</div>
+        <div class="student-options">@for(item of monographs(); track item.id){<button type="button" [attr.title]="item.titulo" [class.selected]="item.id === selectedId()" (click)="seleccionar(item)"><span>{{ item.estudiante }}</span><small>{{ item.titulo }}</small></button>}</div>
       </section>
 
       @if(selected(); as item){
-         <div class="selected-toolbar"><div><p class="eyebrow">Estudiante</p><h3>{{ item.estudiante }}</h3><p>{{ item.titulo }} · {{ item.area }} · {{ item.estado }}</p></div><div class="top-actions"><button type="button" class="send-button info-button" style="color:#fff;background:#2f80b7;border-color:#2f80b7" (click)="abrirEdicionInformacion()">Editar información de la monografía</button><button type="button" class="send-button observations-button" style="color:#fff;background:#7650a8;border-color:#7650a8" (click)="abrirEdicionObservaciones()">Observaciones</button><button type="button" class="send-button" [disabled]="item.informeEnviado" (click)="abrirEnvioInforme()">{{ item.informeEnviado ? 'Enviado al Profesor Guía' : 'Enviar al Profesor Guía' }}</button></div></div>
+         <div class="selected-toolbar"><div><h3>{{ item.estudiante }}</h3><p>{{ item.titulo }} <span class="status-chip">{{ item.estado }}</span></p></div><div class="top-actions"><button type="button" class="send-button info-button" aria-label="Editar información de la monografía" style="color:#fff;background:#2f80b7;border-color:#2f80b7" (click)="abrirEdicionInformacion()">Editar monografía</button><button type="button" class="send-button observations-button" style="color:#fff;background:#7650a8;border-color:#7650a8" (click)="abrirEdicionObservaciones()">Observaciones</button><button type="button" class="send-button" [disabled]="item.informeEnviado" (click)="abrirEnvioInforme()">{{ item.informeEnviado ? 'Enviado al Profesor Guía' : 'Enviar al Profesor Guía' }}</button></div></div>
 
-        <section class="content-block"><div class="block-heading"><div><h3>Información de la monografía</h3></div></div>
-          <dl class="info-grid"><div><dt>Título</dt><dd>{{ item.titulo }}</dd></div><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Estado</dt><dd>{{ item.estado }}</dd></div><div><dt>Fecha de inicio</dt><dd>{{ item.fechaInicio }}</dd></div><div class="full"><dt>Descripción</dt><dd>{{ item.descripcion }}</dd></div></dl>
-        </section>
-
-        <section class="content-block"><div class="block-heading"><div><h3>Seguimientos</h3><p>Últimos registros del acompañamiento.</p></div><button type="button" class="primary-button" (click)="showFollowUp = true">Registrar seguimiento</button></div>
-          @if(showFollowUp){<form class="inline-form" (ngSubmit)="guardarSeguimiento()"><div class="form-grid"><label>Fecha<input name="fecha" type="date" [(ngModel)]="followUp.fecha" required /></label><label>Estado<select name="estadoSeguimiento" [(ngModel)]="followUp.estado"><option>Revisado</option><option>Pendiente</option><option>Con correcciones</option></select></label><label class="full">Observación<textarea name="observacion" rows="3" [(ngModel)]="followUp.observacion" required></textarea></label></div><div class="actions"><button type="button" class="ghost-button" (click)="cancelarSeguimiento()">Cancelar</button><button type="submit" class="primary-button">Guardar seguimiento</button></div></form>}
-          <div class="follow-ups">@for(followUp of visibleFollowUps(); track followUp.id){<article><div class="follow-up-top"><strong>{{ followUp.fecha }}</strong><span class="tag">{{ followUp.estado }}</span></div><p>“{{ followUp.observacion }}”</p><small>Profesor Coordinador: {{ followUp.profesor }}</small></article>} @empty {<p class="empty">Sin seguimientos registrados.</p>}</div>
-          @if(item.seguimientos.length > 3){<button type="button" class="text-button" (click)="showAllFollowUps = !showAllFollowUps">{{ showAllFollowUps ? 'Ver menos' : 'Ver todos' }}</button>}
-        </section>
-
-        <section class="content-block report-section"><div class="block-heading"><div><h3>Informe de monografía</h3><p>Este informe queda disponible automáticamente para el Profesor Guía.</p></div></div>
-          <dl class="report-grid"><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Profesor Coordinador de Monografía</dt><dd>{{ item.coordinador }}</dd></div></dl>
-          <div class="report-observation"><dt>Observaciones</dt><p>{{ item.observacionReporte || 'Informe de monografía sin registrar.' }}</p><small>{{ item.observacionReporte ? 'Informe guardado · Última actualización: ' + (item.fechaInforme || 'Sin fecha registrada') : 'Sin informe' }}</small></div>
-           @if(item.informeEnviado){<p class="sent-status">Reporte enviado al Profesor Guía · {{ item.fechaEnvioInforme }}</p>} @else {<p class="pending-status">Pendiente de envío al Profesor Guía.</p>}
-          <div class="report-preview"><p class="preview-label">Vista previa</p><h4>REPORTE DE MONOGRAFÍA</h4><table><thead><tr><th>Área</th><th>Profesor Coordinador de Monografía</th><th>Observaciones</th></tr></thead><tbody><tr><td>{{ item.area }}</td><td>{{ item.coordinador }}</td><td>{{ item.observacionReporte || reportObservation || 'Informe de monografía sin registrar.' }}</td></tr></tbody></table></div>
+        <section class="content-block monograph-summary"><div class="block-heading"><h3>Datos de la monografía</h3></div>
+          <dl class="info-grid"><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Fecha de inicio</dt><dd>{{ item.fechaInicio }}</dd></div><div class="full"><dt>Descripción</dt><dd class="description-text">{{ item.descripcion }}</dd></div><div class="full"><dt>Última observación registrada</dt>@if(item.observacionReporte?.trim()){<dd class="observation-entry"><p>{{ item.observacionReporte }}</p><small>{{ item.fechaInforme || 'Sin fecha registrada' }}</small></dd>} @else {<dd class="empty">Sin observaciones registradas.</dd>}</div></dl>
         </section>
       } @else {<p class="empty">No hay estudiantes asignados.</p>}
-        @if(reportModal(); as modal){<div class="modal-backdrop" role="presentation"><section class="monograph-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title"><div class="modal-heading"><div><p class="eyebrow">{{ modal === 'info' ? 'Información de la monografía' : modal === 'observations' ? 'Informe de monografía' : 'Entrega del informe' }}</p><h3 id="report-modal-title">{{ modal === 'info' ? 'Editar información de la monografía' : modal === 'observations' ? 'Observaciones' : 'Confirmar envío' }}</h3></div><button type="button" class="close-button" (click)="cerrarModal()">×</button></div>
+        @if(reportModal(); as modal){<div class="modal-backdrop" role="presentation"><section class="monograph-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title"><div class="modal-heading"><div><p class="eyebrow">{{ modal === 'info' ? 'Información de la monografía' : modal === 'observations' ? 'Observaciones de la monografía' : 'Envío al Profesor Guía' }}</p><h3 id="report-modal-title">{{ modal === 'info' ? 'Editar información de la monografía' : modal === 'observations' ? 'Observaciones' : 'Confirmar envío' }}</h3></div><button type="button" class="close-button" (click)="cerrarModal()">×</button></div>
               @if(modal === 'info'){<form (ngSubmit)="guardarInformacion()"><div class="form-grid"><label>Título<input name="modalTitulo" [(ngModel)]="draft.titulo" required /></label><label>Área<input name="modalArea" [(ngModel)]="draft.area" required /></label><label>Estado<select name="modalEstado" [(ngModel)]="draft.estado"><option>En desarrollo</option><option>Aprobada</option></select></label><label>Fecha de inicio<input name="modalFechaInicio" type="date" [(ngModel)]="draft.fechaInicio" required /></label><label class="full">Descripción<textarea name="modalDescripcion" rows="4" [(ngModel)]="draft.descripcion" required></textarea></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar información</button></div></form>}
               @else if(modal === 'observations'){<form (ngSubmit)="guardarObservaciones()"><div class="readonly-fields"><div><small>Estudiante</small><strong>{{ selected()?.estudiante }}</strong></div><div><small>Área</small><strong>{{ selected()?.area }}</strong></div><div><small>Profesor Coordinador de Monografía</small><strong>{{ selected()?.coordinador }}</strong></div></div><label>Observaciones<textarea name="reportObservation" rows="5" [(ngModel)]="reportObservation" placeholder="Escriba las observaciones del informe"></textarea></label><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar observaciones</button></div></form>}
               @else if(modal === 'confirm-send'){<p>¿Desea enviar las observaciones de <strong>{{ selected()?.estudiante }}</strong> al Profesor Guía?</p><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="button" class="send-button" (click)="confirmarEnvio()">Confirmar envío</button></div>}
@@ -51,19 +38,13 @@ export class MonografiasVista {
   protected readonly monographs = computed(() => this.datos.monografias());
   protected readonly selectedId = signal(this.monographs()[0]?.id ?? '');
   protected readonly selected = computed(() => this.monographs().find((item) => item.id === this.selectedId()));
-  protected readonly visibleFollowUps = computed(() => { const followUps = this.selected()?.seguimientos.slice().sort((a, b) => b.fecha.localeCompare(a.fecha)) ?? []; return this.showAllFollowUps ? followUps : followUps.slice(0, 3); });
   protected editingInfo = false;
-  protected showFollowUp = false;
-  protected showAllFollowUps = false;
   protected draft = this.emptyDraft();
   protected reportObservation = this.monographs()[0]?.observacionReporte ?? '';
    protected readonly reportModal = signal<'info' | 'observations' | 'confirm-send' | null>(null);
-  protected followUp = this.emptyFollowUp();
 
-  protected seleccionar(item: MonografiaLocal): void { this.selectedId.set(item.id); this.draft = { ...item }; this.reportObservation = item.observacionReporte ?? ''; this.editingInfo = false; this.showFollowUp = false; this.showAllFollowUps = false; this.reportModal.set(null); }
+  protected seleccionar(item: MonografiaLocal): void { this.selectedId.set(item.id); this.draft = { ...item }; this.reportObservation = item.observacionReporte ?? ''; this.editingInfo = false; this.reportModal.set(null); }
   protected guardarMonografia(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.editingInfo = false; }
-  protected guardarSeguimiento(): void { const current = this.selected(); if (!current || !this.followUp.observacion.trim()) return; this.datos.agregarSeguimiento(current.id, { ...this.followUp, profesor: current.coordinador }); this.followUp = this.emptyFollowUp(); this.showFollowUp = false; }
-  protected cancelarSeguimiento(): void { this.followUp = this.emptyFollowUp(); this.showFollowUp = false; }
    protected abrirEdicionInformacion(): void { const current = this.selected(); if (current) this.draft = { ...current }; this.reportModal.set('info'); }
    protected abrirEdicionObservaciones(): void { this.reportObservation = this.selected()?.observacionReporte ?? ''; this.reportModal.set('observations'); }
    protected guardarInformacion(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.reportModal.set(null); }
@@ -72,5 +53,4 @@ export class MonografiasVista {
    protected confirmarEnvio(): void { const current = this.selected(); if (!current?.observacionReporte?.trim()) return; this.datos.enviarMonografia(current.id); this.reportModal.set(null); }
   protected cerrarModal(): void { this.reportModal.set(null); }
   private emptyDraft(): Partial<MonografiaLocal> { const item = this.monographs()[0]; return item ? { ...item } : {}; }
-  private emptyFollowUp(): { fecha: string; estado: string; observacion: string } { return { fecha: new Date().toISOString().slice(0, 10), estado: 'Revisado', observacion: '' }; }
 }

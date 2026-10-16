@@ -191,3 +191,55 @@ body.printing-bands,body.printing-bands html{height:auto!important;overflow:visi
 .modal-backdrop .help-modal .close-button:hover { background: #b42318; color: #fff; transform: scale(1.04); }
 .modal-backdrop .help-modal p { margin: 0; padding: .3rem 3rem .3rem .15rem; border: 0; border-radius: 0; background: transparent; color: #25384a; font-size: 1rem; font-weight: 500; line-height: 1.55; }
 @media (max-width: 560px) { .modal-backdrop .help-modal { min-height: 0; padding: 2rem 1.15rem 1.2rem; } .modal-backdrop .help-modal::before { left: 1.15rem; } .modal-backdrop .help-modal p { font-size: .9rem; line-height: 1.6; } }
+
+app-vista-monografias .monographs-page.monographs-page { gap: .65rem; }
+app-vista-monografias .monographs-page .monograph-summary { gap: .65rem; }
+app-vista-monografias .monographs-page .monograph-summary .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+app-vista-monografias .monographs-page .observation-entry { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+app-vista-monografias .monographs-page .observation-entry p { margin: 0; color: #1e3a5f; font-weight: 600; }
+app-vista-monografias .monographs-page .observation-entry small { flex: 0 0 auto; color: #667085; }
+app-vista-monografias .monographs-page .page-header,
+app-vista-monografias .monographs-page .student-selector,
+app-vista-monografias .monographs-page .selected-toolbar,
+app-vista-monografias .monographs-page .content-block { padding: .75rem 1rem; }
+app-vista-monografias .monographs-page .monograph-layout .content-block { gap: .65rem; }
+app-vista-monografias .monographs-page .student-selector { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+app-vista-monografias .monographs-page .student-options { flex: 1; min-width: 0; margin-top: 0; }
+app-vista-monografias .monographs-page .student-options button { min-width: 175px; padding: .45rem .65rem; }
+app-vista-monografias .monographs-page .top-actions { gap: .4rem; }
+app-vista-monografias .monographs-page .top-actions .send-button { min-height: 34px; padding: .4rem .65rem; font-size: .82rem; }
+app-vista-monografias .monographs-page .selected-toolbar p { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+app-vista-monografias .monographs-page .status-chip { padding: .15rem .5rem; border-radius: 999px; background: #eaf3f8; color: #2f6b9a; font-size: .75rem; font-weight: 700; }
+app-vista-monografias .monographs-page .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+app-vista-monografias .monographs-page .info-grid > div,
+app-vista-monografias .monographs-page .report-grid > div { padding: .6rem; }
+app-vista-monografias .monographs-page .description-text,
+app-vista-monografias .monographs-page .report-observation p { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; -webkit-line-clamp: 3; }
+@media (max-width: 900px) {
+  app-vista-monografias .monographs-page .observation-entry { align-items: flex-start; flex-direction: column; gap: .3rem; }
+}
+@media (max-width: 700px) {
+  app-vista-monografias .monographs-page .student-selector { align-items: stretch; flex-direction: column; gap: .45rem; }
+  app-vista-monografias .monographs-page .student-options { margin-top: 0; }
+  app-vista-monografias .monographs-page .selected-toolbar { align-items: flex-start; flex-direction: column; }
+  app-vista-monografias .monographs-page .top-actions { justify-content: flex-start; }
+  app-vista-monografias .monographs-page .info-grid { grid-template-columns: 1fr; }
+  app-vista-monografias .monographs-page .info-grid .full { grid-column: auto; }
+}
+app-vista-monografias .monographs-page .page-header { padding: .45rem .85rem; }
+app-vista-monografias .monographs-page .page-header h2 { font-size: 1.1rem; line-height: 1.2; }
+app-vista-monografias .monographs-page .page-header p:last-child { display: none; }
+app-vista-monografias .monographs-page .student-selector { padding: .5rem .85rem; }
+app-vista-monografias .monographs-page .student-options button { display: flex; align-items: center; min-width: 150px; min-height: 38px; padding: .4rem .55rem; }
+app-vista-monografias .monographs-page .student-options button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+app-vista-monografias .monographs-page .student-options button small { display: none; }
+app-vista-monografias .monographs-page .selected-toolbar { padding: .55rem .85rem; }
+app-vista-monografias .monographs-page .selected-toolbar h3 { font-size: 1.35rem; line-height: 1.1; }
+app-vista-monografias .monographs-page .info-grid > div,
+app-vista-monografias .monographs-page .report-grid > div { padding: .45rem .55rem; }
+app-vista-monografias .monographs-page .top-actions { flex-wrap: nowrap; gap: .35rem; }
+app-vista-monografias .monographs-page .top-actions .send-button { padding: .35rem .5rem; font-size: .76rem; white-space: nowrap; }
+app-vista-monografias .monographs-page .top-actions .primary-button { padding: .35rem .5rem; font-size: .76rem; white-space: nowrap; }
+@media (max-width: 900px) {
+  app-vista-monografias .monographs-page .top-actions { flex-wrap: wrap; }
+}
