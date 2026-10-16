@@ -1,6 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 
 @Component({
@@ -25,13 +24,12 @@ import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 // Muestra el detalle académico de un grupo docente.
 export class GrupoDocenteVistaComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly datos = inject(PortalDatosService);
   private readonly contexto = inject(GruposProfesorService);
   private readonly query = this.route.snapshot.queryParamMap;
   protected readonly subject = computed(() => this.query.get('asignatura') ?? 'Asignatura');
   protected readonly section = computed(() => this.query.get('seccion') ?? 'Sección');
   protected readonly period = computed(() => this.query.get('periodo') ?? 'Periodo activo');
-  protected readonly students = computed(() => this.datos.estudiantes().filter((student) => student['seccion'] === this.section()));
+  protected readonly students = computed(() => this.contexto.esProfesorRegular() ? this.contexto.grupos().find((group) => group.asignatura === this.subject() && group.seccion === this.section())?.estudiantes ?? [] : this.contexto.estudiantesDeSeccion(this.section()));
   protected readonly scale = computed(() => this.contexto.grupos().find((group) => group.asignatura === this.subject() && group.seccion === this.section())?.escala ?? '-');
   constructor() { this.contexto.seleccionarParametros(this.subject(), this.section(), this.period()); }
   protected contextParams(): Record<string, string> { return { asignatura: this.subject(), seccion: this.section(), periodo: this.period() }; }

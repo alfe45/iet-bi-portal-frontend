@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, Injector } from '@angular/core';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { PortalDatosService, RegistroPortal } from '../nucleo/datos/portal-datos.service';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
@@ -56,7 +56,7 @@ import { PeriodoActualService } from '../nucleo/datos/periodo-actual.service';
 // Presenta el resumen principal del portal.
 export class TableroVistaComponent {
    private readonly auth = inject(AutenticacionService);
-   private readonly datos = inject(PortalDatosService);
+   private readonly injector = inject(Injector);
    private readonly grupos = inject(GruposProfesorService);
    private readonly periodoActualService = inject(PeriodoActualService);
   protected readonly quickLinks = computed(() => {
@@ -77,27 +77,30 @@ export class TableroVistaComponent {
     ];
   });
    protected readonly teacherName = computed(() => {
-      if (this.auth.currentDisplayName()) return this.auth.currentDisplayName();
+      if (this.grupos.esProfesorRegular()) return this.grupos.profesor() || 'Profesor regular';
+       if (this.auth.currentDisplayName()) return this.auth.currentDisplayName();
       if (this.auth.hasRole('Administrador')) return 'Administracion general';
-     return this.datos.listar('asignaciones').find((assignment) => assignment['periodo'] === this.period())?.['profesor'] ?? 'Profesor regular';
+      return this.datosLocales().listar('asignaciones').find((assignment) => assignment['periodo'] === this.period())?.['profesor'] ?? 'Profesor regular';
    });
    protected readonly username = computed(() => this.auth.currentUsername() || 'usuario.demostracion');
    protected readonly email = computed(() => this.auth.currentUsername() || '-');
   protected readonly initials = computed(() => this.teacherName().split(' ').map((part) => part[0]).slice(0, 2).join(''));
    protected readonly period = computed(() => {
-     const current = this.periodoActualService.periodo();
+      if (this.grupos.esProfesorRegular()) return this.grupos.periodoActivo();
+      const current = this.periodoActualService.periodo();
      if (current) return this.periodoActualService.etiqueta();
-     return this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Sin periodo activo';
+      return this.datosLocales().listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'] ?? 'Sin periodo activo';
    });
-  protected readonly assignments = computed(() => this.datos.listar('asignaciones').filter((item) => item['profesor'] === this.auth.currentUsername() && item['periodo'] === this.period() && item['estado'] === 'Activa'));
+   protected readonly assignments = computed(() => this.grupos.esProfesorRegular() ? this.grupos.asignaciones() : this.datosLocales().listar('asignaciones').filter((item) => item['profesor'] === this.auth.currentUsername() && item['periodo'] === this.period() && item['estado'] === 'Activa'));
   protected readonly sectionCount = computed(() => new Set(this.assignments().map((item) => item['seccion'])).size);
   protected readonly subjectCount = computed(() => new Set(this.assignments().map((item) => item['asignatura'])).size);
-  protected readonly studentCount = computed(() => new Set(this.assignments().flatMap((item) => this.datos.estudiantes().filter((student) => student['seccion'] === item['seccion']).map((student) => student.id))).size);
+    protected readonly studentCount = computed(() => new Set(this.assignments().flatMap((item) => this.grupos.esProfesorRegular() ? this.grupos.estudiantesDeSeccion(item['seccion']).map((student) => student.id) : this.datosLocales().estudiantes().filter((student) => student['seccion'] === item['seccion']).map((student) => student.id))).size);
    protected readonly isAdmin = computed(() => this.auth.hasRole('Administrador'));
    protected readonly isGuide = computed(() => this.auth.hasRole('Profesor Guía'));
     protected readonly isMonographCoordinator = computed(() => this.auth.hasRole('Profesor Coordinador de Monografía'));
    private registrationLabel(): string { const subjects = this.grupos.grupos().map((group) => group.asignatura); return subjects.length > 0 && subjects.every((subject) => ['Estudios Sociales', 'Civica', 'Cívica'].includes(subject)) ? 'Registro de notas' : 'Registro de bandas'; }
     protected readonly reportPath = computed(() => this.isGuide() ? '/reportes/bandas' : this.isMonographCoordinator() ? '/monografias' : '/reportes/asignatura');
-   protected studentsFor(section: string): number { return this.datos.estudiantes().filter((student) => student['seccion'] === section).length; }
+    protected studentsFor(section: string): number { return this.grupos.estudiantesDeSeccion(section).length; }
    protected groupParams(assignment: RegistroPortal): Record<string, string> { return { asignatura: assignment['asignatura'], seccion: assignment['seccion'], periodo: assignment['periodo'] }; }
+   private datosLocales(): PortalDatosService { return this.injector.get(PortalDatosService); }
 }

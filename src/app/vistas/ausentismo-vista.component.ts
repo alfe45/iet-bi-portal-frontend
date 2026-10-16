@@ -1,8 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, Injector, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
+import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
 
 @Component({
   selector: 'app-vista-ausentismo',
@@ -22,7 +23,8 @@ import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 // Registra y consulta las ausencias de estudiantes.
 export class AusentismoVistaComponent {
   protected readonly grupos = inject(GruposProfesorService);
-  private readonly datos = inject(PortalDatosService);
+  private readonly injector = inject(Injector);
+  private readonly regularContext = inject(ProfesorRegularContextService);
   private readonly route = inject(ActivatedRoute);
   protected readonly search = signal('');
   protected selectedId = '';
@@ -30,11 +32,42 @@ export class AusentismoVistaComponent {
   protected justificadas = 0;
   protected injustificadas = 0;
   protected message = '';
-  protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], attendance: this.datos.asistencia(student.id) })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
+  protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], attendance: this.grupoRegular() ? this.asistenciaRegular(student.id) : this.datosLocales().asistencia(student.id) })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
   protected readonly selectedName = computed(() => this.grupos.grupoActual()?.estudiantes.find((student) => student.id === this.selectedId)?.['nombre'] ?? 'Seleccione un estudiante');
-  constructor() { const query = this.route.snapshot.queryParamMap; this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo')); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.recargar(); }
+  constructor() {
+    const query = this.route.snapshot.queryParamMap;
+    this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo'));
+    this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? '';
+    effect(() => {
+      const group = this.grupos.grupoActual();
+      if (!this.grupoRegular() || !group) return;
+      if (!this.selectedId) this.selectedId = group.estudiantes[0]?.id ?? '';
+      const consulta = this.regularContext.consultaDe(group);
+      if (consulta) this.regularContext.cargarAcademico(consulta).subscribe({ next: () => this.recargar(), error: () => this.message = this.regularContext.error() });
+      this.recargar();
+    });
+    this.recargar();
+  }
   protected cambiarGrupo(id: string): void { this.grupos.seleccionar(id); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.search.set(''); this.recargar(); }
   protected seleccionar(id: string): void { this.selectedId = id; this.message = ''; this.recargar(); }
-  protected recargar(): void { const item = this.datos.asistencia(this.selectedId); this.tardias = item.tardias; this.justificadas = item.justificadas; this.injustificadas = item.injustificadas; }
-  protected guardar(): void { if (!this.selectedId) return; this.datos.guardarAsistencia({ estudianteId: this.selectedId, tardias: this.tardias, justificadas: this.justificadas, injustificadas: this.injustificadas }); this.message = 'Ausentismo guardado correctamente.'; }
+  protected recargar(): void {
+    const group = this.grupos.grupoActual();
+    const consulta = group && this.grupoRegular() ? this.regularContext.consultaDe(group) : null;
+    const item = consulta ? this.regularContext.asistenciaDeGrupo(consulta, this.selectedId) : this.datosLocales().asistencia(this.selectedId);
+    this.tardias = item.tardias;
+    this.justificadas = item.justificadas;
+    this.injustificadas = item.injustificadas;
+  }
+  protected guardar(): void {
+    if (!this.selectedId) return;
+    if (!this.grupoRegular()) { this.datosLocales().guardarAsistencia({ estudianteId: this.selectedId, tardias: this.tardias, justificadas: this.justificadas, injustificadas: this.injustificadas }); this.message = 'Ausentismo guardado correctamente.'; return; }
+    const group = this.grupos.grupoActual();
+    const consulta = group ? this.regularContext.consultaDe(group) : null;
+    if (!consulta) { this.message = 'El grupo no tiene los parámetros requeridos por el backend.'; return; }
+    this.regularContext.guardarAusentismo(consulta, this.selectedId, { estudianteId: this.selectedId, tardias: this.tardias, justificadas: this.justificadas, injustificadas: this.injustificadas }).subscribe({ next: () => this.message = 'Ausentismo guardado correctamente.', error: (error: unknown) => this.message = error instanceof Error ? error.message : this.regularContext.error() || 'No se pudo guardar el ausentismo en el backend.' });
+  }
+
+  private grupoRegular(): boolean { return this.grupos.esProfesorRegular(); }
+  private asistenciaRegular(id: string) { const group = this.grupos.grupoActual(); const consulta = group ? this.regularContext.consultaDe(group) : null; return consulta ? this.regularContext.asistenciaDeGrupo(consulta, id) : { estudianteId: id, tardias: 0, justificadas: 0, injustificadas: 0 }; }
+  private datosLocales(): PortalDatosService { return this.injector.get(PortalDatosService); }
 }

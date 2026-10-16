@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, Injector, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
@@ -206,7 +206,7 @@ export class FuncionalidadVistaComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AutenticacionService);
-  private readonly datos = inject(PortalDatosService);
+  private readonly injector = inject(Injector);
   private readonly profesoresApi = inject(ProfesoresApiService);
   private readonly estudiantesApi = inject(EstudiantesApiService);
     private readonly matriculasApi = inject(MatriculasApiService);
@@ -250,7 +250,7 @@ export class FuncionalidadVistaComponent {
         if (this.key === 'usuarios') return this.usuariosApiRows();
         if (this.key === 'asignaturas') return this.asignaturasApiRows();
         if (this.key === 'asignaciones') return this.asignacionesRows();
-         return this.datos.listar(this.key).map((registro) => ({ ...registro, acciones: this.isAdmin() ? [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Ver detalle', code: 'view' }] }));
+          return this.datosLocales().listar(this.key).map((registro) => ({ ...registro, acciones: this.isAdmin() ? [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Ver detalle', code: 'view' }] }));
     });
     protected readonly statCards = computed(() => [
       { label: 'Registros', value: this.cantidadRegistros(), tone: 'primary' as const },
@@ -397,10 +397,11 @@ export class FuncionalidadVistaComponent {
      if (this.isAdmin() && this.key === 'asignaciones') { this.accionAsignacion(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.accionCursoLectivo(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.accionSeccion(event.action, registro); return; }
-    if (event.action === 'delete' && this.isAdmin()) {
-      const deletion = this.datos.validarEliminacion(this.key, registro.id);
-      if (!deletion.permitido) { this.apiError = deletion.motivo; return; }
-      if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.datos.eliminarRegistro(this.key, registro.id);
+       if (event.action === 'delete' && this.isAdmin()) {
+       const datos = this.datosLocales();
+       const deletion = datos.validarEliminacion(this.key, registro.id);
+       if (!deletion.permitido) { this.apiError = deletion.motivo; return; }
+       if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) datos.eliminarRegistro(this.key, registro.id);
       return;
     }
     this.editingId = registro.id;
@@ -428,7 +429,7 @@ export class FuncionalidadVistaComponent {
     if (this.isAdmin() && this.key === 'matriculas') { this.guardarMatricula(); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.guardarCursoLectivo(); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.guardarSeccion(); return; }
-    this.datos.guardarRegistro(this.key, this.draft, this.editingId);
+     this.datosLocales().guardarRegistro(this.key, this.draft, this.editingId);
     this.cerrarEditor();
   }
 
@@ -481,11 +482,11 @@ export class FuncionalidadVistaComponent {
    }
 
    private profesoresDemoRows(): Array<Record<string, unknown>> {
-     return this.datos.listar('profesores').map((item) => ({ ...item, nombreCompleto: item['nombreCompleto'] ?? item['nombre'], acciones: this.accionesProfesor() }));
+      return this.datosLocales().listar('profesores').map((item) => ({ ...item, nombreCompleto: item['nombreCompleto'] ?? item['nombre'], acciones: this.accionesProfesor() }));
    }
 
    private estudiantesDemoApi(): EstudianteApi[] {
-     return this.datos.listar('estudiantes').map((item, index) => {
+      return this.datosLocales().listar('estudiantes').map((item, index) => {
        const parts = String(item['nombre'] ?? '').split(' ').filter(Boolean);
        return {
           idEstudiante: index + 1,
@@ -506,7 +507,7 @@ export class FuncionalidadVistaComponent {
    }
 
     private cursosDemo(): CursoLectivoApi[] {
-      return this.datos.listar('periodos').map((item, index) => {
+       return this.datosLocales().listar('periodos').map((item, index) => {
         const anio = Number(item['yearCiclo'] ?? 2026);
         const inicio = String(item['fechaInicio'] ?? `${anio}-02-09`);
         const fin = String(item['fechaFin'] ?? `${anio}-12-04`);
@@ -519,7 +520,7 @@ export class FuncionalidadVistaComponent {
    }
 
     private seccionesDemo(): SeccionApi[] {
-      return this.datos.listar('secciones').map((item, index) => {
+       return this.datosLocales().listar('secciones').map((item, index) => {
         const yearCiclo = Number(item['yearCiclo'] ?? 2026);
         const seccion = String(item['nombre'] ?? item['seccion'] ?? '10-1');
         const [nivel, numero] = seccion.split('-').map(Number);
@@ -535,7 +536,7 @@ export class FuncionalidadVistaComponent {
      const students = this.estudiantesDemoApi();
      this.estudiantesMatricula.set(students);
      const studentByName = new Map(students.map((student) => [this.nombreCompletoEstudiante(student), student]));
-     this.matriculasApiRows.set(this.datos.listar('matriculas').map((item, index) => {
+      this.matriculasApiRows.set(this.datosLocales().listar('matriculas').map((item, index) => {
        const student = studentByName.get(String(item['estudiante'] ?? ''));
        const estado = String(item['estado'] ?? 'Activa');
        return { id: String(item.id), estudiante: item['estudiante'], cedulaEstudiante: student?.cedula ?? '', yearCiclo: Number(item['yearCiclo'] ?? 2026), seccion: item['seccion'], estado, idMatricula: index + 1, acciones: estado === 'FINALIZADA' ? [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Finalizar', code: 'finalize' }, { label: 'Subir a undécimo', code: 'promote' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
@@ -960,13 +961,17 @@ export class FuncionalidadVistaComponent {
     }
 
   private teacherName(): string {
+    if (this.grupos.esProfesorRegular()) return this.grupos.profesor();
     const username = this.auth.currentUsername();
-    return this.datos.listar('profesores').find((item) => item['nombre'] === username)?.['nombre'] ?? this.datos.listar('asignaciones').find((item) => item['estado'] === 'Activa')?.['profesor'] ?? username;
+    const datos = this.datosLocales();
+    return datos.listar('profesores').find((item) => item['nombre'] === username)?.['nombre'] ?? datos.listar('asignaciones').find((item) => item['estado'] === 'Activa')?.['profesor'] ?? username;
   }
 
   private activeAssignments(): RegistroPortal[] {
-    const period = this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'];
-    return this.datos.listar('asignaciones').filter((item) => item['profesor'] === this.teacherName() && item['periodo'] === period && item['estado'] === 'Activa');
+    if (this.grupos.esProfesorRegular()) return this.grupos.asignaciones();
+    const datos = this.datosLocales();
+    const period = datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'];
+    return datos.listar('asignaciones').filter((item) => item['profesor'] === this.teacherName() && item['periodo'] === period && item['estado'] === 'Activa');
   }
 
   private teacherColumns(): ColumnaTabla[] {
@@ -981,20 +986,22 @@ export class FuncionalidadVistaComponent {
     const assignments = this.activeAssignments();
     if (this.key === 'asignaturas') {
       return [...new Set(assignments.map((item) => item['asignatura']))].map((name) => {
-        const subject = this.datos.listar('asignaturas').find((item) => item['nombre'] === name);
-        return { id: `subject-${name}`, nombre: name, escala: subject?.['escala'] === '1-100' ? '1–100' : subject?.['escala'] === 'A-E' ? 'A–E' : '1–7', secciones: assignments.filter((item) => item['asignatura'] === name).length, acciones: [{ label: 'Ver grupos', code: 'view' }] };
+        const subject = this.grupos.esProfesorRegular() ? undefined : this.datosLocales().listar('asignaturas').find((item) => item['nombre'] === name);
+        const scale = this.grupos.esProfesorRegular() ? ['Estudios Sociales', 'Cívica', 'Civica'].includes(name) ? '1–100' : '1–7' : subject?.['escala'] === '1-100' ? '1–100' : subject?.['escala'] === 'A-E' ? 'A–E' : '1–7';
+        return { id: `subject-${name}`, nombre: name, escala: scale, secciones: assignments.filter((item) => item['asignatura'] === name).length, acciones: [{ label: 'Ver grupos', code: 'view' }] };
       });
     }
 
     if (this.key === 'secciones') {
-      return [...new Set(assignments.map((item) => item['seccion']))].map((name) => ({ id: `section-${name}`, nombre: name, nivel: this.datos.listar('secciones').find((item) => item['nombre'] === name)?.['nivel'] ?? '-', asignaturas: assignments.filter((item) => item['seccion'] === name).map((item) => item['asignatura']).join(', '), estudiantes: this.datos.estudiantes().filter((item) => item['seccion'] === name).length, acciones: [{ label: 'Abrir', code: 'view' }] }));
+       return [...new Set(assignments.map((item) => item['seccion']))].map((name) => ({ id: `section-${name}`, nombre: name, nivel: this.grupos.esProfesorRegular() ? assignments.find((item) => item['seccion'] === name)?.['nivel'] ?? '-' : this.datosLocales().listar('secciones').find((item) => item['nombre'] === name)?.['nivel'] ?? '-', asignaturas: assignments.filter((item) => item['seccion'] === name).map((item) => item['asignatura']).join(', '), estudiantes: this.grupos.estudiantesDeSeccion(name).length, acciones: [{ label: 'Abrir', code: 'view' }] }));
     }
     if (this.key === 'estudiantes') {
       const selected = this.grupos.grupos().find((group) => group.id === this.selectedGroupId());
       const sections = new Set(selected ? [selected.seccion] : assignments.map((item) => item['seccion']));
-      return this.datos.estudiantes().filter((item) => sections.has(item['seccion'])).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
+       const students = this.grupos.esProfesorRegular() ? (selected?.estudiantes ?? this.grupos.estudiantesDeSeccion([...sections][0] ?? '')) : this.datosLocales().estudiantes().filter((item) => sections.has(item['seccion']));
+      return students.map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
     }
-    return this.datos.listar(this.key).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
+    return this.datosLocales().listar(this.key).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
   }
 
     private async accionMatricula(action: string, registro: RegistroPortal): Promise<void> {
@@ -1233,5 +1240,6 @@ export class FuncionalidadVistaComponent {
      return value.split('-').at(-1) ?? value;
    }
 
-  protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); }
+   protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); }
+   private datosLocales(): PortalDatosService { return this.injector.get(PortalDatosService); }
 }

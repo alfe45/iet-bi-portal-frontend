@@ -1,9 +1,10 @@
-import { Component, computed, ElementRef, inject, signal, ViewChild } from '@angular/core';
+import { Component, computed, effect, ElementRef, inject, Injector, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
+import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
 
 @Component({
   selector: 'app-vista-registro-academico',
@@ -36,8 +37,9 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
 export class RegistroAcademicoVistaComponent {
   @ViewChild('studentSearch') private studentSearch?: ElementRef<HTMLInputElement>;
   protected readonly grupos = inject(GruposProfesorService);
-  private readonly datos = inject(PortalDatosService);
+   private readonly injector = inject(Injector);
   private readonly auth = inject(AutenticacionService);
+  private readonly regularContext = inject(ProfesorRegularContextService);
   private readonly route = inject(ActivatedRoute);
   protected readonly search = signal('');
   protected readonly expandedId = signal<string | null>(null);
@@ -56,10 +58,12 @@ export class RegistroAcademicoVistaComponent {
   protected readonly savedStudentName = signal('');
   private readonly nextAfterSave = signal<string | null>(null);
   protected readonly currentGroup = computed(() => this.grupos.grupoActual());
+  protected readonly isRegular = computed(() => this.grupos.esProfesorRegular());
   protected readonly isGuide = computed(() => this.auth.hasRole('Profesor Guía'));
   protected readonly missingMonographReports = computed(() => {
+    if (this.isRegular()) return [];
     const studentNames = this.currentGroup()?.estudiantes ?? [];
-    const reports = this.datos.monografias();
+    const reports = this.datosLocales().monografias();
     return studentNames.filter((student) => reports.some((report) => report.estudiante === student['nombre'] && !report.informeEnviado));
   });
   protected readonly registrationTitle = computed(() => { const subjects = this.grupos.grupos().map((group) => group.asignatura); const notesOnly = subjects.length > 0 && subjects.every((subject) => ['Estudios Sociales', 'Civica', 'Cívica'].includes(subject)); return notesOnly ? 'Registro de notas' : 'Registro de bandas'; });
@@ -70,7 +74,16 @@ export class RegistroAcademicoVistaComponent {
   protected readonly missingNames = computed(() => (this.currentGroup()?.estudiantes ?? []).filter((student) => !this.evaluation(student.id).valor.trim()).map((student) => student['nombre']));
   protected readonly submissionMessage = computed(() => this.submissionState() === 'incomplete' ? `Faltan ${this.incompleteCount()} estudiante(s) sin nota registrada: ${this.missingNames().join(', ')}.` : this.submissionState() === 'sent' ? 'Este grupo ya fue enviado al profesor guía durante el periodo actual. No se puede enviar nuevamente.' : 'Todos los estudiantes tienen su valor registrado. Revisa la advertencia antes de confirmar.');
 
-  constructor() { const query = this.route.snapshot.queryParamMap; this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo')); }
+  constructor() {
+    const query = this.route.snapshot.queryParamMap;
+    this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo'));
+    effect(() => {
+      const group = this.currentGroup();
+      if (!this.isRegular() || !group) return;
+      const consulta = this.regularContext.consultaDe(group);
+      if (consulta) this.regularContext.cargarAcademico(consulta).subscribe({ error: () => { this.message = this.regularContext.error(); } });
+    });
+  }
 
   protected cambiarGrupo(id: string): void { this.grupos.seleccionar(id); this.expandedId.set(null); this.quickMode.set(false); this.studentPage.set(0); this.message = ''; this.search.set(''); }
   protected cambiarBusqueda(value: string): void { this.search.set(value); this.studentPage.set(0); }
@@ -81,13 +94,20 @@ export class RegistroAcademicoVistaComponent {
   protected abrir(id: string | undefined): void { if (!id) return; this.expandedId.set(id); this.message = ''; const evaluation = this.evaluation(id); const attendance = this.attendance(id); this.draftValue = evaluation.valor; this.draftObservation = evaluation.observacion; this.draftTardias = attendance.tardias; this.draftInjustificadas = attendance.injustificadas; this.draftJustificadas = attendance.justificadas; }
   protected editar(id: string): void { this.quickMode.set(false); this.abrir(id); }
   protected cancelar(): void { this.expandedId.set(null); this.quickMode.set(false); this.message = ''; }
-  protected guardar(): void { this.guardarRegistro(); this.nextAfterSave.set(null); this.saveConfirmationOpen.set(true); }
-  protected guardarYSiguiente(): void { const next = this.nextStudent(); this.guardarRegistro(); this.nextAfterSave.set(next?.id ?? null); this.saveConfirmationOpen.set(true); }
+  protected guardar(): void { this.persistirRegistro(null); }
+  protected guardarYSiguiente(): void { this.persistirRegistro(this.nextStudent()?.id ?? null); }
   protected confirmarGuardado(): void { this.saveConfirmationOpen.set(false); const next = this.nextAfterSave(); this.nextAfterSave.set(null); this.expandedId.set(null); this.message = ''; if (next) this.abrir(next); else this.quickMode.set(false); if (this.hasSearch()) queueMicrotask(() => this.studentSearch?.nativeElement.focus()); }
   protected iniciarCalificadoRapido(): void { const first = this.currentGroup()?.estudiantes[0]; if (!first) return; this.search.set(''); this.studentPage.set(0); this.quickMode.set(true); this.abrir(first.id); }
   protected selectedStudentName(): string { const id = this.expandedId(); return this.currentGroup()?.estudiantes.find((student) => student.id === id)?.['nombre'] ?? 'Estudiante'; }
-  protected revisarEnvio(): void { const group = this.currentGroup(); if (!group) return; this.submissionState.set(this.datos.registroEnviado(group.id, group.periodo) ? 'sent' : this.incompleteCount() > 0 ? 'incomplete' : 'confirm'); this.submissionOpen.set(true); }
-  protected confirmarEnvio(): void { const group = this.currentGroup(); if (!group || this.incompleteCount() > 0) return; this.datos.enviarRegistro(group.id, group.periodo); this.submissionState.set('sent'); }
+  protected revisarEnvio(): void { const group = this.currentGroup(); if (!group) return; const enviado = this.isRegular() ? Boolean(this.regularContext.consultaDe(group) && this.regularContext.registroEnviado(this.regularContext.consultaDe(group)!)) : this.datosLocales().registroEnviado(group.id, group.periodo); this.submissionState.set(enviado ? 'sent' : this.incompleteCount() > 0 ? 'incomplete' : 'confirm'); this.submissionOpen.set(true); }
+  protected confirmarEnvio(): void {
+    const group = this.currentGroup();
+    if (!group || this.incompleteCount() > 0) return;
+    if (!this.isRegular()) { this.datosLocales().enviarRegistro(group.id, group.periodo); this.submissionState.set('sent'); return; }
+    const consulta = this.regularContext.consultaDe(group);
+    if (!consulta) { this.submissionState.set('incomplete'); return; }
+    this.regularContext.enviarRegistro(consulta).subscribe({ next: () => this.submissionState.set('sent'), error: () => { this.submissionState.set('incomplete'); this.message = this.regularContext.error() || 'No se pudo enviar el registro al backend.'; } });
+  }
   protected previousStudent(): { id: string } | undefined { const list = this.students(); const index = list.findIndex((student) => student.id === this.expandedId()); return index > 0 ? list[index - 1] : undefined; }
   protected nextStudent(): { id: string } | undefined { const list = this.students(); const index = list.findIndex((student) => student.id === this.expandedId()); return index >= 0 ? list[index + 1] : undefined; }
   protected hasRecord(id: string): boolean { const evaluation = this.evaluation(id); const attendance = this.attendance(id); return Boolean(evaluation.valor || evaluation.observacion || attendance.tardias || attendance.justificadas || attendance.injustificadas); }
@@ -104,7 +124,25 @@ export class RegistroAcademicoVistaComponent {
   protected highlight(value: string): string { const term = this.normalize(this.search().trim()); if (!term) return this.escape(value); const characters = Array.from(value); let normalized = ''; const bounds: Array<{ start: number; end: number }> = []; for (const character of characters) { const start = normalized.length; normalized += this.normalize(character); bounds.push({ start, end: normalized.length }); } const matches: Array<[number, number]> = []; let cursor = 0; while (term && (cursor = normalized.indexOf(term, cursor)) >= 0) { const end = cursor + term.length; const startChar = bounds.findIndex((bound) => bound.end > cursor); const endChar = bounds.findIndex((bound) => bound.end >= end); if (startChar >= 0 && endChar >= startChar) matches.push([startChar, endChar + 1]); cursor = end || cursor + 1; } if (!matches.length) return this.escape(value); let output = ''; let position = 0; for (const [start, end] of matches) { output += this.escape(characters.slice(position, start).join('')); output += `<mark>${this.escape(characters.slice(start, end).join(''))}</mark>`; position = end; } return output + this.escape(characters.slice(position).join('')); }
   private normalize(value: string): string { return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
   private escape(value: string): string { return value.replace(/[&<>"']/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character] ?? character)); }
-  private evaluation(id: string) { const group = this.currentGroup(); return group ? this.datos.evaluacionDeGrupo(id, group) : this.datos.evaluacion(id); }
-  private attendance(id: string) { const group = this.currentGroup(); return group ? this.datos.asistenciaDeGrupo(id, group) : this.datos.asistencia(id); }
-  private guardarRegistro(): void { const id = this.expandedId(); const group = this.currentGroup(); if (!id || !group) return; this.datos.guardarEvaluacionDeGrupo({ estudianteId: id, valor: this.draftValue.trim(), observacion: this.draftObservation.trim(), asignatura: group.asignatura, seccion: group.seccion, periodo: group.periodo }); this.datos.guardarAsistenciaDeGrupo({ estudianteId: id, tardias: this.draftTardias, injustificadas: this.draftInjustificadas, justificadas: this.draftJustificadas, asignatura: group.asignatura, seccion: group.seccion, periodo: group.periodo }); this.savedStudentName.set(this.selectedStudentName()); this.message = 'Cambios guardados correctamente.'; }
+   private evaluation(id: string) { const group = this.currentGroup(); if (group && this.isRegular()) { const consulta = this.regularContext.consultaDe(group); return consulta ? this.regularContext.evaluacionDeGrupo(consulta, id) : { estudianteId: id, valor: '', observacion: '' }; } const datos = this.datosLocales(); return group ? datos.evaluacionDeGrupo(id, group) : datos.evaluacion(id); }
+   private attendance(id: string) { const group = this.currentGroup(); if (group && this.isRegular()) { const consulta = this.regularContext.consultaDe(group); return consulta ? this.regularContext.asistenciaDeGrupo(consulta, id) : { estudianteId: id, tardias: 0, justificadas: 0, injustificadas: 0 }; } const datos = this.datosLocales(); return group ? datos.asistenciaDeGrupo(id, group) : datos.asistencia(id); }
+   private persistirRegistro(next: string | null): void {
+     const id = this.expandedId();
+     const group = this.currentGroup();
+     if (!id || !group) return;
+     if (this.isRegular()) {
+       const consulta = this.regularContext.consultaDe(group);
+       if (!consulta) { this.message = 'El grupo no tiene los parámetros requeridos por el backend.'; return; }
+       this.regularContext.guardarRegistro(consulta, id, this.draftValue, this.draftObservation, { estudianteId: id, tardias: this.draftTardias, injustificadas: this.draftInjustificadas, justificadas: this.draftJustificadas }).subscribe({
+         next: () => { this.nextAfterSave.set(next); this.savedStudentName.set(this.selectedStudentName()); this.message = 'Cambios guardados correctamente.'; this.saveConfirmationOpen.set(true); },
+         error: (error: unknown) => { this.message = error instanceof Error ? error.message : this.regularContext.error() || 'No se pudieron guardar los cambios en el backend.'; },
+       });
+       return;
+     }
+     this.guardarRegistro();
+     this.nextAfterSave.set(next);
+     this.saveConfirmationOpen.set(true);
+   }
+    private guardarRegistro(): void { const id = this.expandedId(); const group = this.currentGroup(); if (!id || !group) return; const datos = this.datosLocales(); datos.guardarEvaluacionDeGrupo({ estudianteId: id, valor: this.draftValue.trim(), observacion: this.draftObservation.trim(), asignatura: group.asignatura, seccion: group.seccion, periodo: group.periodo }); datos.guardarAsistenciaDeGrupo({ estudianteId: id, tardias: this.draftTardias, injustificadas: this.draftInjustificadas, justificadas: this.draftJustificadas, asignatura: group.asignatura, seccion: group.seccion, periodo: group.periodo }); this.savedStudentName.set(this.selectedStudentName()); this.message = 'Cambios guardados correctamente.'; }
+   private datosLocales(): PortalDatosService { return this.injector.get(PortalDatosService); }
 }
