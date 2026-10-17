@@ -1,6 +1,8 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-datos.service';
+import { catchError, finalize, forkJoin, of } from 'rxjs';
+import { PeriodoActualApi, CursosLectivosApiService } from '../nucleo/api/cursos-lectivos-api.service';
+import { CoordinadorMonografiaApiService, DetalleMonografiaApi, EstadoMonografiaApi, MonografiaApi, ReporteMonografiaApi } from '../nucleo/api/coordinador-monografia-api.service';
 
 @Component({
   selector: 'app-vista-monografias',
@@ -9,22 +11,31 @@ import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-dato
     <section class="monographs-page" aria-labelledby="monographs-title">
       <header class="page-header"><div><h2 id="monographs-title">Mis estudiantes de monografía</h2></div></header>
 
-      <section class="student-selector" aria-label="Monografías asignadas">
+      @if(loading()){<p role="status">Cargando monografías...</p>}
+      @if(errorMessage()){<p class="error-message" role="alert">{{ errorMessage() }}</p>}
+      @if(!loading() && monographs().length === 0 && !errorMessage()){<p class="empty">No hay monografías asignadas.</p>}
+
+      @if(monographs().length > 0){<section class="student-selector" aria-label="Monografías asignadas">
         <strong>Monografías asignadas</strong>
-        <div class="student-options">@for(item of monographs(); track item.id){<button type="button" [attr.title]="item.titulo" [class.selected]="item.id === selectedId()" (click)="seleccionar(item)"><span>{{ item.estudiante }}</span><small>{{ item.titulo }}</small></button>}</div>
-      </section>
+        <div class="student-options">@for(item of monographs(); track item.cedulaEstudiante){<button type="button" [attr.title]="item.asignatura" [attr.aria-pressed]="item.cedulaEstudiante === selectedId()" [class.selected]="item.cedulaEstudiante === selectedId()" (click)="seleccionar(item)"><span>{{ item.nombreEstudiante }}</span><small>{{ item.asignatura }}</small></button>}</div>
+      </section>}
 
       @if(selected(); as item){
-         <div class="selected-toolbar"><div><h3>{{ item.estudiante }}</h3><p>{{ item.titulo }} <span class="status-chip">{{ item.estado }}</span></p></div><div class="top-actions"><button type="button" class="send-button info-button" aria-label="Editar información de la monografía" style="color:#fff;background:#2f80b7;border-color:#2f80b7" (click)="abrirEdicionInformacion()">Editar monografía</button><button type="button" class="send-button observations-button" style="color:#fff;background:#7650a8;border-color:#7650a8" (click)="abrirEdicionObservaciones()">Observaciones</button><button type="button" class="send-button" [disabled]="item.informeEnviado" (click)="abrirEnvioInforme()">{{ item.informeEnviado ? 'Enviado al Profesor Guía' : 'Enviar al Profesor Guía' }}</button></div></div>
+        <div class="selected-toolbar"><div><h3>{{ item.nombreEstudiante }}</h3><p>{{ item.asignatura }} <span class="status-chip">{{ etiquetaEstado(item.estado) }}</span></p></div><div class="top-actions"><button type="button" class="send-button info-button" style="color:#fff;background:#2f80b7;border-color:#2f80b7" [disabled]="saving() || item.estado === 'TERMINADA'" (click)="abrirCambioEstado()">Editar información de la monografía</button><button type="button" class="send-button observations-button" style="color:#fff;background:#7650a8;border-color:#7650a8" [disabled]="saving() || !currentPeriod()?.semestreActual" (click)="abrirEdicionObservaciones()">Observaciones</button><button type="button" class="send-button" [disabled]="saving() || !currentReport()" (click)="abrirEnvioInforme()">{{ currentReport() ? 'Reenviar al Profesor Guía' : 'Enviar al Profesor Guía' }}</button></div></div>
 
-        <section class="content-block monograph-summary"><div class="block-heading"><h3>Datos de la monografía</h3></div>
-          <dl class="info-grid"><div><dt>Área</dt><dd>{{ item.area }}</dd></div><div><dt>Fecha de inicio</dt><dd>{{ item.fechaInicio }}</dd></div><div class="full"><dt>Descripción</dt><dd class="description-text">{{ item.descripcion }}</dd></div><div class="full"><dt>Última observación registrada</dt>@if(item.observacionReporte?.trim()){<dd class="observation-entry"><p>{{ item.observacionReporte }}</p><small>{{ item.fechaInforme || 'Sin fecha registrada' }}</small></dd>} @else {<dd class="empty">Sin observaciones registradas.</dd>}</div></dl>
-        </section>
-      } @else {<p class="empty">No hay estudiantes asignados.</p>}
-        @if(reportModal(); as modal){<div class="modal-backdrop" role="presentation"><section class="monograph-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title"><div class="modal-heading"><div><p class="eyebrow">{{ modal === 'info' ? 'Información de la monografía' : modal === 'observations' ? 'Observaciones de la monografía' : 'Envío al Profesor Guía' }}</p><h3 id="report-modal-title">{{ modal === 'info' ? 'Editar información de la monografía' : modal === 'observations' ? 'Observaciones' : 'Confirmar envío' }}</h3></div><button type="button" class="close-button" (click)="cerrarModal()">×</button></div>
-              @if(modal === 'info'){<form (ngSubmit)="guardarInformacion()"><div class="form-grid"><label>Título<input name="modalTitulo" [(ngModel)]="draft.titulo" required /></label><label>Área<input name="modalArea" [(ngModel)]="draft.area" required /></label><label>Estado<select name="modalEstado" [(ngModel)]="draft.estado"><option>En desarrollo</option><option>Aprobada</option></select></label><label>Fecha de inicio<input name="modalFechaInicio" type="date" [(ngModel)]="draft.fechaInicio" required /></label><label class="full">Descripción<textarea name="modalDescripcion" rows="4" [(ngModel)]="draft.descripcion" required></textarea></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar información</button></div></form>}
-              @else if(modal === 'observations'){<form (ngSubmit)="guardarObservaciones()"><div class="readonly-fields"><div><small>Estudiante</small><strong>{{ selected()?.estudiante }}</strong></div><div><small>Área</small><strong>{{ selected()?.area }}</strong></div><div><small>Profesor Coordinador de Monografía</small><strong>{{ selected()?.coordinador }}</strong></div></div><label>Observaciones<textarea name="reportObservation" rows="5" [(ngModel)]="reportObservation" placeholder="Escriba las observaciones del informe"></textarea></label><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button">Guardar observaciones</button></div></form>}
-              @else if(modal === 'confirm-send'){<p>¿Desea enviar las observaciones de <strong>{{ selected()?.estudiante }}</strong> al Profesor Guía?</p><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="button" class="send-button" (click)="confirmarEnvio()">Confirmar envío</button></div>}
+        @if(!currentPeriod()?.semestreActual){<p class="empty">No hay un semestre activo para enviar observaciones.</p>}
+        @if(operationMessage()){<p class="success-message" role="status">{{ operationMessage() }}</p>}
+        @if(operationError()){<p class="error-message" role="alert">{{ operationError() }}</p>}
+        @if(loadingDetail()){<p role="status">Cargando información de la monografía...</p>}
+
+        @if(detail(); as detalle){<section class="content-block monograph-summary"><div class="block-heading"><h3>Datos de la monografía</h3></div>
+          <dl class="info-grid"><div><dt>Asignatura</dt><dd>{{ detalle.monografia.asignatura }}</dd></div><div><dt>Estado</dt><dd>{{ etiquetaEstado(detalle.monografia.estado) }}</dd></div><div><dt>Año de inicio</dt><dd>{{ detalle.monografia.anioInicio }}</dd></div><div><dt>Año actual</dt><dd>{{ detalle.monografia.anioActual }}</dd></div><div><dt>Sección actual</dt><dd>{{ detalle.monografia.seccionActual }}</dd></div><div><dt>Profesor Coordinador</dt><dd>{{ detalle.monografia.nombreCoordinador }}</dd></div><div class="full"><dt>Última observación registrada</dt>@if(latestReport(); as reporte){<dd class="observation-entry"><p>{{ reporte.observaciones }}</p><small>{{ reporte.anio }} · {{ etiquetaSemestre(reporte.semestre) }} · {{ reporte.enviadoEn.slice(0, 10) }}</small></dd>} @else {<dd class="empty">Sin observaciones registradas.</dd>}</div></dl>
+        </section>}
+      }
+          @if(reportModal(); as modal){<div class="modal-backdrop" role="presentation"><section class="monograph-modal" role="dialog" aria-modal="true" aria-labelledby="report-modal-title"><div class="modal-heading"><div><p class="eyebrow">{{ modal === 'status' ? 'Información de la monografía' : modal === 'observations' ? 'Observaciones de la monografía' : 'Envío al Profesor Guía' }}</p><h3 id="report-modal-title">{{ modal === 'status' ? 'Editar información de la monografía' : modal === 'observations' ? 'Observaciones' : 'Confirmar envío' }}</h3></div><button type="button" class="close-button" (click)="cerrarModal()">×</button></div>
+              @if(modal === 'status'){<form (ngSubmit)="guardarEstado()"><div class="form-grid"><label>Título<input name="modalTitulo" [(ngModel)]="draftTitulo" placeholder="No disponible desde el backend" /></label><label>Área<input name="modalArea" [(ngModel)]="draftArea" /></label><label>Estado<select name="estado" [(ngModel)]="draftEstado"><option value="CAPACITACION">Capacitación</option><option value="INVESTIGACION">Investigación</option><option value="TERMINADA">Terminada</option></select></label><label>Fecha de inicio<input name="modalFechaInicio" type="date" [(ngModel)]="draftFechaInicio" /></label><label class="full">Descripción<textarea name="modalDescripcion" rows="4" [(ngModel)]="draftDescripcion" placeholder="No disponible desde el backend"></textarea></label></div><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button" [disabled]="saving()">Guardar información</button></div></form>}
+              @else if(modal === 'observations'){<form (ngSubmit)="guardarObservaciones()"><div class="readonly-fields"><div><small>Estudiante</small><strong>{{ selected()?.nombreEstudiante }}</strong></div><div><small>Asignatura</small><strong>{{ selected()?.asignatura }}</strong></div><div><small>Profesor Coordinador</small><strong>{{ selected()?.nombreCoordinador }}</strong></div><div><small>Periodo</small><strong>{{ currentPeriod()?.anio }} · {{ etiquetaSemestre(currentPeriod()?.semestreActual ?? '') }}</strong></div></div><label>Observaciones<textarea name="reportObservation" rows="5" [(ngModel)]="reportObservation" minlength="3" maxlength="1000" required placeholder="Escriba las observaciones para el Profesor Guía"></textarea></label><p class="modal-note">Al guardar, las observaciones se enviarán al Profesor Guía.</p><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="submit" class="primary-button" [disabled]="saving()">Guardar y enviar</button></div></form>}
+              @else if(modal === 'confirm-send'){<p>¿Desea reenviar las observaciones de <strong>{{ selected()?.nombreEstudiante }}</strong> al Profesor Guía?</p><div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrarModal()">Cancelar</button><button type="button" class="send-button" [disabled]="saving()" (click)="confirmarEnvio()">Confirmar envío</button></div>}
          </section></div>}
     </section>
   `,
@@ -33,24 +44,175 @@ import { MonografiaLocal, PortalDatosService } from '../nucleo/datos/portal-dato
   `,
 })
 // Gestiona la consulta de monografías.
-export class MonografiasVista {
-  private readonly datos = inject(PortalDatosService);
-  protected readonly monographs = computed(() => this.datos.monografias());
-  protected readonly selectedId = signal(this.monographs()[0]?.id ?? '');
-  protected readonly selected = computed(() => this.monographs().find((item) => item.id === this.selectedId()));
-  protected editingInfo = false;
-  protected draft = this.emptyDraft();
-  protected reportObservation = this.monographs()[0]?.observacionReporte ?? '';
-   protected readonly reportModal = signal<'info' | 'observations' | 'confirm-send' | null>(null);
+export class MonografiasVista implements OnInit {
+  private readonly api = inject(CoordinadorMonografiaApiService);
+  private readonly periodosApi = inject(CursosLectivosApiService);
+  private detalleRequestId = 0;
+  protected readonly monographs = signal<MonografiaApi[]>([]);
+  protected readonly selectedId = signal('');
+  protected readonly selected = computed(() => this.monographs().find((item) => item.cedulaEstudiante === this.selectedId()) ?? null);
+  protected readonly detail = signal<DetalleMonografiaApi | null>(null);
+  protected readonly currentPeriod = signal<PeriodoActualApi | null>(null);
+  protected readonly latestReport = computed(() => [...(this.detail()?.reportes ?? [])].sort((a, b) => b.enviadoEn.localeCompare(a.enviadoEn))[0] ?? null);
+  protected readonly currentReport = computed(() => {
+    const period = this.currentPeriod();
+    if (!period?.semestreActual) return null;
+    return this.detail()?.reportes.find((report) => report.anio === period.anio && this.normalizarSemestre(report.semestre) === this.normalizarSemestre(period.semestreActual!)) ?? null;
+  });
+  protected readonly loading = signal(false);
+  protected readonly loadingDetail = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly errorMessage = signal('');
+  protected readonly operationError = signal('');
+  protected readonly operationMessage = signal('');
+  protected readonly reportModal = signal<'status' | 'observations' | 'confirm-send' | null>(null);
+  protected draftTitulo = '';
+  protected draftArea = '';
+  protected draftEstado: EstadoMonografiaApi = 'INVESTIGACION';
+  protected draftFechaInicio = '';
+  protected draftDescripcion = '';
+  protected reportObservation = '';
 
-  protected seleccionar(item: MonografiaLocal): void { this.selectedId.set(item.id); this.draft = { ...item }; this.reportObservation = item.observacionReporte ?? ''; this.editingInfo = false; this.reportModal.set(null); }
-  protected guardarMonografia(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.editingInfo = false; }
-   protected abrirEdicionInformacion(): void { const current = this.selected(); if (current) this.draft = { ...current }; this.reportModal.set('info'); }
-   protected abrirEdicionObservaciones(): void { this.reportObservation = this.selected()?.observacionReporte ?? ''; this.reportModal.set('observations'); }
-   protected guardarInformacion(): void { const current = this.selected(); if (!current) return; this.datos.guardarMonografia({ ...current, ...this.draft, seguimientos: current.seguimientos }); this.reportModal.set(null); }
-   protected guardarObservaciones(): void { const current = this.selected(); if (!current) return; const today = new Date().toISOString().slice(0, 10); this.datos.guardarMonografia({ ...current, observacionReporte: this.reportObservation.trim(), fechaInforme: today, seguimientos: current.seguimientos }); this.reportModal.set(null); }
-   protected abrirEnvioInforme(): void { this.reportModal.set('confirm-send'); }
-   protected confirmarEnvio(): void { const current = this.selected(); if (!current?.observacionReporte?.trim()) return; this.datos.enviarMonografia(current.id); this.reportModal.set(null); }
-  protected cerrarModal(): void { this.reportModal.set(null); }
-  private emptyDraft(): Partial<MonografiaLocal> { const item = this.monographs()[0]; return item ? { ...item } : {}; }
+  ngOnInit(): void {
+    this.loading.set(true);
+    forkJoin({
+      monografias: this.api.listar(),
+      periodo: this.periodosApi.obtenerActual().pipe(catchError(() => of(null))),
+    }).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: ({ monografias, periodo }) => {
+        this.monographs.set(monografias);
+        this.currentPeriod.set(periodo);
+        if (monografias[0]) this.seleccionar(monografias[0]);
+      },
+      error: (error: unknown) => this.errorMessage.set(this.mensajeError(error, 'No se pudieron cargar las monografías.')),
+    });
+  }
+
+  protected seleccionar(item: MonografiaApi): void {
+    this.selectedId.set(item.cedulaEstudiante);
+    this.errorMessage.set('');
+    this.operationError.set('');
+    this.operationMessage.set('');
+    const requestId = ++this.detalleRequestId;
+    this.detail.set(null);
+    this.loadingDetail.set(true);
+    this.api.obtener(item.cedulaEstudiante).pipe(finalize(() => {
+      if (requestId === this.detalleRequestId) this.loadingDetail.set(false);
+    })).subscribe({
+      next: (detail) => { if (requestId === this.detalleRequestId) this.detail.set(detail); },
+      error: (error: unknown) => {
+        if (requestId === this.detalleRequestId) this.errorMessage.set(this.mensajeError(error, 'No se pudo cargar el detalle de la monografía.'));
+      },
+    });
+  }
+
+  protected etiquetaEstado(estado: EstadoMonografiaApi): string {
+    return { CAPACITACION: 'Capacitación', INVESTIGACION: 'Investigación', TERMINADA: 'Terminada' }[estado];
+  }
+
+  protected etiquetaSemestre(semestre: string): string {
+    return semestre === 'I_SEMESTRE' ? 'I semestre' : semestre === 'II_SEMESTRE' ? 'II semestre' : semestre;
+  }
+
+  protected abrirCambioEstado(): void {
+    const item = this.selected();
+    if (!item) return;
+    this.draftTitulo = '';
+    this.draftArea = item.asignatura;
+    this.draftEstado = item.estado;
+    this.draftFechaInicio = '';
+    this.draftDescripcion = '';
+    this.operationError.set('');
+    this.reportModal.set('status');
+  }
+
+  protected guardarEstado(): void {
+    const item = this.selected();
+    if (!item) return;
+    this.saving.set(true);
+    this.operationError.set('');
+    this.api.cambiarEstado(item.cedulaEstudiante, this.draftEstado).pipe(finalize(() => this.saving.set(false))).subscribe({
+      next: () => {
+        this.monographs.update((items) => items.map((entry) => entry.cedulaEstudiante === item.cedulaEstudiante ? { ...entry, estado: this.draftEstado } : entry));
+        this.detail.update((detail) => detail ? { ...detail, monografia: { ...detail.monografia, estado: this.draftEstado } } : detail);
+        this.reportModal.set(null);
+        this.operationMessage.set('Estado actualizado. Los otros campos no se guardaron.');
+      },
+      error: (error: unknown) => this.operationError.set(this.mensajeError(error, 'No se pudo actualizar el estado.')),
+    });
+  }
+
+  protected abrirEdicionObservaciones(): void {
+    if (!this.currentPeriod()?.semestreActual) {
+      this.operationError.set('No hay un semestre activo para enviar observaciones.');
+      return;
+    }
+    this.reportObservation = this.currentReport()?.observaciones ?? '';
+    this.operationError.set('');
+    this.reportModal.set('observations');
+  }
+
+  protected guardarObservaciones(): void {
+    const observaciones = this.reportObservation.trim();
+    if (observaciones.length < 3 || observaciones.length > 1000) {
+      this.operationError.set('Las observaciones deben tener entre 3 y 1000 caracteres.');
+      return;
+    }
+    this.enviarObservaciones(observaciones);
+  }
+
+  protected abrirEnvioInforme(): void {
+    if (!this.currentReport()) return;
+    this.operationError.set('');
+    this.reportModal.set('confirm-send');
+  }
+
+  protected confirmarEnvio(): void {
+    const report = this.currentReport();
+    if (report) this.enviarObservaciones(report.observaciones);
+  }
+
+  protected cerrarModal(): void {
+    this.operationError.set('');
+    this.reportModal.set(null);
+  }
+
+  private enviarObservaciones(observaciones: string): void {
+    const item = this.selected();
+    const period = this.currentPeriod();
+    if (!item || !period?.semestreActual) return;
+    this.saving.set(true);
+    this.operationError.set('');
+    this.api.enviarReporte(item.cedulaEstudiante, period.anio, period.semestreActual, observaciones)
+      .pipe(finalize(() => this.saving.set(false)))
+      .subscribe({
+        next: () => {
+          this.reportModal.set(null);
+          this.operationMessage.set('Observaciones enviadas al Profesor Guía.');
+          const requestId = ++this.detalleRequestId;
+          this.loadingDetail.set(true);
+          this.api.obtener(item.cedulaEstudiante).pipe(finalize(() => {
+            if (requestId === this.detalleRequestId) this.loadingDetail.set(false);
+          })).subscribe({
+            next: (detail) => { if (requestId === this.detalleRequestId) this.detail.set(detail); },
+            error: (error: unknown) => {
+              if (requestId === this.detalleRequestId) this.operationError.set(this.mensajeError(error, 'El envío se completó, pero no se pudo actualizar el detalle.'));
+            },
+          });
+        },
+        error: (error: unknown) => this.operationError.set(this.mensajeError(error, 'No se pudieron enviar las observaciones.')),
+      });
+  }
+
+  private normalizarSemestre(semestre: string): string {
+    return semestre.trim().toUpperCase();
+  }
+
+  private mensajeError(error: unknown, fallback: string): string {
+    if (typeof error === 'object' && error !== null && 'error' in error) {
+      const body = (error as { error?: { mensaje?: string } }).error;
+      if (body?.mensaje) return body.mensaje;
+    }
+    return fallback;
+  }
 }
