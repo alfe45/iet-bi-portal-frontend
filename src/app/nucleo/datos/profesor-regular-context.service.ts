@@ -1,4 +1,4 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
 import { Observable, catchError, concatMap, finalize, forkJoin, from, map, of, shareReplay, switchMap, throwError } from 'rxjs';
 import { AutenticacionService } from '../autenticacion/autenticacion.service';
 import {
@@ -12,20 +12,20 @@ import {
   ProfesorRegularLeccionCreateRequest,
   ProfesorRegularPeriodoApi,
 } from '../api/profesor-regular-api.service';
-import type { AusentismoLocal, EvaluacionLocal, RegistroPortal } from './portal-datos.service';
+import type { AusentismoVista, EvaluacionVista, RegistroVista } from '../modelos/datos-vista';
 
 export interface ProfesorRegularAsignacionView extends ProfesorRegularAsignacionApi {
   id: string;
   periodo: string;
   semestre: string;
-  estudiantes: RegistroPortal[];
+  estudiantes: RegistroVista[];
 }
 
 export interface GrupoRegularConsulta extends ProfesorRegularConsulta {
   periodo: string;
 }
 
-export function adaptarEstudianteRegular(item: ProfesorRegularEstudianteApi): RegistroPortal {
+export function adaptarEstudianteRegular(item: ProfesorRegularEstudianteApi): RegistroVista {
   return {
     id: item.cedulaEstudiante,
     nombre: item.nombreEstudiante,
@@ -46,13 +46,22 @@ export class ProfesorRegularContextService {
   private readonly api = inject(ProfesorRegularApiService);
   private readonly periodo = signal<ProfesorRegularPeriodoApi | null>(null);
   private readonly asignacionesState = signal<ProfesorRegularAsignacionView[]>([]);
-  private readonly estudiantesState = signal<Record<string, RegistroPortal[]>>({});
+  private readonly estudiantesState = signal<Record<string, RegistroVista[]>>({});
   private readonly evaluacionesState = signal<Record<string, ProfesorRegularEvaluacionApi[]>>({});
   private readonly ausentismoState = signal<Record<string, ProfesorRegularAusentismoApi[]>>({});
   private readonly loadedAcademic = new Set<string>();
   private readonly academicLoads = new Map<string, Observable<void>>();
   private readonly enviados = signal<Set<string>>(new Set());
   private ultimaLeccion = 0;
+  // Incrementa al cambiar de cuenta: las respuestas de la sesión anterior se descartan.
+  private generacion = 0;
+
+  constructor() {
+    effect(() => {
+      this.auth.currentUsername();
+      untracked(() => this.reiniciarSesion());
+    });
+  }
 
   readonly cargando = signal(false);
   readonly error = signal('');
@@ -65,6 +74,7 @@ export class ProfesorRegularContextService {
 
   iniciar(): void {
     if (!this.activa() || this.cargando() || this.asignacionesState().length) return;
+    const generacion = this.generacion;
     this.cargando.set(true);
     this.error.set('');
     this.api.obtenerPeriodoActual().pipe(
@@ -73,21 +83,37 @@ export class ProfesorRegularContextService {
         return forkJoin({ periodo: of(periodo), asignaciones: this.api.listarAsignaciones(periodo.anio), avisos: this.api.obtenerAvisos().pipe(catchError(() => of([]))) });
       }),
     ).subscribe({
-      next: ({ periodo, asignaciones, avisos }) => this.cargarEstudiantes(periodo, asignaciones, avisos),
-      error: () => { this.error.set('No se pudieron cargar las asignaciones del Profesor regular.'); this.cargando.set(false); },
+      next: ({ periodo, asignaciones, avisos }) => { if (generacion === this.generacion) this.cargarEstudiantes(periodo, asignaciones, avisos); },
+      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar las asignaciones del Profesor regular.'); this.cargando.set(false); } },
     });
   }
 
-  estudiantesDe(asignacion: ProfesorRegularAsignacionView): RegistroPortal[] {
+  private reiniciarSesion(): void {
+    this.generacion++;
+    this.periodo.set(null);
+    this.asignacionesState.set([]);
+    this.estudiantesState.set({});
+    this.evaluacionesState.set({});
+    this.ausentismoState.set({});
+    this.loadedAcademic.clear();
+    this.academicLoads.clear();
+    this.enviados.set(new Set());
+    this.avisos.set([]);
+    this.error.set('');
+    this.cargando.set(false);
+    if (this.activa()) this.iniciar();
+  }
+
+  estudiantesDe(asignacion: ProfesorRegularAsignacionView): RegistroVista[] {
     return asignacion.estudiantes;
   }
 
-  evaluacionDeGrupo(group: GrupoRegularConsulta, cedula: string): EvaluacionLocal {
+  evaluacionDeGrupo(group: GrupoRegularConsulta, cedula: string): EvaluacionVista {
     const item = this.evaluacionesState()[this.clave(group)]?.find((evaluation) => evaluation.cedulaEstudiante === cedula);
     return { estudianteId: cedula, valor: item?.nota === null || item?.nota === undefined ? '' : String(item.nota), observacion: item?.observaciones ?? '', asignatura: group.codigoAsignatura, seccion: `${group.nivel}-${group.numero}`, periodo: group.periodo };
   }
 
-  asistenciaDeGrupo(group: GrupoRegularConsulta, cedula: string): AusentismoLocal {
+  asistenciaDeGrupo(group: GrupoRegularConsulta, cedula: string): AusentismoVista {
     const item = this.ausentismoState()[this.clave(group)]?.find((absence) => absence.cedulaEstudiante === cedula);
     return { estudianteId: cedula, tardias: item?.tardias ?? 0, justificadas: item?.justificadas ?? 0, injustificadas: item?.injustificadas ?? 0, asignatura: group.codigoAsignatura, seccion: `${group.nivel}-${group.numero}`, periodo: group.periodo };
   }
@@ -112,7 +138,7 @@ export class ProfesorRegularContextService {
     return request;
   }
 
-  guardarRegistro(group: GrupoRegularConsulta, cedula: string, valor: string, observacion: string, asistencia: AusentismoLocal): Observable<void> {
+  guardarRegistro(group: GrupoRegularConsulta, cedula: string, valor: string, observacion: string, asistencia: AusentismoVista): Observable<void> {
     const nota = valor.trim();
     if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
     const evaluation = !valor.trim() && !observacion.trim()
@@ -122,13 +148,13 @@ export class ProfesorRegularContextService {
     return forkJoin({ evaluation, lesson }).pipe(map(() => {
       const key = this.clave(group);
       this.evaluacionesState.update((state) => ({ ...state, [key]: !valor.trim() && !observacion.trim() ? (state[key] ?? []).filter((item) => item.cedulaEstudiante !== cedula) : this.reemplazarEvaluacion(state[key] ?? [], { cedulaEstudiante: cedula, nota, observaciones: observacion.trim() }) }));
-      this.actualizarAusentismoLocal(key, cedula, asistencia);
+      this.actualizarAusentismoVista(key, cedula, asistencia);
     }));
   }
 
-  guardarAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoLocal): Observable<void> {
+  guardarAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): Observable<void> {
     return this.leccionParaCambio(group, cedula, asistencia).pipe(map(() => {
-      this.actualizarAusentismoLocal(this.clave(group), cedula, asistencia);
+      this.actualizarAusentismoVista(this.clave(group), cedula, asistencia);
     }));
   }
 
@@ -158,19 +184,21 @@ export class ProfesorRegularContextService {
 
   private cargarEstudiantes(periodo: ProfesorRegularPeriodoApi, asignaciones: ProfesorRegularAsignacionApi[], avisos: unknown[]): void {
     const unique = [...new Map(asignaciones.map((assignment) => [`${assignment.anio}-${assignment.nivel}-${assignment.numero}`, assignment])).values()];
+    const generacion = this.generacion;
     forkJoin(unique.map((assignment) => this.api.listarEstudiantes(assignment.anio, assignment.nivel, assignment.numero).pipe(map((students) => ({ key: this.seccionKey(assignment), students: students.map(adaptarEstudianteRegular) }))))).subscribe({
       next: (sections) => {
+        if (generacion !== this.generacion) return;
         const students = Object.fromEntries(sections.map((section) => [section.key, section.students]));
         this.estudiantesState.set(students);
         this.asignacionesState.set(asignaciones.map((assignment) => ({ ...assignment, id: `${assignment.anio}-${assignment.nivel}-${assignment.numero}-${assignment.codigoAsignatura}`, periodo: this.etiquetaPeriodo(periodo), semestre: periodo.semestreActual ?? '', estudiantes: students[this.seccionKey(assignment)] ?? [] })));
         this.avisos.set(avisos);
         this.cargando.set(false);
       },
-      error: () => { this.error.set('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.cargando.set(false); },
+      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.cargando.set(false); } },
     });
   }
 
-  private leccionParaCambio(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoLocal): Observable<unknown> {
+  private leccionParaCambio(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): Observable<unknown> {
     const previous = this.asistenciaDeGrupo(group, cedula);
     if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
     const cambios = [
@@ -203,12 +231,12 @@ export class ProfesorRegularContextService {
     );
   }
 
-  private reduciriaAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoLocal): boolean {
+  private reduciriaAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): boolean {
     const previous = this.asistenciaDeGrupo(group, cedula);
     return [asistencia.tardias, asistencia.justificadas, asistencia.injustificadas].some((value, index) => this.contador(value) < [previous.tardias, previous.justificadas, previous.injustificadas][index]);
   }
 
-  private actualizarAusentismoLocal(key: string, cedula: string, asistencia: AusentismoLocal): void {
+  private actualizarAusentismoVista(key: string, cedula: string, asistencia: AusentismoVista): void {
     this.ausentismoState.update((state) => ({ ...state, [key]: this.reemplazarAusentismo(state[key] ?? [], { cedulaEstudiante: cedula, tardias: this.contador(asistencia.tardias), justificadas: this.contador(asistencia.justificadas), injustificadas: this.contador(asistencia.injustificadas) }) }));
   }
 

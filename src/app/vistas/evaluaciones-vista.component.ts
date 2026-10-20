@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
-import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
+import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
 
 @Component({
   selector: 'app-vista-evaluaciones',
@@ -16,26 +16,35 @@ import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
     </section>
   `,
   styles: `
-    .work-page{display:grid;gap:.7rem;align-content:start}.page-header,.group-bar,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:1rem}.page-header h2,.page-header p:last-child,.section-heading h3,.section-heading p,.editor h3,.editor-context{margin:0}.page-header p:last-child,.section-heading p{margin-top:.3rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.context-summary{display:grid;text-align:right}.context-summary small{color:#667085}.context-summary strong{color:#238d78}.group-bar{background:#f2f7fa}.group-bar label{display:flex;align-items:center;gap:.7rem;font-weight:700}.group-bar select{min-width:220px}.group-bar>span{color:#667085;font-size:.85rem}.student-search{max-width:280px}.student-list{display:grid;gap:.4rem;margin-top:.8rem}.student-row{display:grid;grid-template-columns:1fr auto 45px;align-items:center;gap:1rem;padding:.65rem .75rem;border:1px solid #dbe5ef;border-radius:8px;background:#fff;text-align:left;cursor:pointer}.student-row:hover,.student-row.selected{border-color:#2f6b9a;background:#eaf3f8}.student-row strong,.student-row small{display:block}.student-row small{margin-top:.2rem;color:#667085;font-size:.8rem}.student-row .status{color:#667085;font-size:.82rem}.student-row b{text-align:right;color:#1e3a5f}.empty{color:#667085}.editor{border-left:5px solid #2f6b9a}.editor-context{margin-top:.25rem;color:#667085;font-size:.85rem}.editor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:.8rem}label{display:grid;gap:.3rem;font-weight:700}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:.7rem;margin-top:.7rem}.message{color:#238d78;font-weight:700}@media(max-width:700px){.page-header,.group-bar,.section-heading{align-items:stretch;flex-direction:column}.context-summary{text-align:left}.group-bar label{align-items:stretch;flex-direction:column}.group-bar select,.student-search{max-width:none;width:100%}.student-row{grid-template-columns:1fr auto}.student-row>b{display:none}.editor-grid{grid-template-columns:1fr}.full{grid-column:auto}}
+    .work-page{display:grid;gap:.7rem;align-content:start}.page-header,.group-bar,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:1rem}.page-header h2,.page-header p:last-child,.section-heading h3,.section-heading p,.editor h3,.editor-context{margin:0}.page-header p:last-child,.section-heading p{margin-top:.3rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.context-summary{display:grid;text-align:right}.context-summary small{color:#667085}.context-summary strong{color:#1b6f60}.group-bar{background:#f2f7fa}.group-bar label{display:flex;align-items:center;gap:.7rem;font-weight:700}.group-bar select{min-width:220px}.group-bar>span{color:#667085;font-size:.85rem}.student-search{max-width:280px}.student-list{display:grid;gap:.4rem;margin-top:.8rem}.student-row{display:grid;grid-template-columns:1fr auto 45px;align-items:center;gap:1rem;padding:.65rem .75rem;border:1px solid #dbe5ef;border-radius:8px;background:#fff;text-align:left;cursor:pointer}.student-row:hover,.student-row.selected{border-color:#2f6b9a;background:#eaf3f8}.student-row strong,.student-row small{display:block}.student-row small{margin-top:.2rem;color:#667085;font-size:.8rem}.student-row .status{color:#667085;font-size:.82rem}.student-row b{text-align:right;color:#1e3a5f}.empty{color:#667085}.editor{border-left:5px solid #2f6b9a}.editor-context{margin-top:.25rem;color:#667085;font-size:.85rem}.editor-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem;margin-top:.8rem}label{display:grid;gap:.3rem;font-weight:700}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;gap:.7rem;margin-top:.7rem}.message{color:#1b6f60;font-weight:700}@media(max-width:700px){.page-header,.group-bar,.section-heading{align-items:stretch;flex-direction:column}.context-summary{text-align:left}.group-bar label{align-items:stretch;flex-direction:column}.group-bar select,.student-search{max-width:none;width:100%}.student-row{grid-template-columns:1fr auto}.student-row>b{display:none}.editor-grid{grid-template-columns:1fr}.full{grid-column:auto}}
   `,
 })
 // Gestiona la consulta y registro de evaluaciones.
 export class EvaluacionesVistaComponent {
   protected readonly grupos = inject(GruposProfesorService);
-  private readonly datos = inject(PortalDatosService);
+  private readonly regularContext = inject(ProfesorRegularContextService);
   private readonly route = inject(ActivatedRoute);
   protected readonly search = signal('');
   protected selectedId = '';
   protected valor = '';
   protected observacion = '';
   protected message = '';
-  protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], grade: this.datos.evaluacion(student.id).valor })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
+  protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], grade: this.evaluation(student.id).valor })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
   protected readonly selectedName = computed(() => this.grupos.grupoActual()?.estudiantes.find((student) => student.id === this.selectedId)?.['nombre'] ?? 'Seleccione un estudiante');
   protected readonly minimumValue = computed(() => this.grupos.grupoActual()?.escala === '1–100' ? '70' : this.grupos.grupoActual()?.escala === 'A–E' ? 'D' : '4');
 
   constructor() { const query = this.route.snapshot.queryParamMap; this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo')); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.recargar(); }
   protected cambiarGrupo(id: string): void { this.grupos.seleccionar(id); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.search.set(''); this.recargar(); }
   protected seleccionar(id: string): void { this.selectedId = id; this.message = ''; this.recargar(); }
-  protected recargar(): void { const item = this.datos.evaluacion(this.selectedId); this.valor = item.valor; this.observacion = item.observacion; }
-  protected guardar(): void { if (!this.selectedId) return; this.datos.guardarEvaluacion({ estudianteId: this.selectedId, valor: String(this.valor), observacion: this.observacion.trim() }); this.message = 'Evaluación guardada correctamente.'; }
+  protected recargar(): void { const item = this.evaluation(this.selectedId); this.valor = item.valor; this.observacion = item.observacion; }
+  protected guardar(): void {
+    const group = this.grupos.grupoActual();
+    const consulta = group ? this.regularContext.consultaDe(group) : null;
+    if (!this.selectedId || !consulta) return;
+    this.regularContext.guardarRegistro(consulta, this.selectedId, String(this.valor), this.observacion, this.regularContext.asistenciaDeGrupo(consulta, this.selectedId)).subscribe({
+      next: () => this.message = 'Evaluación guardada correctamente.',
+      error: (error: unknown) => this.message = error instanceof Error ? error.message : 'No se pudo guardar la evaluación en el backend.',
+    });
+  }
+  private evaluation(id: string) { const group = this.grupos.grupoActual(); const consulta = group ? this.regularContext.consultaDe(group) : null; return consulta ? this.regularContext.evaluacionDeGrupo(consulta, id) : { estudianteId: id, valor: '', observacion: '' }; }
 }

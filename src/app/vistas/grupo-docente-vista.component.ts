@@ -17,9 +17,11 @@ import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
       <section class="surface students"><div class="section-heading"><h3>Estudiantes del grupo</h3><span>{{ students().length }} registrados</span></div><div class="student-list">@for (student of students(); track student.id) { <div><strong>{{ student['nombre'] }}</strong><small>{{ student['cedula'] }}</small></div> } @empty { <p>No hay estudiantes registrados en esta sección.</p> }</div></section>
     </section>
   `,
-  styles: `
+  styles: [`
     .group-page { display: grid; gap: 1rem; align-content: start; }.group-header { border-left: 5px solid #2f6b9a; }.back-link { display: inline-block; margin-bottom: .8rem; color: #2f6b9a; font-size: .82rem; font-weight: 700; text-decoration: none; }.eyebrow { margin: 0 0 .25rem; color: #2f6b9a; font-size: .74rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }.group-header h2,.group-header p:last-child,.section-heading h3 { margin: 0; }.group-header h2 { color: #1e3a5f; }.group-header p:last-child { margin-top: .35rem; color: #667085; }.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }.section-heading > span { color: #667085; font-size: .82rem; }.group-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; margin-top: .8rem; }.group-action { display: grid; gap: .35rem; min-height: 105px; padding: .9rem; border: 1px solid #dbe5ef; border-radius: 9px; color: #1e3a5f; text-decoration: none; }.group-action:hover { border-color: #4099ff; box-shadow: 0 5px 14px rgba(27,46,94,.1); }.group-action span { color: #667085; font-size: .8rem; line-height: 1.35; }.group-action b { align-self: end; color: #4099ff; }.student-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin-top: .8rem; }.student-list > div { padding: .65rem .75rem; border: 1px solid #e6edf3; border-radius: 7px; }.student-list strong,.student-list small { display: block; }.student-list small { margin-top: .2rem; color: #667085; font-size: .8rem; }.students p { color: #667085; }@media(max-width:900px){.student-list{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.group-actions,.student-list{grid-template-columns:1fr}}
   `,
+  `.group-action b { color: #1f66b3; }`,
+  ],
 })
 // Muestra el detalle académico de un grupo docente.
 export class GrupoDocenteVistaComponent {

@@ -20,7 +20,7 @@ import { Component } from '@angular/core';
       gap: 1rem;
        height: 34px;
        padding: 0 1.5rem;
-       color: #8996a4;
+       color: #667085;
        background:#fff;
        font-size: .68rem;
        border-top: 1px solid #e5e8ec;
@@ -32,7 +32,7 @@ import { Component } from '@angular/core';
     }
 
     .footer__links a {
-       color: #4099ff;
+        color: #1f66b3;
        text-decoration: none;
      }
      @media(max-width:700px){.footer__portal{display:none}}

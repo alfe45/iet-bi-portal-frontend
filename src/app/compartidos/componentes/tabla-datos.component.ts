@@ -39,7 +39,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     .avatar-dot { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #eaf3f8; color: #1e3a5f; font-weight: 700; }
     .avatar-cell strong, .avatar-cell small { display: block; }
     .avatar-cell small { color: #6b7280; }
-    .empty-cell{text-align:center;color:#8996a4;padding:2rem!important}
+    .empty-cell{text-align:center;color:#667085;padding:2rem!important}
   `,
 })
 // Presenta tablas reutilizables con sus acciones y estados.

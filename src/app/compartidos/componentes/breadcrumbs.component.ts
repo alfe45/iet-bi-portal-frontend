@@ -15,9 +15,9 @@ import { Component, input } from '@angular/core';
     </nav>
   `,
   styles: `
-    .breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; color: #8996a4; font-size: .72rem; }
+    .breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; color: #5f6b7a; font-size: .72rem; }
     .breadcrumbs__current { color: #29344a; font-weight: 600; }
-    .breadcrumbs__separator { color: #bec8d0; }
+    .breadcrumbs__separator { color: #667085; }
   `,
 })
 // Muestra la ruta de navegación de la vista actual.

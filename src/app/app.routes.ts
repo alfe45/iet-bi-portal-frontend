@@ -23,6 +23,9 @@ import { RolUsuario } from './nucleo/modelos/modelos-prototipo';
 const ADMIN: RolUsuario[] = ['Administrador'];
 const DOCENTES: RolUsuario[] = ['Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const TODOS: RolUsuario[] = ['Administrador', ...DOCENTES];
+// Vistas de trabajo docente que dependen del módulo Profesor regular (la cuenta debe tener ese rol además de otros).
+const REGULAR: RolUsuario[] = ['Profesor regular'];
+const ADMIN_O_REGULAR: RolUsuario[] = ['Administrador', 'Profesor regular'];
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -33,18 +36,18 @@ export const routes: Routes = [
     canActivateChild: [authGuard, roleGuard],
     children: [
       { path: 'dashboard', component: TableroVistaComponent, data: { roles: TODOS } },
-      { path: 'grupo', component: GrupoDocenteVistaComponent, data: { roles: DOCENTES } },
-      { path: 'grupos', component: GruposProfesorVistaComponent, data: { roles: DOCENTES } },
-      { path: 'registro-academico', component: RegistroAcademicoVistaComponent, data: { roles: DOCENTES } },
-      { path: 'compartir', component: CompartirSeccionVistaComponent, data: { roles: DOCENTES } },
+      { path: 'grupo', component: GrupoDocenteVistaComponent, data: { roles: REGULAR } },
+      { path: 'grupos', component: GruposProfesorVistaComponent, data: { roles: REGULAR } },
+      { path: 'registro-academico', component: RegistroAcademicoVistaComponent, data: { roles: REGULAR } },
+      { path: 'compartir', component: CompartirSeccionVistaComponent, data: { roles: REGULAR } },
       { path: 'usuarios', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'profesores', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
-      { path: 'estudiantes', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
+      { path: 'estudiantes', component: FuncionalidadVistaComponent, data: { roles: ADMIN_O_REGULAR } },
       { path: 'estudiantes/:cedula/historial', component: HistorialEstudianteVistaComponent, data: { roles: ADMIN } },
       { path: 'periodos', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
-      { path: 'secciones', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
+      { path: 'secciones', component: FuncionalidadVistaComponent, data: { roles: ADMIN_O_REGULAR } },
       { path: 'matriculas', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
-      { path: 'asignaturas', component: FuncionalidadVistaComponent, data: { roles: TODOS } },
+      { path: 'asignaturas', component: FuncionalidadVistaComponent, data: { roles: ADMIN_O_REGULAR } },
       { path: 'asignaciones', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'asignaciones-monografia', component: AsignacionesMonografiaVistaComponent, data: { roles: ADMIN } },
       { path: 'asignaciones-cas', component: AsignacionesCasGuiaVistaComponent, data: { assignmentMode: 'cas', roles: ADMIN } },
@@ -53,12 +56,12 @@ export const routes: Routes = [
       { path: 'ausentismo', redirectTo: 'registro-academico', pathMatch: 'full' },
       { path: 'seccion-guia', component: SeccionGuiaVistaComponent, data: { roles: ['Profesor Guía'] } },
       { path: 'verificacion-monografias', component: VerificacionMonografiasVistaComponent, data: { roles: ['Profesor Guía'] } },
-      { path: 'reportes', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: DOCENTES } },
+      { path: 'reportes', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: REGULAR } },
       { path: 'reportes/bandas', component: ReportesBandasVistaComponent, data: { roles: ['Profesor Guía'] } },
-      { path: 'reportes/asignatura', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: DOCENTES } },
+      { path: 'reportes/asignatura', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: REGULAR } },
       { path: 'monografias', component: MonografiasVista, data: { roles: ['Profesor Coordinador de Monografía'] } },
       { path: 'perfil', component: PerfilVistaComponent, data: { roles: TODOS } },
-      { path: 'cas', component: CasVistaComponent, data: { casMode: 'teacher', roles: ['Profesor CAS', 'Profesor Coordinador de CAS'] } },
+      { path: 'cas', component: CasVistaComponent, data: { casMode: 'teacher', roles: ['Profesor CAS'] } },
       { path: 'coordinacion-cas', component: CasVistaComponent, data: { casMode: 'coordinator', roles: ['Profesor Coordinador de CAS'] } },
     ],
   },

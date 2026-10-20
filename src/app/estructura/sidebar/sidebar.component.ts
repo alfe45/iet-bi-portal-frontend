@@ -59,7 +59,7 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
       border-bottom: 1px solid #f0f2f5;
     }
 
-    .sidebar__header span,.sidebar__header strong { display:block; }.sidebar__header span { color:#8996a4; font-size:.66rem; text-transform:uppercase; letter-spacing:.1em; }.sidebar__header strong { color:#29344a; font-size:.85rem; }
+    .sidebar__header span,.sidebar__header strong { display:block; }.sidebar__header span { color:#667085; font-size:.66rem; text-transform:uppercase; letter-spacing:.1em; }.sidebar__header strong { color:#29344a; font-size:.85rem; }
 
     .sidebar__close {
       display: none;
@@ -102,7 +102,7 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
        padding:0 .15rem;
        border:0;
        background:transparent;
-       color: #8996a4;
+       color: #667085;
       font-size: .74rem;
        font-weight: 600;
        letter-spacing: .08em;
@@ -111,7 +111,7 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
        cursor:pointer;
      }
 
-     .sidebar__group-title:hover { color:#4099ff; }
+      .sidebar__group-title:hover { color:#1f66b3; }
      .sidebar__group-chevron { font-size:1rem; line-height:1; text-transform:none; }
 
     .sidebar__link {
@@ -138,14 +138,14 @@ import { GruposProfesorService } from '../../nucleo/datos/grupos-profesor.servic
 
     .sidebar__link:hover,
     .sidebar__link.is-active {
-      color: #4099ff;
+       color: #1f66b3;
       background: rgba(64,153,255,.09);
-      border-left-color: #4099ff;
+       border-left-color: #1f66b3;
     }
 
     .sidebar__icon { flex:0 0 auto; width:24px; height:24px; display:grid; place-items:center; border-radius:4px; color:#5b6b79; background:#f3f5f7; font-size:.7rem; font-weight:600; }
     .is-active .sidebar__icon { color:#fff; background:linear-gradient(45deg,#4099ff,#73b4ff); }
-    .sidebar__logout { margin-top:auto; color:#ff5370; background:#fff; }
+     .sidebar__logout { margin-top:auto; color:#d92d20; background:#fff; }
 
     @media (max-width: 1024px) {
       :host { position: absolute; }
@@ -187,15 +187,14 @@ export class SidebarComponent {
      const communication = { title: 'Comunicación', items: [{ label: 'Compartir archivo', path: '/compartir' }] };
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
      const roles = this.auth.currentRoles();
-     if (roles.includes('Administrador')) {
-        return [...common, { title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] }, account];
-     }
-
-     if (!roles.length) return [];
-     const menu = [...common, teacherWork, academicRecord, communication];
+      if (!roles.length) return [];
+      const menu = [...common];
+      if (roles.includes('Administrador')) menu.push({ title: 'Administración', items: [{ label: 'Usuarios', path: '/usuarios' }, { label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] });
+      if (roles.includes('Profesor regular')) menu.push(teacherWork, academicRecord, communication);
      if (roles.includes('Profesor Guía')) menu.push({ title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }] });
      if (roles.includes('Profesor Coordinador de Monografía')) menu.push({ title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] });
-     if (roles.includes('Profesor CAS') || roles.includes('Profesor Coordinador de CAS')) menu.push({ title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }, ...(roles.includes('Profesor Coordinador de CAS') ? [{ label: 'Coordinación CAS', path: '/coordinacion-cas' }] : [])] });
+      if (roles.includes('Profesor CAS')) menu.push({ title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }] });
+      if (roles.includes('Profesor Coordinador de CAS')) menu.push({ title: 'Coordinación CAS', items: [{ label: 'Coordinación CAS', path: '/coordinacion-cas' }] });
      menu.push(account);
      return menu;
   });

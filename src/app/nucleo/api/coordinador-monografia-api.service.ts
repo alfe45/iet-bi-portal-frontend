@@ -32,7 +32,7 @@ export interface ReporteMonografiaApi {
   anio: number;
   semestre: string;
   observaciones: string;
-  enviadoEn: string;
+  enviadoEn: string | null;
 }
 
 export interface DetalleMonografiaApi {
@@ -60,5 +60,9 @@ export class CoordinadorMonografiaApiService {
 
   enviarReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {
     return this.http.put<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/reportes/${anio}/${encodeURIComponent(semestre)}`, { observaciones });
+  }
+
+  guardarBorradorReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {
+    return this.http.put<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/reportes/${anio}/${encodeURIComponent(semestre)}/borrador`, { observaciones });
   }
 }

@@ -25,7 +25,8 @@ import { Location } from '@angular/common';
       <section class="surface profile-grid">
         <div><strong>Nombre:</strong> {{ user()?.fullName }}</div>
         <div><strong>Nombre de usuario:</strong> {{ user()?.username }}</div>
-         <div><strong>Correo:</strong> {{ user()?.email }}</div>
+          <div><strong>Correo:</strong> {{ user()?.email }}</div>
+          <div><strong>Roles:</strong> {{ user()?.roles?.join(' · ') }}</div>
       </section>
     </section>
   `,
@@ -44,7 +45,7 @@ export class PerfilVistaComponent {
 
   protected readonly user = computed(() => {
      const role = this.auth.currentRole();
-     return { fullName: this.auth.currentDisplayName() || 'Invitado', role, username: this.auth.currentUsername() || '-', email: this.auth.currentUsername() || '-' };
+      return { fullName: this.auth.currentDisplayName() || 'Invitado', role, roles: this.auth.currentRoles(), username: this.auth.currentUsername() || '-', email: this.auth.currentUsername() || '-' };
   });
   protected readonly avatar = computed(() => this.user().role?.split(' ').map((part) => part[0]).slice(0, 2).join('') ?? '--');
   protected readonly cards = computed(() => [

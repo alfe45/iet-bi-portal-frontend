@@ -37,8 +37,8 @@ import { PeriodoActualService } from '../nucleo/datos/periodo-actual.service';
     .app-shell__body { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 0; }
     .workspace { min-width: 0; min-height: 0; display: grid; grid-template-rows: 58px minmax(0, 1fr) 34px; }
     .workspace__bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .55rem 1.5rem; background: #fff; border-bottom: 1px solid #e5e8ec; }
-    .workspace__label { display: block; margin-bottom: .15rem; color: #8996a4; font-size: .67rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
-    .workspace__period { display: inline-flex; align-items: center; gap: .5rem; padding: .45rem .7rem; border-radius: 4px; background: #eefaf8; color: #238d78; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+    .workspace__label { display: block; margin-bottom: .15rem; color: #5f6b7a; font-size: .67rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+    .workspace__period { display: inline-flex; align-items: center; gap: .5rem; padding: .45rem .7rem; border-radius: 4px; background: #eefaf8; color: #1b6f60; font-size: .75rem; font-weight: 600; white-space: nowrap; }
     .workspace__period i { width: 7px; height: 7px; border-radius: 50%; background: #2ed8b6; box-shadow: 0 0 0 4px rgba(46,216,182,.15); }
      .workspace__content { min-width: 0; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 16px 20px; scrollbar-color: #b9cfe4 #f3f5f7; scrollbar-width: auto; }
      .workspace__content::-webkit-scrollbar { width: 10px; }
