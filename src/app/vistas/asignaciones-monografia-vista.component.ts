@@ -1,11 +1,22 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { MonografiaLocal } from '../nucleo/datos/portal-datos.service';
 import { EstudiantesApiService } from '../nucleo/api/estudiantes-api.service';
 import { ProfesoresApiService } from '../nucleo/api/profesores-api.service';
 import { AsignaturasApiService } from '../nucleo/api/asignaturas-api.service';
 import { MonografiasApiService } from '../nucleo/api/monografias-api.service';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
+
+interface MonografiaRow {
+  id: string;
+  estudiante: string;
+  titulo: string;
+  area: string;
+  coordinador: string;
+  estado: string;
+  fechaInicio: string;
+  descripcion: string;
+  seguimientos: unknown[];
+}
 
 @Component({
   selector: 'app-vista-asignaciones-monografia',
@@ -33,7 +44,7 @@ export class AsignacionesMonografiaVistaComponent {
   private readonly asignaturasApi = inject(AsignaturasApiService);
   private readonly monografiasApi = inject(MonografiasApiService);
   private readonly feedback = inject(FeedbackService);
-   private readonly monographRows = signal<MonografiaLocal[]>([]);
+   private readonly monographRows = signal<MonografiaRow[]>([]);
    protected readonly paginaActual = signal(1);
    protected readonly totalRegistros = signal(0);
    protected readonly tamanoPagina = 10;
@@ -47,7 +58,7 @@ export class AsignacionesMonografiaVistaComponent {
   protected readonly subjects = computed(() => this.subjectRows());
   protected readonly editorOpen = signal(false);
   protected readonly editingId = signal('');
-  protected draft: Partial<MonografiaLocal> = {};
+   protected draft: Partial<MonografiaRow> = {};
 
   constructor() {
     this.estudiantesApi.listar().subscribe({ next: (items) => this.studentRows.set(items.map((item) => ({ id: item.cedula, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los estudiantes.') });
@@ -76,7 +87,7 @@ export class AsignacionesMonografiaVistaComponent {
    protected cambiarPagina(page: number): void { if (page < 1 || page > this.totalPaginas() || page === this.paginaActual()) return; this.paginaActual.set(page); this.cargarMonografias(page); }
 
    protected nuevo(): void { this.editingId.set(''); this.draft = { id: `M-${Date.now()}`, estudiante: String(this.students()[0]?.['nombre'] ?? ''), area: '', coordinador: String(this.teachers()[0]?.['nombre'] ?? ''), estado: 'INVESTIGACION', fechaInicio: String(new Date().getFullYear()), descripcion: '', seguimientos: [] }; this.editorOpen.set(true); }
-  protected editar(item: MonografiaLocal): void { this.editingId.set(item.id); this.draft = { ...item }; this.editorOpen.set(true); }
+   protected editar(item: MonografiaRow): void { this.editingId.set(item.id); this.draft = { ...item }; this.editorOpen.set(true); }
    protected guardar(): void {
      const current = this.draft;
      const student = this.students().find((item) => item['nombre'] === current.estudiante);
@@ -89,7 +100,7 @@ export class AsignacionesMonografiaVistaComponent {
      const operation = this.editingId() ? this.monografiasApi.actualizar(request.cedulaEstudiante, request.cedulaCoordinador, request.codigoAsignatura) : this.monografiasApi.registrar(request);
      operation.subscribe({ next: () => { this.feedback.exito(this.editingId() ? 'La coordinación de monografía fue actualizada.' : 'La coordinación de monografía fue registrada.'); this.cargarMonografias(); this.cerrar(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo guardar la coordinación de monografía.') });
    }
-    protected async eliminar(item: MonografiaLocal): Promise<void> {
+     protected async eliminar(item: MonografiaRow): Promise<void> {
       if (!await this.feedback.confirmar(`¿Eliminar la coordinación de ${item.estudiante}?`, 'Eliminar coordinación', 'Eliminar')) return;
       this.monografiasApi.borrar(String(item.id)).subscribe({ next: () => { this.feedback.exito('La coordinación de monografía fue eliminada.'); this.cargarMonografias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la coordinación de monografía.') });
    }

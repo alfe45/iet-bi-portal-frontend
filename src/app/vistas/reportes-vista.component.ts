@@ -1,10 +1,11 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, effect, inject } from '@angular/core';
 import { Location } from '@angular/common';
 import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { AlertBannerComponent } from '../compartidos/componentes/banner-alerta.component';
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
-import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
+import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
+import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
 
 @Component({
   selector: 'app-vista-reportes',
@@ -92,7 +93,8 @@ import { PortalDatosService } from '../nucleo/datos/portal-datos.service';
 export class ReportesVistaComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly route = inject(ActivatedRoute);
-  private readonly datos = inject(PortalDatosService);
+  private readonly grupos = inject(GruposProfesorService);
+  private readonly regularContext = inject(ProfesorRegularContextService);
   private readonly location = inject(Location);
 
   protected readonly role = computed(() => this.auth.currentRole() ?? 'Administrador');
@@ -102,8 +104,16 @@ export class ReportesVistaComponent {
    protected readonly student = 'José Luis Rodríguez Mora';
     protected readonly subject = this.route.snapshot.queryParamMap.get('asignatura') ?? 'Historia';
    protected readonly monograph = 'Lectura crítica y escritura argumentativa';
-   protected readonly selectedObservation = computed(() => this.datos.monografias()[0]?.seguimientos.at(-1)?.observacion ?? 'Sin observaciones registradas.');
-   protected readonly groupStudentCount = computed(() => this.datos.estudiantes().filter((item) => item['seccion'] === this.section).length);
+    protected readonly selectedObservation = computed(() => {
+      if (this.grupos.esProfesorRegular()) {
+        const group = this.grupos.grupoActual();
+        const consulta = group ? this.regularContext.consultaDe(group) : null;
+        const student = group?.estudiantes[0];
+        return consulta && student ? this.regularContext.evaluacionDeGrupo(consulta, student.id).observacion || 'Sin observaciones registradas.' : 'Sin observaciones registradas.';
+      }
+       return 'Sin observaciones registradas.';
+    });
+    protected readonly groupStudentCount = computed(() => this.grupos.grupoActual()?.estudiantes.length ?? 0);
 
 
   protected readonly individualColumns = [
@@ -121,15 +131,27 @@ export class ReportesVistaComponent {
   ];
 
     private readonly academic = computed(() => {
-      const student = this.datos.estudiantes()[0];
-      const evaluation = this.datos.evaluacion(student?.id ?? '');
-      const attendance = this.datos.asistencia(student?.id ?? '');
-      const monograph = this.datos.monografias()[0];
-       return { student: { name: student?.['nombre'] ?? '', section: this.section, email: student?.['correo'] ?? '' }, absenteeism: { tardies: attendance.tardias, justifiedAbsences: attendance.justificadas, unjustifiedAbsences: attendance.injustificadas }, subjects: [{ subject: this.subject, minimumValue: this.subject === 'Estudios Sociales' ? '70' : '4', obtainedValue: evaluation.valor, observations: evaluation.observacion }], monographReport: monograph ? { area: monograph.area, coordinator: monograph.coordinador, observations: this.selectedObservation() } : undefined };
+       const group = this.grupos.grupoActual();
+       const student = group?.estudiantes[0];
+       const consulta = group ? this.regularContext.consultaDe(group) : null;
+       const evaluation = consulta && student ? this.regularContext.evaluacionDeGrupo(consulta, student.id) : { valor: '', observacion: '' };
+       const attendance = consulta && student ? this.regularContext.asistenciaDeGrupo(consulta, student.id) : { tardias: 0, justificadas: 0, injustificadas: 0 };
+       const subject = group?.asignatura ?? this.subject;
+       return { student: { name: student?.['nombre'] ?? '', section: group?.seccion ?? this.section, email: student?.['correo'] ?? '' }, absenteeism: { tardies: attendance.tardias, justifiedAbsences: attendance.justificadas, unjustifiedAbsences: attendance.injustificadas }, subjects: [{ subject, minimumValue: ['Estudios Sociales', 'Cívica', 'Civica'].includes(subject) ? '70' : '4', obtainedValue: evaluation.valor, observations: evaluation.observacion }], monographReport: undefined };
     });
     protected readonly professorReport = computed(() => this.academic());
     protected readonly guideReport = computed(() => this.academic());
-    protected readonly monographReportRows = computed(() => { const report = this.academic().monographReport; return report ? [{ area: report.area, coordinador: report.coordinator, observaciones: report.observations }] : []; });
+      protected readonly monographReportRows = computed(() => []);
+
+  constructor() {
+    this.grupos.seleccionarParametros(this.subject, this.section, this.period);
+    effect(() => {
+      const group = this.grupos.grupoActual();
+      if (!this.grupos.esProfesorRegular() || !group) return;
+      const consulta = this.regularContext.consultaDe(group);
+      if (consulta) this.regularContext.cargarAcademico(consulta).subscribe({ error: () => undefined });
+    });
+  }
 
   protected readonly pageTitle = computed(() => {
     if (this.isCoordinator()) {

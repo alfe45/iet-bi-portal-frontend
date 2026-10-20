@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
 import { StatGridComponent } from '../compartidos/componentes/cuadricula-estadisticas.component';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
-import { FuncionalidadAdministrativa, PortalDatosService, RegistroPortal } from '../nucleo/datos/portal-datos.service';
+import { FuncionalidadAdministrativa, RegistroVista } from '../nucleo/modelos/datos-vista';
 import { ColumnaTabla } from '../nucleo/modelos/modelos-prototipo';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
@@ -197,7 +197,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; min-height: 0; padding: 0; }.roles-grid{display:grid;gap:.45rem;padding:.55rem;border:1px solid #cfdbe5;border-radius:5px;background:#f8fafc}.role-option{display:flex;grid-template-columns:none;align-items:center;gap:.4rem;font-size:.8rem;font-weight:500}.role-option input{width:auto;min-height:0;padding:0}
         @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: 1 / -1; } }
         @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } }
-       .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #238d78;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
+       .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #1b6f60;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
         @media (max-width: 700px) { .modal-backdrop{align-items:start}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.promotion-summary{grid-template-columns:1fr} }
   `,
 })
@@ -206,7 +206,6 @@ export class FuncionalidadVistaComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly auth = inject(AutenticacionService);
-  private readonly datos = inject(PortalDatosService);
   private readonly profesoresApi = inject(ProfesoresApiService);
   private readonly estudiantesApi = inject(EstudiantesApiService);
     private readonly matriculasApi = inject(MatriculasApiService);
@@ -250,7 +249,7 @@ export class FuncionalidadVistaComponent {
         if (this.key === 'usuarios') return this.usuariosApiRows();
         if (this.key === 'asignaturas') return this.asignaturasApiRows();
         if (this.key === 'asignaciones') return this.asignacionesRows();
-         return this.datos.listar(this.key).map((registro) => ({ ...registro, acciones: this.isAdmin() ? [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Ver detalle', code: 'view' }] }));
+           return [];
     });
     protected readonly statCards = computed(() => [
       { label: 'Registros', value: this.cantidadRegistros(), tone: 'primary' as const },
@@ -345,13 +344,6 @@ export class FuncionalidadVistaComponent {
        return [...new Set(this.seccionesApiRows().filter((section) => !year || String(section['yearCiclo']) === year).map((section) => String(section['nombre'] ?? section['seccion'] ?? '')).filter(Boolean))];
    }
 
-   private codigoAsignatura(subject: RegistroPortal, index = 0): string {
-     const code = String(subject['codigo'] ?? '').trim();
-     if (/^[A-Z]{3}$/.test(code)) return code;
-     const fromId = String(subject.id).replace(/^ASG-/, '').replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase();
-     return fromId.padEnd(3, String(index + 1).slice(-1));
-   }
-
     private asignacionesRows(): Array<Record<string, unknown>> {
       return this.asignacionesApiRows();
     }
@@ -388,7 +380,7 @@ export class FuncionalidadVistaComponent {
   }
 
   protected async accion(event: { action: string; row: Record<string, unknown> }): Promise<void> {
-    const registro = event.row as RegistroPortal;
+    const registro = event.row as RegistroVista;
     if (this.isAdmin() && this.key === 'profesores') { this.accionProfesor(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'estudiantes') { this.accionEstudiante(event.action, registro); return; }
      if (this.isAdmin() && this.key === 'matriculas') { this.accionMatricula(event.action, registro); return; }
@@ -397,10 +389,8 @@ export class FuncionalidadVistaComponent {
      if (this.isAdmin() && this.key === 'asignaciones') { this.accionAsignacion(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.accionCursoLectivo(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.accionSeccion(event.action, registro); return; }
-    if (event.action === 'delete' && this.isAdmin()) {
-      const deletion = this.datos.validarEliminacion(this.key, registro.id);
-      if (!deletion.permitido) { this.apiError = deletion.motivo; return; }
-      if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.datos.eliminarRegistro(this.key, registro.id);
+       if (event.action === 'delete' && this.isAdmin()) {
+        if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.apiError = 'Esta operación no está disponible para este catálogo.';
       return;
     }
     this.editingId = registro.id;
@@ -428,8 +418,7 @@ export class FuncionalidadVistaComponent {
     if (this.isAdmin() && this.key === 'matriculas') { this.guardarMatricula(); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.guardarCursoLectivo(); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.guardarSeccion(); return; }
-    this.datos.guardarRegistro(this.key, this.draft, this.editingId);
-    this.cerrarEditor();
+     this.cerrarEditor();
   }
 
   protected rolesSeleccionados(): string[] { return String(this.draft['roles'] ?? '').split('|').map((role) => role.trim()).filter(Boolean); }
@@ -478,68 +467,6 @@ export class FuncionalidadVistaComponent {
 
    private accionesEstudiante(): Array<{ label: string; code: string; tone?: string }> {
      return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
-   }
-
-   private profesoresDemoRows(): Array<Record<string, unknown>> {
-     return this.datos.listar('profesores').map((item) => ({ ...item, nombreCompleto: item['nombreCompleto'] ?? item['nombre'], acciones: this.accionesProfesor() }));
-   }
-
-   private estudiantesDemoApi(): EstudianteApi[] {
-     return this.datos.listar('estudiantes').map((item, index) => {
-       const parts = String(item['nombre'] ?? '').split(' ').filter(Boolean);
-       return {
-          idEstudiante: index + 1,
-         nombre: parts.slice(0, Math.max(1, parts.length - 2)).join(' '),
-         primerApellido: parts.at(-2) ?? '',
-         segundoApellido: parts.at(-1) ?? null,
-         cedula: String(item['cedula'] ?? ''),
-         numeroCelular: String(item['numeroCelular'] ?? '') || null,
-         email: String(item['correo'] ?? ''),
-         fechaNacimiento: String(item['fechaNacimiento'] ?? '2009-05-15'),
-          fechaRegistro: '2026-01-15',
-       };
-     });
-   }
-
-   private estudiantesDemoRows(): Array<Record<string, unknown>> {
-     return this.estudiantesDemoApi().map((item) => ({ id: String(item.idEstudiante), nombre: item.nombre, nombreCompleto: this.nombreCompletoEstudiante(item), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: this.accionesEstudiante() }));
-   }
-
-    private cursosDemo(): CursoLectivoApi[] {
-      return this.datos.listar('periodos').map((item, index) => {
-        const anio = Number(item['yearCiclo'] ?? 2026);
-        const inicio = String(item['fechaInicio'] ?? `${anio}-02-09`);
-        const fin = String(item['fechaFin'] ?? `${anio}-12-04`);
-        return { idCursoLectivo: index + 1, yearCiclo: anio, anio, inicioSemestreI: inicio, finSemestreI: inicio, inicioSemestreII: fin, finSemestreII: fin, estado: 'PROGRAMADO', semestreActual: null, fechaInicio: inicio, fechaFin: fin };
-      });
-   }
-
-   private cursosDemoRows(): Array<Record<string, unknown>> {
-     return this.cursosDemo().map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, estado: course.estado, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.fechaInicio, fechaFinI: course.fechaFin, fechaInicioII: course.fechaInicio, fechaFinII: course.fechaFin, acciones: this.accionesCrud() }));
-   }
-
-    private seccionesDemo(): SeccionApi[] {
-      return this.datos.listar('secciones').map((item, index) => {
-        const yearCiclo = Number(item['yearCiclo'] ?? 2026);
-        const seccion = String(item['nombre'] ?? item['seccion'] ?? '10-1');
-        const [nivel, numero] = seccion.split('-').map(Number);
-        return { idSeccion: String(index + 1), yearCiclo, seccion, anio: yearCiclo, nivel: nivel || 10, numero: numero || 1, nombre: seccion, cedulaGuia: null, nombreGuia: null, cantidadEstudiantes: 0 };
-      });
-   }
-
-   private seccionesDemoRows(): Array<Record<string, unknown>> {
-      return this.seccionesDemo().map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; });
-   }
-
-   private cargarMatriculasDemo(): void {
-     const students = this.estudiantesDemoApi();
-     this.estudiantesMatricula.set(students);
-     const studentByName = new Map(students.map((student) => [this.nombreCompletoEstudiante(student), student]));
-     this.matriculasApiRows.set(this.datos.listar('matriculas').map((item, index) => {
-       const student = studentByName.get(String(item['estudiante'] ?? ''));
-       const estado = String(item['estado'] ?? 'Activa');
-       return { id: String(item.id), estudiante: item['estudiante'], cedulaEstudiante: student?.cedula ?? '', yearCiclo: Number(item['yearCiclo'] ?? 2026), seccion: item['seccion'], estado, idMatricula: index + 1, acciones: estado === 'FINALIZADA' ? [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] : [{ label: 'Finalizar', code: 'finalize' }, { label: 'Subir a undécimo', code: 'promote' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
-     }));
    }
 
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
@@ -662,7 +589,7 @@ export class FuncionalidadVistaComponent {
       });
     }
 
-     private async accionUsuario(action: string, registro: RegistroPortal): Promise<void> {
+      private async accionUsuario(action: string, registro: RegistroVista): Promise<void> {
        if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar el usuario ${registro['correo']}?`, 'Eliminar usuario', 'Eliminar')) {
         this.usuariosApi.borrar(String(registro.id)).subscribe({ next: () => { this.feedback.exito('El usuario fue eliminado.'); this.cargarUsuarios(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el usuario.') });
         return;
@@ -723,7 +650,7 @@ export class FuncionalidadVistaComponent {
       forkJoin(operations.length ? operations : [of(void 0)]).subscribe({ next: finish, error: fail });
     }
 
-    private async accionAsignatura(action: string, registro: RegistroPortal): Promise<void> {
+     private async accionAsignatura(action: string, registro: RegistroVista): Promise<void> {
       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la asignatura ${registro['codigo']}?`, 'Eliminar asignatura', 'Eliminar')) {
         this.asignaturasApi.borrar(String(registro['codigo'])).subscribe({ next: () => { this.feedback.exito('La asignatura fue eliminada.'); this.cargarAsignaturas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la asignatura.') });
         return;
@@ -755,7 +682,7 @@ export class FuncionalidadVistaComponent {
       return tipo === 'Troncal' ? 'TRONCAL' : tipo === 'Superior' ? 'SUPERIOR' : tipo === 'Medio' ? 'MEDIO' : 'MEP';
     }
 
-    private async accionAsignacion(action: string, registro: RegistroPortal): Promise<void> {
+   private async accionAsignacion(action: string, registro: RegistroVista): Promise<void> {
       if (action === 'delete' && await this.feedback.confirmar('¿Eliminar esta asignación académica?', 'Eliminar asignación', 'Eliminar')) {
         this.asignacionesApi.borrar(Number(registro['anio']), Number(registro['nivel']), Number(registro['numero']), String(registro['codigo'] ?? ''), String(registro['cedulaProfesor'] ?? '')).subscribe({ next: () => { this.feedback.exito('La asignación fue eliminada.'); this.cargarAsignaciones(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la asignación.') });
         return;
@@ -775,7 +702,7 @@ export class FuncionalidadVistaComponent {
       }
     }
 
-   private accionProfesor(action: string, registro: RegistroPortal): void {
+   private accionProfesor(action: string, registro: RegistroVista): void {
      if (action === 'delete') {
        this.professorDeleteTarget.set({ nombre: String(registro['nombreCompleto'] ?? registro['cedula']), cedula: String(registro['cedula']) });
        return;
@@ -811,7 +738,7 @@ export class FuncionalidadVistaComponent {
       }
    }
 
-    private async accionEstudiante(action: string, registro: RegistroPortal): Promise<void> {
+    private async accionEstudiante(action: string, registro: RegistroVista): Promise<void> {
       if (action === 'history') {
         this.router.navigate(['/estudiantes', encodeURIComponent(String(registro['cedula'])), 'historial']);
         return;
@@ -960,13 +887,11 @@ export class FuncionalidadVistaComponent {
     }
 
   private teacherName(): string {
-    const username = this.auth.currentUsername();
-    return this.datos.listar('profesores').find((item) => item['nombre'] === username)?.['nombre'] ?? this.datos.listar('asignaciones').find((item) => item['estado'] === 'Activa')?.['profesor'] ?? username;
+    return this.grupos.profesor() || this.auth.currentDisplayName() || this.auth.currentUsername();
   }
 
-  private activeAssignments(): RegistroPortal[] {
-    const period = this.datos.listar('periodos').find((item) => item['estado'] === 'Activo')?.['nombre'];
-    return this.datos.listar('asignaciones').filter((item) => item['profesor'] === this.teacherName() && item['periodo'] === period && item['estado'] === 'Activa');
+   private activeAssignments(): RegistroVista[] {
+     return this.grupos.asignaciones();
   }
 
   private teacherColumns(): ColumnaTabla[] {
@@ -981,23 +906,24 @@ export class FuncionalidadVistaComponent {
     const assignments = this.activeAssignments();
     if (this.key === 'asignaturas') {
       return [...new Set(assignments.map((item) => item['asignatura']))].map((name) => {
-        const subject = this.datos.listar('asignaturas').find((item) => item['nombre'] === name);
-        return { id: `subject-${name}`, nombre: name, escala: subject?.['escala'] === '1-100' ? '1–100' : subject?.['escala'] === 'A-E' ? 'A–E' : '1–7', secciones: assignments.filter((item) => item['asignatura'] === name).length, acciones: [{ label: 'Ver grupos', code: 'view' }] };
+        const scale = ['Estudios Sociales', 'Cívica', 'Civica'].includes(name) ? '1–100' : '1–7';
+        return { id: `subject-${name}`, nombre: name, escala: scale, secciones: assignments.filter((item) => item['asignatura'] === name).length, acciones: [{ label: 'Ver grupos', code: 'view' }] };
       });
     }
 
     if (this.key === 'secciones') {
-      return [...new Set(assignments.map((item) => item['seccion']))].map((name) => ({ id: `section-${name}`, nombre: name, nivel: this.datos.listar('secciones').find((item) => item['nombre'] === name)?.['nivel'] ?? '-', asignaturas: assignments.filter((item) => item['seccion'] === name).map((item) => item['asignatura']).join(', '), estudiantes: this.datos.estudiantes().filter((item) => item['seccion'] === name).length, acciones: [{ label: 'Abrir', code: 'view' }] }));
+       return [...new Set(assignments.map((item) => item['seccion']))].map((name) => ({ id: `section-${name}`, nombre: name, nivel: assignments.find((item) => item['seccion'] === name)?.['nivel'] ?? '-', asignaturas: assignments.filter((item) => item['seccion'] === name).map((item) => item['asignatura']).join(', '), estudiantes: this.grupos.estudiantesDeSeccion(name).length, acciones: [{ label: 'Abrir', code: 'view' }] }));
     }
     if (this.key === 'estudiantes') {
       const selected = this.grupos.grupos().find((group) => group.id === this.selectedGroupId());
       const sections = new Set(selected ? [selected.seccion] : assignments.map((item) => item['seccion']));
-      return this.datos.estudiantes().filter((item) => sections.has(item['seccion'])).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
-    }
-    return this.datos.listar(this.key).map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
+        const students = selected?.estudiantes ?? this.grupos.estudiantesDeSeccion([...sections][0] ?? '');
+       return students.map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
+      }
+    return [];
   }
 
-    private async accionMatricula(action: string, registro: RegistroPortal): Promise<void> {
+    private async accionMatricula(action: string, registro: RegistroVista): Promise<void> {
       const anio = Number(registro['yearCiclo']);
       const cedula = String(registro['cedulaEstudiante'] ?? '');
       if (action === 'edit') {
@@ -1056,7 +982,7 @@ export class FuncionalidadVistaComponent {
      return null;
    }
 
-    private async accionCursoLectivo(action: string, registro: RegistroPortal): Promise<void> {
+    private async accionCursoLectivo(action: string, registro: RegistroVista): Promise<void> {
      if (action === 'view' || action === 'edit') {
        this.editingId = registro.id;
        this.readOnly = action === 'view';
@@ -1096,7 +1022,7 @@ export class FuncionalidadVistaComponent {
       return null;
     }
 
-    private async accionSeccion(action: string, registro: RegistroPortal): Promise<void> {
+    private async accionSeccion(action: string, registro: RegistroVista): Promise<void> {
      if (action === 'view') {
        this.readOnly = true;
        this.editorTitle = 'Detalle de sección';
@@ -1233,5 +1159,5 @@ export class FuncionalidadVistaComponent {
      return value.split('-').at(-1) ?? value;
    }
 
-  protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); }
+   protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); }
 }

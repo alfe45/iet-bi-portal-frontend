@@ -23,4 +23,21 @@ describe('report routes', () => {
     expect(monographs?.data?.['roles']).toEqual(['Profesor Coordinador de Monografía']);
     expect(childRoutes.find((route: Route) => route.path === 'asignaciones-monografia')?.data?.['roles']).toEqual(['Administrador']);
   });
+
+  it.each(['grupos', 'grupo', 'registro-academico', 'compartir', 'reportes', 'reportes/asignatura'])('limits %s to accounts with Profesor regular', (path) => {
+    const route = childRoutes.find((candidate: Route) => candidate.path === path);
+
+    expect(route?.data?.['roles']).toEqual(['Profesor regular']);
+  });
+
+  it.each(['estudiantes', 'secciones', 'asignaturas'])('allows %s for administrators and regular teachers only', (path) => {
+    const route = childRoutes.find((candidate: Route) => candidate.path === path);
+
+    expect(route?.data?.['roles']).toEqual(['Administrador', 'Profesor regular']);
+  });
+
+  it('separates CAS teacher follow-up from CAS coordination', () => {
+    expect(childRoutes.find((route: Route) => route.path === 'cas')?.data?.['roles']).toEqual(['Profesor CAS']);
+    expect(childRoutes.find((route: Route) => route.path === 'coordinacion-cas')?.data?.['roles']).toEqual(['Profesor Coordinador de CAS']);
+  });
 });
