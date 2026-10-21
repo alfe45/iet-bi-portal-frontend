@@ -9,8 +9,8 @@ export interface AsignaturaApi {
   nombre: string;
   tipo: string;
   descripcion: string | null;
-  imparteNivel10: boolean;
   imparteNivel11: boolean;
+  imparteNivel12: boolean;
 }
 
 export interface AsignaturaRequest {
@@ -18,8 +18,8 @@ export interface AsignaturaRequest {
   nombre: string;
   tipo: string;
   descripcion: string | null;
-  imparteNivel10: boolean;
   imparteNivel11: boolean;
+  imparteNivel12: boolean;
 }
 
 export interface ConsultaAsignaturas {
