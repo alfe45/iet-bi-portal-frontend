@@ -11,11 +11,11 @@ describe('CasProfesorApiService', () => {
     const service = TestBed.inject(CasProfesorApiService);
     const http = TestBed.inject(HttpTestingController);
 
-    service.progreso(2026, 10, 52, 'II_SEMESTRE').subscribe();
+    service.progreso(2026, 11, 52, 'II_SEMESTRE').subscribe();
     const request = http.expectOne((item) => item.url === `${environment.apiUrl}/profesor/cas/informes`);
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('anio')).toBe('2026');
-    expect(request.request.params.get('nivel')).toBe('10');
+    expect(request.request.params.get('nivel')).toBe('11');
     expect(request.request.params.get('numero')).toBe('52');
     expect(request.request.params.get('semestre')).toBe('II_SEMESTRE');
     request.flush([]);
