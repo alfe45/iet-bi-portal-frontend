@@ -79,7 +79,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        <app-stat-grid [cards]="statCards()" />
 
        @if (editorOpen()) {
-           <div class="modal-backdrop" role="presentation"><form class="surface editor" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
+           <div class="modal-backdrop" role="presentation"><form class="surface editor" autocomplete="off" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
            <div class="section-heading modal-header"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3><p>{{ readOnly ? 'Información de solo lectura.' : 'Complete los campos requeridos.' }}</p></div><button type="button" class="modal-close" aria-label="Cerrar modal" (click)="cerrarEditor()">×</button></div>
             <div class="editor-grid">
               @for (field of camposFormulario(); track field.key) {
@@ -128,7 +128,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                     } @else if (field.type === 'select') {
                      <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="campoSoloLectura(field)" [required]="field.required ?? true">@for (option of field.options ?? []; track option) { <option [value]="option">{{ option }}</option> }</select>
                       } @else {
-                      @if (field.type === 'password') { <span class="password-input"><input [type]="showPassword() ? 'text' : 'password'" [name]="field.key" [(ngModel)]="draft[field.key]" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /><span class="password-visibility"><input type="checkbox" [checked]="showPassword()" (change)="showPassword.set($any($event.target).checked)" /> Mostrar contraseña</span></span> } @else { <input [type]="field.type ?? 'text'" [name]="field.key" [(ngModel)]="draft[field.key]" [min]="fechaMinima(field.key)" [max]="fechaMaxima(field.key)" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /> }
+                      @if (field.type === 'password') { <span class="password-input"><input [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" [name]="field.key" [(ngModel)]="draft[field.key]" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /><span class="password-visibility"><input type="checkbox" [checked]="showPassword()" (change)="showPassword.set($any($event.target).checked)" /> Mostrar contraseña</span></span> } @else { <input [type]="field.type ?? 'text'" autocomplete="off" [name]="field.key" [(ngModel)]="draft[field.key]" [min]="fechaMinima(field.key)" [max]="fechaMaxima(field.key)" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /> }
                       }
                   @if (fieldError(field.key)) { <small class="field-error" role="alert">{{ fieldError(field.key) }}</small> }
                 </label>
