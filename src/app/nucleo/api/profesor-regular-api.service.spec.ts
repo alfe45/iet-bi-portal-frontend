@@ -39,4 +39,17 @@ describe('ProfesorRegularApiService', () => {
     deletion.flush(null);
     http.verify();
   });
+
+  it('confirma las notas de la asignación en la ruta de confirmación', () => {
+    const service = TestBed.inject(ProfesorRegularApiService);
+    const http = TestBed.inject(HttpTestingController);
+    const consulta = { anio: 2026, nivel: 11, numero: 1, codigoAsignatura: 'HIS', semestre: 'II_SEMESTRE' };
+
+    service.confirmarEvaluaciones(consulta).subscribe();
+    const confirmacion = http.expectOne(`${environment.apiUrl}/profesor/evaluaciones/confirmacion`);
+    expect(confirmacion.request.method).toBe('POST');
+    expect(confirmacion.request.body).toEqual(consulta);
+    confirmacion.flush(null);
+    http.verify();
+  });
 });

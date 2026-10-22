@@ -40,8 +40,8 @@ export const routes: Routes = [
       { path: 'grupos', component: GruposProfesorVistaComponent, data: { roles: REGULAR } },
       { path: 'registro-academico', component: RegistroAcademicoVistaComponent, data: { roles: REGULAR } },
       { path: 'compartir', component: CompartirSeccionVistaComponent, data: { roles: REGULAR } },
-      { path: 'usuarios', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'profesores', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
+      { path: 'usuarios', redirectTo: 'profesores', pathMatch: 'full' }, // las cuentas se administran desde Profesores
       { path: 'estudiantes', component: FuncionalidadVistaComponent, data: { roles: ADMIN_O_REGULAR } },
       { path: 'estudiantes/:cedula/historial', component: HistorialEstudianteVistaComponent, data: { roles: ADMIN } },
       { path: 'periodos', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
