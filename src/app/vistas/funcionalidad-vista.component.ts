@@ -107,12 +107,12 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                    <div [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="key === 'profesores' && field.key === 'roles'" [class.account-field]="key === 'profesores' && field.key === 'modoCuenta'"><span>{{ field.label }}</span>
                     @if (key === 'profesores' && field.key === 'modoCuenta') {
                        @if (draft['modoCuenta'] === 'actual') {
-                         <div class="selected-student"><strong>{{ draft['emailOriginal'] }}</strong><span>Tiene cuenta de acceso.</span><small>Abajo puede cambiar el correo, poner una contraseña nueva, editar los roles o desactivarla. Para eliminarla use la acción "Quitar cuenta".</small></div>
+                         <div class="selected-student"><strong>{{ draft['emailOriginal'] }}</strong><span>Tiene cuenta de acceso.</span><small>Abajo puede cambiar el correo, poner una contraseña nueva, editar los roles o desactivarla. Al eliminar el profesor se elimina también su cuenta.</small></div>
+                       } @else if (!editingId) {
+                         <div class="selected-student"><strong>Cuenta nueva</strong><span>Todo profesor tiene su cuenta de acceso.</span><small>Indique abajo el correo, la contraseña y los roles.</small></div>
                        } @else {
-                          <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly"><option value="ninguna">Sin cuenta (no inicia sesión)</option><option value="nueva">Crear una cuenta nueva</option><option value="vincular">Vincular un usuario existente</option></select><small class="catalog-count">La cuenta es opcional; se puede crear después.</small>
+                         <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly"><option value="ninguna">Mantener sin cuenta</option><option value="nueva">Crear su cuenta</option></select><small class="catalog-count">Este profesor se registró antes de que la cuenta fuera obligatoria.</small>
                        }
-                    } @else if (key === 'profesores' && field.key === 'usuarioId') {
-                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un usuario</option>@for (user of usuariosDisponibles(); track user['id']) { <option [value]="user['id']">{{ user['correo'] }}</option> }</select><small class="catalog-count">{{ usuariosDisponibles().length }} usuarios sin perfil disponibles</small>
                     } @else if (key === 'asignaciones' && field.key === 'profesor') {
                         <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione un profesor</option>@for (teacher of profesoresDisponiblesAsignacion(); track teacher.id) { <option [value]="teacher.nombre">{{ teacher.cedula }} · {{ teacher.nombre }}</option> }</select>
                     } @else if (key === 'asignaciones' && field.key === 'codigo') {
@@ -181,9 +181,9 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
           <div class="modal-backdrop" role="presentation" (click)="cancelarEliminacionProfesor()">
             <section class="promotion-modal delete-profile-modal" role="dialog" aria-modal="true" aria-labelledby="delete-profile-title" (click)="$event.stopPropagation()">
               <div class="promotion-icon" aria-hidden="true">!</div>
-              <div class="promotion-copy"><p class="modal-kicker">Confirmación</p><h3 id="delete-profile-title">Eliminar perfil de profesor</h3><p>¿Desea eliminar el perfil de <strong>{{ target.nombre }}</strong>?</p></div>
+              <div class="promotion-copy"><p class="modal-kicker">Confirmación</p><h3 id="delete-profile-title">Eliminar profesor</h3><p>¿Desea eliminar a <strong>{{ target.nombre }}</strong>? Se eliminan su perfil y su cuenta de acceso.</p></div>
               <p class="promotion-warning">Esta acción no se puede deshacer.</p>
-              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarEliminacionProfesor()">Cancelar</button><button type="button" class="danger-button" (click)="confirmarEliminacionProfesor()">Eliminar perfil</button></div>
+              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarEliminacionProfesor()">Cancelar</button><button type="button" class="danger-button" (click)="confirmarEliminacionProfesor()">Eliminar profesor</button></div>
             </section>
           </div>
         }
@@ -358,7 +358,7 @@ export class FuncionalidadVistaComponent {
        if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
       if (this.key === 'profesores') {
         const modo = this.draft['modoCuenta'];
-        const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'vincular' ? ['usuarioId'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
+        const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
         return this.config.fields.filter((field) => !['usuarioId', 'correo', 'password', 'roles', 'estado'].includes(field.key) || visibles.includes(field.key))
           .map((field) => modo === 'actual' && field.key === 'password' ? { ...field, label: 'Nueva contraseña (opcional)', required: false } : field);
       }
@@ -486,9 +486,6 @@ export class FuncionalidadVistaComponent {
     this.draft['roles'] = [...roles].join('|');
   }
 
-   protected usuariosDisponibles(): Array<Record<string, unknown>> {
-     return this.usuariosApiRows().filter((user) => user['activo'] === true && (!user['cedulaProfesor'] || user['id'] === this.draft['usuarioId']));
-   }
 
   protected campoSoloLectura(field: CampoFormulario): boolean {
     if (this.readOnly || field.readOnly === true) return true;
@@ -510,7 +507,7 @@ export class FuncionalidadVistaComponent {
    }
 
       private accionesProfesor(tieneCuenta: boolean): Array<{ label: string; code: string; tone?: string }> {
-        return [{ label: 'Editar', code: 'edit' }, ...(tieneCuenta ? [{ label: 'Quitar cuenta', code: 'remove-account', tone: 'danger' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }];
+        return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
     }
 
     protected normalizarCodigoAsignatura(value: string): void {
@@ -684,11 +681,6 @@ export class FuncionalidadVistaComponent {
        this.professorDeleteTarget.set({ nombre: String(registro['nombreCompleto'] ?? registro['cedula']), cedula: String(registro['cedula']) });
        return;
      }
-     if (action === 'remove-account') {
-       // Quitar la cuenta elimina el usuario; el profesor y su historial se conservan (CU09).
-       if (await this.feedback.confirmar(`¿Quitar la cuenta ${registro['correo']} de ${registro['nombreCompleto']}? El profesor se conserva, pero ya no podrá iniciar sesión.`, 'Quitar cuenta', 'Quitar cuenta')) this.profesoresApi.quitarCuenta(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('La cuenta del profesor fue eliminada.'); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo quitar la cuenta.') });
-       return;
-     }
      if (action === 'view' || action === 'edit') {
       this.editingId = registro.id;
       this.readOnly = action === 'view';
@@ -700,7 +692,7 @@ export class FuncionalidadVistaComponent {
        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
       this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
       this.draft['password'] = '';
-      // Con cuenta se editan correo, contraseña, roles y estado; sin cuenta se puede crear o vincular al guardar.
+      // Con cuenta se editan correo, contraseña, roles y estado; un profesor anterior sin cuenta puede recibirla al guardar.
       this.draft['modoCuenta'] = registro['tieneCuenta'] ? 'actual' : 'ninguna';
       if (!registro['tieneCuenta']) { this.draft['usuarioId'] = ''; this.draft['correo'] = ''; this.draft['roles'] = 'Profesor regular'; this.draft['estado'] = 'Activo'; }
       else { this.draft['emailOriginal'] = String(registro['correo'] ?? ''); this.draft['rolesBackend'] = String(registro['rolesBackend'] ?? ''); this.draft['estadoOriginal'] = String(registro['estado'] ?? ''); }
@@ -724,7 +716,7 @@ export class FuncionalidadVistaComponent {
           this.profesoresApi.crearCuenta(cedula, cuenta).subscribe({ next: () => terminar('El profesor fue actualizado y se le creó la cuenta.'), error: (error) => { this.cargarProfesores(); this.notificarError(error, 'Los datos se guardaron, pero no se pudo crear la cuenta.'); } });
         }, error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
       } else {
-        this.profesoresApi.registrar(request).subscribe({ next: () => terminar(!request.cuenta ? 'El profesor fue creado sin cuenta de acceso.' : 'idUsuario' in request.cuenta ? 'El profesor fue creado y vinculado al usuario.' : 'El profesor y su cuenta fueron creados.'), error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
+        this.profesoresApi.registrar(request).subscribe({ next: () => terminar('El profesor y su cuenta fueron creados.'), error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
       }
    }
 
@@ -785,7 +777,7 @@ export class FuncionalidadVistaComponent {
    protected fieldError(key: string): string {
        if (!this.validationAttempted || this.readOnly || !['profesores', 'estudiantes', 'matriculas', 'periodos', 'secciones'].includes(this.key)) return '';
        const value = String(this.draft[key] ?? '').trim();
-         const required = new Set(this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'vincular' ? ['usuarioId'] : this.draft['modoCuenta'] === 'actual' ? ['correo', 'roles'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
+         const required = new Set(this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'actual' ? ['correo', 'roles'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
         const labels: Record<string, string> = { usuarioId: 'Usuario disponible', nombre: 'Nombre', primerApellido: 'Primer apellido', cedula: 'Cédula', correo: 'Correo electrónico', fechaNacimiento: 'Fecha de nacimiento', password: 'Contraseña', roles: 'Roles', cedulaEstudiante: 'Cédula del estudiante', yearCiclo: 'Curso lectivo', nivel: 'Nivel', numeroSeccion: 'Número de sección', fechaInicioI: 'Inicio del I semestre', fechaFinI: 'Fin del I semestre', fechaInicioII: 'Inicio del II semestre', fechaFinII: 'Fin del II semestre' };
       const label = labels[key] ?? key;
       if (required.has(key) && !value) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
@@ -839,47 +831,45 @@ export class FuncionalidadVistaComponent {
 
     private profesorRequest(): RegistrarProfesorRequest {
       const modo = this.draft['modoCuenta'];
-      const cuenta: CuentaProfesorRequest | null = modo === 'nueva' ? { email: String(this.draft['correo'] ?? '').trim(), contrasena: String(this.draft['password'] ?? ''), roles: this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role) } : modo === 'vincular' ? { idUsuario: String(this.draft['usuarioId'] ?? '') } : null;
+      const cuenta: CuentaProfesorRequest | null = modo === 'nueva' ? { email: String(this.draft['correo'] ?? '').trim(), contrasena: String(this.draft['password'] ?? ''), roles: this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role) } : null;
       return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: String(this.draft['numeroCelular'] ?? '') || null, fechaNacimiento: String(this.draft['fechaNacimiento'] ?? ''), cuenta };
   }
 
-    private validarPasoProfesor(step: number): string | null {
-     if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
-     if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
-     if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
-     if (step === 1) {
-       const birthDate = String(this.draft['fechaNacimiento'] ?? '');
-       if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900-01-01 y hoy.';
-       return null;
-     }
-     if (this.draft['modoCuenta'] === 'vincular' && !String(this.draft['usuarioId'] ?? '').trim()) return 'Seleccione el usuario que se vinculará al profesor.';
-     if (step === 2 && this.draft['modoCuenta'] === 'actual') {
-       if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
-       const nueva = String(this.draft['password'] ?? '');
-       if (nueva && (nueva.length < 8 || nueva.length > 128)) return 'La contraseña nueva debe tener entre 8 y 128 caracteres.';
-     }
-     if (step === 2 && this.draft['modoCuenta'] === 'nueva') {
-       if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
-       const password = String(this.draft['password'] ?? '');
-       if (password.length < 8 || password.length > 128) return 'La contraseña debe tener entre 8 y 128 caracteres.';
-     }
-     if (step === 2) return null;
-     if (this.draft['modoCuenta'] !== 'ninguna' && !this.rolesSeleccionados().length) return 'Seleccione al menos un rol para la cuenta.';
-      return null;
-   }
-
-    private validarProfesorDraft(): string | null {
-      for (const step of this.professorSteps.map((item) => item.number)) {
-        const error = this.validarPasoProfesor(step);
-        if (error) return error;
+     private validarPasoProfesor(step: number): string | null {
+      if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
+      if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
+      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
+      if (step === 1) {
+        const birthDate = String(this.draft['fechaNacimiento'] ?? '');
+        if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900 y hoy.';
+        return null;
       }
+      if (step === 2 && this.draft['modoCuenta'] === 'actual') {
+        if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
+        const nueva = String(this.draft['password'] ?? '');
+        if (nueva && (nueva.length < 8 || nueva.length > 128)) return 'La contraseña nueva debe tener entre 8 y 128 caracteres.';
+      }
+      if (step === 2 && this.draft['modoCuenta'] === 'nueva') {
+        if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
+        const password = String(this.draft['password'] ?? '');
+        if (password.length < 8 || password.length > 128) return 'La contraseña debe tener entre 8 y 128 caracteres.';
+      }
+      if (step === 2) return null;
+      if (this.draft['modoCuenta'] !== 'ninguna' && !this.rolesSeleccionados().length) return 'Seleccione al menos un rol para la cuenta.';
       return null;
     }
 
-   private validarCatalogoAdministrativo(): string | null {
+     private validarProfesorDraft(): string | null {
+       for (const step of this.professorSteps.map((item) => item.number)) {
+         const error = this.validarPasoProfesor(step);
+         if (error) return error;
+       }
+       return null;
+    }
+    private validarCatalogoAdministrativo(): string | null {
       const required = this.key === 'asignaturas' ? ['codigo', 'tipoAsignatura', 'nombre'] : ['profesor', 'codigo', 'yearCiclo', 'seccion'];
      const missing = required.find((key) => !String(this.draft[key] ?? '').trim());
       if (missing) return `El campo '${missing}' es obligatorio.`;
@@ -1088,7 +1078,7 @@ export class FuncionalidadVistaComponent {
     protected confirmarEliminacionProfesor(): void {
       const target = this.professorDeleteTarget();
       if (!target) return;
-      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el perfil de profesor.') });
+      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el profesor.') });
     }
 
     protected confirmarPromocion(): void {
