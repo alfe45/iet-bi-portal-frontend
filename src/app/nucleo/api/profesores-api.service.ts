@@ -4,7 +4,7 @@ import { Observable, map } from 'rxjs';
 import { ResultadoPaginado } from './api-modelos';
 import { environment } from '../../../env/environment';
 
-// La cuenta es opcional (RN-05): sin cuenta, idUsuario, email y activo vienen en null y roles vacío.
+// Todo profesor nace con su cuenta (RN-05); solo los registrados antes sin cuenta traen idUsuario, email y activo en null y roles vacío.
 export interface ProfesorApi {
   idProfesor: string;
   nombre: string;
@@ -34,8 +34,8 @@ interface ProfesorBackend {
   roles: string[] | null;
 }
 
-// Vincular un usuario existente (idUsuario) o crear uno nuevo (email + contrasena + roles); nunca las dos formas.
-export type CuentaProfesorRequest = { idUsuario: string } | { email: string; contrasena: string; roles: string[] };
+// Cuenta del profesor: correo + contraseña + roles (sin roles nace con PROFESOR_REGULAR).
+export type CuentaProfesorRequest = { email: string; contrasena: string; roles: string[] };
 
 export interface ActualizarProfesorRequest {
   nombre: string;
@@ -65,6 +65,5 @@ export class ProfesoresApiService {
   registrar(request: RegistrarProfesorRequest): Observable<{ cedula: string }> { return this.http.post<{ cedula: string }>(this.url, request); }
   actualizar(cedula: string, request: ActualizarProfesorRequest): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(cedula)}`, request); }
   crearCuenta(cedula: string, cuenta: CuentaProfesorRequest): Observable<{ idUsuario: string }> { return this.http.post<{ idUsuario: string }>(`${this.url}/${encodeURIComponent(cedula)}/cuenta`, cuenta); }
-  quitarCuenta(cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedula)}/cuenta`); }
   borrar(cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedula)}`); }
 }
