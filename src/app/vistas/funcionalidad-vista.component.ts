@@ -15,8 +15,8 @@ import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '
 import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
 import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucleo/api/asignaturas-api.service';
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
-import { forkJoin, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { concat } from 'rxjs';
+import { map, toArray } from 'rxjs/operators';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 interface CampoFormulario {
@@ -55,8 +55,7 @@ const ROLES_USUARIO = ['Administrador', 'Profesor regular', 'Profesor Guía', 'P
 const ROLES_BACKEND: Record<string, string> = { 'Administrador': 'ADMIN', 'Profesor regular': 'PROFESOR_REGULAR', 'Profesor Guía': 'GUIA', 'Profesor Coordinador de Monografía': 'COORD_MONOGRAFIA', 'Profesor CAS': 'PROFESOR_CAS', 'Profesor Coordinador de CAS': 'COORD_CAS' };
 const ROLES_FRONTEND: Record<string, string> = Object.fromEntries(Object.entries(ROLES_BACKEND).map(([label, role]) => [role, label]));
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
-  usuarios: { title: 'Usuarios', singular: 'usuario', subtitle: 'Administre las cuentas y roles del portal.', columns: [{ key: 'correo', label: 'Correo' }, { key: 'roles', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado', type: 'select', options: ESTADOS }, { key: 'ultimoLogin', label: 'Último login', readOnly: true, required: false }, { key: 'creadoEn', label: 'Creado en', readOnly: true, required: false }, { key: 'intentosFallidosLogin', label: 'Intentos fallidos de login', readOnly: true, required: false }, { key: 'bloqueadoHasta', label: 'Bloqueado hasta', readOnly: true, required: false }, { key: 'contrasenaCambiadaEn', label: 'Contraseña cambiada en', readOnly: true, required: false }, { key: 'actualizadoEn', label: 'Actualizado en', readOnly: true, required: false }, { key: 'tokensInvalidadosDesde', label: 'Tokens invalidados desde', readOnly: true, required: false }] },
-  profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y, si lo necesita, su cuenta de acceso.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO.filter((role) => role !== 'Administrador') }] },
+  profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso (los administradores también son profesores con el rol Administrador).', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'fechaInicio', label: 'Inicio' }, { key: 'fechaFin', label: 'Fin' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', readOnly: true }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
@@ -80,14 +79,14 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        <app-stat-grid [cards]="statCards()" />
 
        @if (editorOpen()) {
-           <div class="modal-backdrop" role="presentation"><form class="surface editor" [class.user-editor]="key === 'usuarios'" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
+           <div class="modal-backdrop" role="presentation"><form class="surface editor" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
            <div class="section-heading modal-header"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3><p>{{ readOnly ? 'Información de solo lectura.' : 'Complete los campos requeridos.' }}</p></div><button type="button" class="modal-close" aria-label="Cerrar modal" (click)="cerrarEditor()">×</button></div>
             <div class="editor-grid">
               @for (field of camposFormulario(); track field.key) {
-                  <label [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="(key === 'usuarios' || key === 'profesores') && field.key === 'roles'" [class.account-field]="key === 'profesores' && field.key === 'modoCuenta'"><span>{{ field.label }}</span>
+                  <label [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="key === 'profesores' && field.key === 'roles'" [class.account-field]="key === 'profesores' && field.key === 'modoCuenta'"><span>{{ field.label }}</span>
                     @if (key === 'profesores' && field.key === 'modoCuenta') {
                        @if (draft['modoCuenta'] === 'actual') {
-                         <div class="selected-student"><strong>{{ draft['correo'] }}</strong><span>{{ rolesSeleccionados().join(', ') || 'Sin roles' }}</span><small>La cuenta se administra en Usuarios; para quitarla use la acción "Quitar cuenta".</small></div>
+                         <div class="selected-student"><strong>{{ draft['emailOriginal'] }}</strong><span>Tiene cuenta de acceso.</span><small>Abajo puede cambiar el correo, poner una contraseña nueva, editar los roles o desactivarla. Para eliminarla use la acción "Quitar cuenta".</small></div>
                        } @else {
                          <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly"><option value="ninguna">Sin cuenta (no inicia sesión)</option><option value="nueva">Crear una cuenta nueva</option><option value="vincular">Vincular un usuario existente</option></select><small class="catalog-count">La cuenta es opcional; se puede crear después.</small>
                        }
@@ -120,7 +119,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione una sección</option>@for (section of seccionesDisponiblesMatricula(); track section.idSeccion) { <option [value]="numeroSeccion(section.seccion)">{{ section.seccion }}</option> }</select>
                      } @else if (key === 'secciones' && field.key === 'numeroSeccion') {
                        <input type="number" [name]="field.key" [(ngModel)]="draft[field.key]" min="1" max="99" step="1" inputmode="numeric" [readonly]="readOnly" [required]="field.required ?? true" />
-                     } @else if ((key === 'usuarios' || key === 'profesores') && field.key === 'roles') {
+                     } @else if (key === 'profesores' && field.key === 'roles') {
                       <span class="roles-grid">@for (option of rolesDisponibles(); track option) { <label class="role-option"><input type="checkbox" [checked]="rolesSeleccionados().includes(option)" [disabled]="readOnly" (change)="cambiarRol(option, $any($event.target).checked)" /> {{ option }}</label> }</span>
                     } @else if (key === 'asignaturas' && field.key === 'codigo') {
                       <input type="text" [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="normalizarCodigoAsignatura($event)" maxlength="3" minlength="3" pattern="[A-Z]{3}" placeholder="Ej. MAT" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" />
@@ -252,7 +251,6 @@ export class FuncionalidadVistaComponent {
        if (this.key === 'matriculas') return this.matriculasApiRows();
        if (this.key === 'periodos') return this.cursosApiRows();
         if (this.key === 'secciones') return this.seccionesApiRows();
-        if (this.key === 'usuarios') return this.usuariosApiRows();
         if (this.key === 'asignaturas') return this.asignaturasApiRows();
         if (this.key === 'asignaciones') return this.asignacionesRows();
            return [];
@@ -275,13 +273,13 @@ export class FuncionalidadVistaComponent {
   protected readonly pageTitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Mis asignaturas' : this.isTeacher() && this.key === 'secciones' ? 'Mis secciones' : this.config.title);
     protected readonly pageSubtitle = computed(() => this.isTeacher() && this.key === 'asignaturas' ? 'Consulta las asignaturas que tienes asignadas en el periodo actual.' : this.isTeacher() && this.key === 'secciones' ? 'Consulta las secciones donde impartes alguna asignatura.' : this.isTeacher() && this.key === 'estudiantes' ? 'Consulta los estudiantes de tus grupos.' : this.config.subtitle);
 
-    protected busquedaDisponible(): boolean { return this.isAdmin() && ['usuarios', 'profesores', 'estudiantes', 'matriculas'].includes(this.key); }
+    protected busquedaDisponible(): boolean { return this.isAdmin() && ['profesores', 'estudiantes', 'matriculas'].includes(this.key); }
     protected etiquetaBusqueda(): string { return this.key === 'matriculas' ? 'Buscar matrícula' : `Buscar ${this.config.title.toLowerCase()}`; }
      protected placeholderBusqueda(): string { return this.key === 'matriculas' ? 'Nombre o cédula del estudiante' : 'Correo, nombre o cédula'; }
 
       protected cantidadRegistros(): string { return this.paginacionAdministrativa() ? String(this.totalRegistros()) : String(this.rows().length); }
       protected usuariosSinPerfil(): number { return this.usuariosApiRows().filter((user) => user['activo'] === true && !user['cedulaProfesor']).length; }
-     protected paginacionAdministrativa(): boolean { return this.isAdmin() && ['usuarios', 'profesores', 'estudiantes', 'periodos', 'secciones', 'matriculas', 'asignaturas', 'asignaciones'].includes(this.key); }
+     protected paginacionAdministrativa(): boolean { return this.isAdmin() && ['profesores', 'estudiantes', 'periodos', 'secciones', 'matriculas', 'asignaturas', 'asignaciones'].includes(this.key); }
      protected paginacionVisible(): boolean { return this.paginacionAdministrativa() && this.totalRegistros() > this.tamanoPagina; }
      protected rangoInicio(): number { return this.totalRegistros() ? (this.paginaActual() - 1) * this.tamanoPagina + 1 : 0; }
      protected rangoFin(): number { return Math.min(this.paginaActual() * this.tamanoPagina, this.totalRegistros()); }
@@ -295,7 +293,6 @@ export class FuncionalidadVistaComponent {
      protected buscarRegistros(): void {
        this.apiError = '';
        this.paginaActual.set(1);
-       if (this.key === 'usuarios') this.cargarUsuarios(this.adminSearch);
       if (this.key === 'profesores') this.cargarProfesores(this.adminSearch);
       if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch);
       if (this.key === 'matriculas') this.cargarMatriculas(this.adminSearch);
@@ -305,7 +302,6 @@ export class FuncionalidadVistaComponent {
 
      private cargarPaginaActual(): void {
        const pagina = this.paginaActual();
-       if (this.key === 'usuarios') this.cargarUsuarios(this.adminSearch, pagina);
        if (this.key === 'profesores') this.cargarProfesores(this.adminSearch, pagina);
        if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch, pagina);
        if (this.key === 'periodos') this.cargarCursosAdministracion(pagina);
@@ -329,17 +325,16 @@ export class FuncionalidadVistaComponent {
       if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
       if (this.key === 'profesores') {
         const modo = this.draft['modoCuenta'];
-        const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'vincular' ? ['usuarioId'] : [];
-        return this.config.fields.filter((field) => !['usuarioId', 'correo', 'password', 'roles'].includes(field.key) || visibles.includes(field.key));
+        const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'vincular' ? ['usuarioId'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
+        return this.config.fields.filter((field) => !['usuarioId', 'correo', 'password', 'roles', 'estado'].includes(field.key) || visibles.includes(field.key))
+          .map((field) => modo === 'actual' && field.key === 'password' ? { ...field, label: 'Nueva contraseña (opcional)', required: false } : field);
       }
-      if (this.key !== 'usuarios') return this.config.fields;
-     if (!this.readOnly) return this.config.fields.filter((field) => !field.readOnly);
-     return this.config.fields.filter((field) => field.key !== 'password');
+      return this.config.fields;
    }
 
    protected rolesDisponibles(): string[] {
      const roles = this.config.fields.find((field) => field.key === 'roles')?.options ?? [];
-     return this.editingId || this.readOnly || this.key === 'profesores' ? roles : roles.filter((role) => role !== 'Administrador');
+     return roles;
    }
 
     protected profesoresDisponiblesAsignacion(): Array<{ id: string; cedula: string; nombre: string }> {
@@ -368,7 +363,6 @@ export class FuncionalidadVistaComponent {
       if (this.isAdmin() && this.key === 'secciones') this.cargarCursosLectivos();
       if (this.isAdmin() && this.key === 'periodos') this.cargarCursosAdministracion();
        if (this.isAdmin() && this.key === 'secciones') this.cargarSeccionesAdministracion();
-       if (this.isAdmin() && this.key === 'usuarios') this.cargarUsuarios();
        if (this.isAdmin() && this.key === 'asignaturas') this.cargarAsignaturas();
         if (this.isAdmin() && this.key === 'asignaciones') { this.cargarAsignaciones(); this.cargarProfesores('', 1, false); this.cargarAsignaturas(1, false); this.cargarSeccionesAdministracion(1, false); this.cargarCursosLectivos(); }
     }
@@ -382,7 +376,6 @@ export class FuncionalidadVistaComponent {
     this.studentSearch = '';
     this.editorTitle = `Registrar ${this.config.singular}`;
      this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, field.options?.[0] ?? '']));
-      if (this.key === 'usuarios') { this.draft['roles'] = ''; this.draft['estado'] = 'Activo'; }
       if (this.key === 'profesores') { this.draft['modoCuenta'] = 'nueva'; this.draft['roles'] = 'Profesor regular'; }
       if (this.key === 'asignaturas') { this.draft['imparteNivel11'] = 'true'; this.draft['imparteNivel12'] = 'true'; }
       if (this.key === 'asignaciones') { this.draft['profesor'] = this.profesoresDisponiblesAsignacion()[0]?.nombre ?? ''; this.draft['codigo'] = this.asignaturasDisponiblesAsignacion()[0]?.codigo ?? ''; this.draft['yearCiclo'] = String(new Date().getFullYear()); this.draft['seccion'] = this.seccionesAsignacion()[0] ?? ''; }
@@ -396,7 +389,6 @@ export class FuncionalidadVistaComponent {
     if (this.isAdmin() && this.key === 'profesores') { this.accionProfesor(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'estudiantes') { this.accionEstudiante(event.action, registro); return; }
      if (this.isAdmin() && this.key === 'matriculas') { this.accionMatricula(event.action, registro); return; }
-     if (this.isAdmin() && this.key === 'usuarios') { this.accionUsuario(event.action, registro); return; }
      if (this.isAdmin() && this.key === 'asignaturas') { this.accionAsignatura(event.action, registro); return; }
      if (this.isAdmin() && this.key === 'asignaciones') { this.accionAsignacion(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.accionCursoLectivo(event.action, registro); return; }
@@ -413,12 +405,6 @@ export class FuncionalidadVistaComponent {
   }
 
   protected guardar(): void {
-     if (this.isAdmin() && this.key === 'usuarios') {
-       const validation = this.validarUsuarioDraft();
-       if (validation) { this.validationAttempted = true; this.apiError = validation; return; }
-       this.guardarUsuario();
-       return;
-     }
       if (this.isAdmin() && (this.key === 'asignaturas' || this.key === 'asignaciones')) {
        const validation = this.validarCatalogoAdministrativo();
         if (validation) { this.validationAttempted = true; this.apiError = validation; return; }
@@ -478,7 +464,7 @@ export class FuncionalidadVistaComponent {
 
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
       this.apiError = '';
-          this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => { const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role); return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? `${item.email}${item.activo ? '' : ' (inactiva)'}` : 'Sin cuenta', tieneCuenta: item.tieneCuenta, roles: roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) }; })); }, error: () => { this.profesoresApiRows.set([]); this.apiError = 'No se pudieron consultar los profesores.'; } });
+          this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => { const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role); return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? String(item.email) : 'Sin cuenta', tieneCuenta: item.tieneCuenta, estado: item.tieneCuenta ? (item.activo ? 'Activo' : 'Inactivo') : '—', roles: roles.join('|'), rolesBackend: item.roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) }; })); }, error: () => { this.profesoresApiRows.set([]); this.apiError = 'No se pudieron consultar los profesores.'; } });
     }
 
     private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
@@ -531,23 +517,9 @@ export class FuncionalidadVistaComponent {
         rolesBackend: item.roles.join('|'),
         estado: item.activo ? 'Activo' : 'Inactivo',
         activo: item.activo,
-        bloqueadoHasta: this.fechaHoraLabel(item.bloqueadoHasta),
-        ultimoLogin: this.fechaHoraLabel(item.ultimoLogin, 'No registrado'),
-        creadoEn: this.fechaHoraLabel(item.creadoEn),
-        intentosFallidosLogin: item.intentosFallidosLogin ?? 'No disponible',
-        contrasenaCambiadaEn: this.fechaHoraLabel(item.passwordCambiadaEn, 'No disponible'),
-        actualizadoEn: this.fechaHoraLabel(item.actualizadoEn, 'No disponible'),
-        tokensInvalidadosDesde: this.fechaHoraLabel(item.tokensInvalidadosDesde, 'No disponible'),
         cedulaProfesor: item.cedulaProfesor ?? '',
         nombreProfesor: item.nombreProfesor ?? '',
-         acciones: [{ label: 'Ver detalle', code: 'view' }, ...this.accionesCrud()],
       };
-    }
-
-    private fechaHoraLabel(value: string | null | undefined, empty = 'No registrado'): string {
-      if (!value) return empty;
-      const date = new Date(value);
-      return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
     }
 
     private cargarAsignaturas(pagina = this.paginaActual(), actualizaPaginacion = true): void {
@@ -594,67 +566,6 @@ export class FuncionalidadVistaComponent {
          }))); },
         error: (error) => { this.asignacionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaciones.'); },
       });
-    }
-
-      private async accionUsuario(action: string, registro: RegistroVista): Promise<void> {
-       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar el usuario ${registro['correo']}?`, 'Eliminar usuario', 'Eliminar')) {
-        this.usuariosApi.borrar(String(registro.id)).subscribe({ next: () => { this.feedback.exito('El usuario fue eliminado.'); this.cargarUsuarios(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el usuario.') });
-        return;
-      }
-       if (action === 'view') {
-         this.usuariosApi.obtener(String(registro.id)).subscribe({ next: (item) => this.abrirDetalleUsuario(item), error: (error) => this.notificarError(error, 'No se pudo consultar el detalle del usuario.') });
-         return;
-       }
-       if (action === 'edit') {
-        this.editingId = registro.id;
-         this.readOnly = false;
-        this.editorTitle = this.readOnly ? 'Detalle de usuario' : 'Editar usuario';
-        this.validationAttempted = false;
-        this.apiError = '';
-        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
-        this.draft['rolesBackend'] = String(registro['rolesBackend'] ?? '');
-        this.draft['emailOriginal'] = String(registro['correo'] ?? '');
-         this.editorOpen.set(true);
-       }
-     }
-
-     private abrirDetalleUsuario(item: UsuarioAdminApi): void {
-       this.editingId = item.id;
-       this.readOnly = true;
-       this.editorTitle = 'Detalle de usuario';
-       this.validationAttempted = false;
-       this.apiError = '';
-       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(this.usuarioRow(item)[field.key] ?? '')]));
-       this.draft['rolesBackend'] = item.roles.join('|');
-       this.draft['emailOriginal'] = item.email;
-       this.editorOpen.set(true);
-     }
-
-    private guardarUsuario(): void {
-      const email = String(this.draft['correo'] ?? '').trim();
-      const password = String(this.draft['password'] ?? '').trim();
-      const roles = this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role);
-      const finish = () => { this.feedback.exito(this.editingId ? 'Los cambios del usuario fueron guardados.' : 'El usuario fue creado.'); this.cerrarEditor(); this.cargarUsuarios(); };
-      const fail = (error: unknown) => this.notificarError(error, 'No se pudo guardar el usuario.');
-
-      if (!this.editingId) {
-        this.usuariosApi.registrar(email, password).pipe(switchMap((created) => {
-          const additions = roles.filter((role) => role !== 'PROFESOR_REGULAR').map((role) => this.usuariosApi.agregarRol(created.id, role));
-          return additions.length ? forkJoin(additions) : of([]);
-        })).subscribe({ next: finish, error: fail });
-        return;
-      }
-
-      const current = new Set(String(this.draft['rolesBackend'] ?? '').split('|').filter(Boolean));
-      const desired = new Set(roles);
-      const operations = [] as Array<ReturnType<UsuariosApiService['actualizarEmail']>>;
-      if (email !== this.draft['emailOriginal']) operations.push(this.usuariosApi.actualizarEmail(this.editingId, email));
-      if (password) operations.push(this.usuariosApi.resetearContrasena(this.editingId, password));
-      if (this.draft['estado'] === 'Activo') operations.push(this.usuariosApi.activar(this.editingId));
-      else operations.push(this.usuariosApi.desactivar(this.editingId));
-      for (const role of desired) if (!current.has(role)) operations.push(this.usuariosApi.agregarRol(this.editingId, role));
-      for (const role of current) if (!desired.has(role)) operations.push(this.usuariosApi.quitarRol(this.editingId, role));
-      forkJoin(operations.length ? operations : [of(void 0)]).subscribe({ next: finish, error: fail });
     }
 
      private async accionAsignatura(action: string, registro: RegistroVista): Promise<void> {
@@ -729,9 +640,10 @@ export class FuncionalidadVistaComponent {
       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
       this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
       this.draft['password'] = '';
-      // Con cuenta solo se muestra; sin cuenta se puede crear o vincular al guardar.
+      // Con cuenta se editan correo, contraseña, roles y estado; sin cuenta se puede crear o vincular al guardar.
       this.draft['modoCuenta'] = registro['tieneCuenta'] ? 'actual' : 'ninguna';
-      if (!registro['tieneCuenta']) { this.draft['usuarioId'] = ''; this.draft['correo'] = ''; this.draft['roles'] = 'Profesor regular'; }
+      if (!registro['tieneCuenta']) { this.draft['usuarioId'] = ''; this.draft['correo'] = ''; this.draft['roles'] = 'Profesor regular'; this.draft['estado'] = 'Activo'; }
+      else { this.draft['emailOriginal'] = String(registro['correo'] ?? ''); this.draft['rolesBackend'] = String(registro['rolesBackend'] ?? ''); this.draft['estadoOriginal'] = String(registro['estado'] ?? ''); }
       this.editorOpen.set(true);
       return;
     }
@@ -747,6 +659,7 @@ export class FuncionalidadVistaComponent {
         const cedula = String(this.draft['cedulaOriginal'] ?? this.draft['cedula']);
         const { cuenta, cedula: _cedula, ...datos } = request;
         this.profesoresApi.actualizar(cedula, datos).subscribe({ next: () => {
+          if (this.draft['modoCuenta'] === 'actual') { this.guardarCuentaProfesor(terminar); return; }
           if (!cuenta) { terminar('El profesor fue actualizado.'); return; }
           this.profesoresApi.crearCuenta(cedula, cuenta).subscribe({ next: () => terminar('El profesor fue actualizado y se le creó la cuenta.'), error: (error) => { this.cargarProfesores(); this.notificarError(error, 'Los datos se guardaron, pero no se pudo crear la cuenta.'); } });
         }, error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
@@ -754,6 +667,24 @@ export class FuncionalidadVistaComponent {
         this.profesoresApi.registrar(request).subscribe({ next: () => terminar(!request.cuenta ? 'El profesor fue creado sin cuenta de acceso.' : 'idUsuario' in request.cuenta ? 'El profesor fue creado y vinculado al usuario.' : 'El profesor y su cuenta fueron creados.'), error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
       }
    }
+
+  // Aplica sobre el usuario del profesor solo lo que cambió (correo, contraseña, estado y roles).
+  private guardarCuentaProfesor(terminar: (mensaje: string) => void): void {
+    const id = String(this.draft['usuarioId'] ?? '');
+    const email = String(this.draft['correo'] ?? '').trim();
+    const password = String(this.draft['password'] ?? '');
+    const actuales = new Set(String(this.draft['rolesBackend'] ?? '').split('|').filter(Boolean));
+    const deseados = new Set(this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role));
+    const operaciones = [] as Array<ReturnType<UsuariosApiService['actualizarEmail']>>;
+    if (email !== this.draft['emailOriginal']) operaciones.push(this.usuariosApi.actualizarEmail(id, email));
+    if (password) operaciones.push(this.usuariosApi.resetearContrasena(id, password));
+    if (this.draft['estado'] !== this.draft['estadoOriginal']) operaciones.push(this.draft['estado'] === 'Activo' ? this.usuariosApi.activar(id) : this.usuariosApi.desactivar(id));
+    for (const role of deseados) if (!actuales.has(role)) operaciones.push(this.usuariosApi.agregarRol(id, role));
+    for (const role of actuales) if (!deseados.has(role)) operaciones.push(this.usuariosApi.quitarRol(id, role));
+    if (!operaciones.length) { terminar('El profesor fue actualizado.'); return; }
+    // En serie: cada cambio es una petición y una transacción; si uno falla, los anteriores quedan aplicados.
+    concat(...operaciones).pipe(toArray()).subscribe({ next: () => terminar('El profesor y su cuenta fueron actualizados.'), error: (error) => { this.cargarProfesores(); this.notificarError(error, 'Los datos del profesor se guardaron, pero no todos los cambios de la cuenta.'); } });
+  }
 
     private async accionEstudiante(action: string, registro: RegistroVista): Promise<void> {
       if (action === 'history') {
@@ -794,7 +725,7 @@ export class FuncionalidadVistaComponent {
    protected fieldError(key: string): string {
        if (!this.validationAttempted || this.readOnly || !['profesores', 'estudiantes', 'matriculas', 'periodos', 'secciones'].includes(this.key)) return '';
        const value = String(this.draft[key] ?? '').trim();
-         const required = new Set(this.key === 'usuarios' ? ['correo', 'password', 'roles'] : this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'vincular' ? ['usuarioId'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
+         const required = new Set(this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'vincular' ? ['usuarioId'] : this.draft['modoCuenta'] === 'actual' ? ['correo', 'roles'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
         const labels: Record<string, string> = { usuarioId: 'Usuario disponible', nombre: 'Nombre', primerApellido: 'Primer apellido', cedula: 'Cédula', correo: 'Correo electrónico', fechaNacimiento: 'Fecha de nacimiento', password: 'Contraseña', roles: 'Roles', cedulaEstudiante: 'Cédula del estudiante', yearCiclo: 'Curso lectivo', nivel: 'Nivel', numeroSeccion: 'Número de sección', fechaInicioI: 'Inicio del I semestre', fechaFinI: 'Fin del I semestre', fechaInicioII: 'Inicio del II semestre', fechaFinII: 'Fin del II semestre' };
       const label = labels[key] ?? key;
       if (required.has(key) && !value) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
@@ -832,17 +763,6 @@ export class FuncionalidadVistaComponent {
       return Number.isInteger(year) && year >= 1900 && year <= 2100 ? `${year}-12-31` : null;
     }
 
-  private validarUsuarioDraft(): string | null {
-      const correo = String(this.draft['correo'] ?? '').trim();
-      const password = String(this.draft['password'] ?? '').trim();
-      if (!correo) return "El campo 'correo' es obligatorio y no puede estar vacío.";
-      if (!/^\S+@\S+\.\S+$/.test(correo)) return 'Escriba un correo electrónico válido.';
-       if (!this.editingId && !password) return "El campo 'contraseña' es obligatorio y no puede estar vacío.";
-       if (password && (password.length < 8 || password.length > 128)) return 'La contraseña debe tener entre 8 y 128 caracteres.';
-      if (!this.rolesSeleccionados().length) return 'Seleccione al menos un rol.';
-      return null;
-    }
-
    private validarEstudianteDraft(): string | null {
      if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
      if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
@@ -871,6 +791,12 @@ export class FuncionalidadVistaComponent {
     if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
     if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
     if (this.draft['modoCuenta'] === 'vincular' && !String(this.draft['usuarioId'] ?? '').trim()) return 'Seleccione el usuario que se vinculará al profesor.';
+    if (this.draft['modoCuenta'] === 'actual') {
+      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
+      const nueva = String(this.draft['password'] ?? '');
+      if (nueva && (nueva.length < 8 || nueva.length > 128)) return 'La contraseña nueva debe tener entre 8 y 128 caracteres.';
+      if (!this.rolesSeleccionados().length) return 'La cuenta debe tener al menos un rol.';
+    }
     if (this.draft['modoCuenta'] === 'nueva') {
       if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
       const password = String(this.draft['password'] ?? '');

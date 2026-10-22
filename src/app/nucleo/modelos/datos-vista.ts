@@ -1,5 +1,4 @@
 export type FuncionalidadAdministrativa =
-  | 'usuarios'
   | 'profesores'
   | 'estudiantes'
   | 'periodos'
