@@ -15,11 +15,13 @@ describe('report routes', () => {
 
   it('protects the authenticated shell and sensitive routes by role', () => {
     const shell = routes.find((route) => route.children);
-    const users = childRoutes.find((route) => route.path === 'usuarios');
+    const teachers = childRoutes.find((route) => route.path === 'profesores');
     const monographs = childRoutes.find((route) => route.path === 'monografias');
 
     expect(shell?.canActivateChild).toHaveLength(2);
-    expect(users?.data?.['roles']).toEqual(['Administrador']);
+    expect(teachers?.data?.['roles']).toEqual(['Administrador']);
+    // Las cuentas se administran desde Profesores: la ruta vieja redirige allí.
+    expect(childRoutes.find((route: Route) => route.path === 'usuarios')?.redirectTo).toBe('profesores');
     expect(monographs?.data?.['roles']).toEqual(['Profesor Coordinador de Monografía']);
     expect(childRoutes.find((route: Route) => route.path === 'asignaciones-monografia')?.data?.['roles']).toEqual(['Administrador']);
   });

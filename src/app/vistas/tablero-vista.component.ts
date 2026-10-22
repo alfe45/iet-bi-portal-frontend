@@ -62,8 +62,7 @@ export class TableroVistaComponent {
      // Accesos acumulables: cada rol aporta sus propias vistas; una cuenta multirrol ve la suma.
      const links: { path: string; label: string; description: string; icon: string; featured: boolean }[] = [];
      if (this.isAdmin()) links.push(
-       { path: '/usuarios', label: 'Usuarios', description: 'Cuentas y permisos', icon: 'U', featured: true },
-       { path: '/profesores', label: 'Profesores', description: 'Personal docente', icon: 'P', featured: false },
+       { path: '/profesores', label: 'Profesores', description: 'Personal docente y cuentas', icon: 'P', featured: true },
        { path: '/estudiantes', label: 'Estudiantes', description: 'Comunidad estudiantil', icon: 'E', featured: false },
        { path: '/periodos', label: 'Cursos lectivos', description: 'Ciclos lectivos', icon: 'T', featured: false },
        { path: '/secciones', label: 'Secciones', description: 'Grupos y profesores guía', icon: 'S', featured: false },
