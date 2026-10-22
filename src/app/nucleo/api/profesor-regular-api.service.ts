@@ -176,8 +176,8 @@ export class ProfesorRegularApiService {
     return this.http.delete<void>(`${this.url}/evaluaciones/${this.segmentosEvaluacion(consulta, cedula)}`);
   }
 
-  enviarEvaluaciones(consulta: ProfesorRegularConsulta): Observable<void> {
-    return this.http.post<void>(`${this.url}/evaluaciones/envio`, consulta);
+  confirmarEvaluaciones(consulta: ProfesorRegularConsulta): Observable<void> {
+    return this.http.post<void>(`${this.url}/evaluaciones/confirmacion`, consulta);
   }
 
   listarLecciones(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularLeccionesResponse> {

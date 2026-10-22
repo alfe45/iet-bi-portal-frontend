@@ -166,7 +166,7 @@ export class ProfesorRegularContextService {
   }
 
   enviarRegistro(group: GrupoRegularConsulta): Observable<void> {
-    return this.api.enviarEvaluaciones(group).pipe(map(() => {
+    return this.api.confirmarEvaluaciones(group).pipe(map(() => {
       const enviados = new Set(this.enviados());
       enviados.add(this.clave(group));
       this.enviados.set(enviados);
