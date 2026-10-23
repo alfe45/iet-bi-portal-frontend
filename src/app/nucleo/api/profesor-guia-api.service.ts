@@ -81,6 +81,7 @@ export interface BandaAsignaturaGuiaApi {
   injustificadas: number;
   justificadas: number;
   observaciones: string | null;
+  confirmada: boolean;
 }
 
 export interface MonografiaReporteGuiaApi {
@@ -89,6 +90,7 @@ export interface MonografiaReporteGuiaApi {
   nombreCoordinador: string;
   estado: string;
   observaciones: string | null;
+  enviadoEn: string | null;
 }
 
 export interface ReporteBandasGuiaApi {
@@ -139,12 +141,20 @@ export class ProfesorGuiaApiService {
     return this.http.get<ReporteMonografiaGuiaApi[]>(`${this.url}/monografias/reportes`, { params: this.params(consulta) });
   }
 
+  permitirCambiosReporteMonografia(consulta: ConsultaSemestreGuia, cedulaEstudiante: string): Observable<void> {
+    return this.http.put<void>(`${this.url}/monografias/reportes/${consulta.anio}/${consulta.nivel}/${consulta.numero}/${encodeURIComponent(cedulaEstudiante)}/permitir-cambios/${encodeURIComponent(consulta.semestre)}`, {});
+  }
+
   listarReportesBandas(consulta: ConsultaSemestreGuia): Observable<ReporteBandasGuiaApi[]> {
     return this.http.get<ReporteBandasGuiaApi[]>(`${this.url}/reporte-bandas`, { params: this.params(consulta) });
   }
 
   obtenerReporteBandas(cedula: string, consulta: ConsultaSemestreGuia): Observable<ReporteBandasGuiaApi> {
     return this.http.get<ReporteBandasGuiaApi>(`${this.url}/reporte-bandas/${encodeURIComponent(cedula)}`, { params: this.params(consulta) });
+  }
+
+  reactivarBandasSeccion(consulta: ConsultaSemestreGuia): Observable<void> {
+    return this.http.put<void>(`${this.url}/reporte-bandas/${consulta.anio}/${consulta.nivel}/${consulta.numero}/reactivar/${encodeURIComponent(consulta.semestre)}`, {});
   }
 
   private params(consulta: ConsultaSeccionGuia & Partial<Pick<ConsultaSemestreGuia, 'semestre'>>): HttpParams {

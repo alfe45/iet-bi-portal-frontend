@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
+import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 @Component({
   selector: 'app-vista-compartir-seccion',
@@ -11,11 +12,10 @@ import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
       <form class="surface share-form" (ngSubmit)="prepararEnvio()">
         <section class="group-block"><label>Grupo<select name="grupo" [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><div class="recipient-summary"><strong>{{ recipients().length }} estudiantes recibirán el archivo</strong><span>{{ grupos.etiqueta(currentGroup()) }}</span><button type="button" class="link-button" (click)="showRecipients.set(!showRecipients())">{{ showRecipients() ? 'Ocultar destinatarios' : 'Ver destinatarios' }}</button></div></section>
         @if (showRecipients()) {<div class="recipient-list" style="max-height: min(260px, 35vh); overflow-y: auto;" aria-label="Lista de destinatarios">@for (student of recipients(); track student.id) {<div><strong>{{ student['nombre'] }}</strong><span>{{ student['correo'] || 'Correo no disponible' }}</span></div>} @empty {<p>No hay destinatarios en este grupo.</p>}</div>}
-        <section class="file-section"><p class="field-title">Archivo</p><div class="drop-zone" [class.drop-zone--selected]="fileName()" (dragover)="$event.preventDefault()" (drop)="dropFile($event)"><span class="upload-icon" aria-hidden="true">↑</span><strong>{{ fileName() || 'Arrastra un archivo aquí' }}</strong>@if (!fileName()) {<span>o</span>}<button type="button" class="secondary-button" (click)="fileInput.click()">{{ fileName() ? 'Cambiar archivo' : 'Seleccionar archivo' }}</button>@if (fileName()) {<small>{{ fileSize() }} · {{ fileType() }} <button type="button" class="remove-file" (click)="removeFile()">Quitar</button></small>}</div><input #fileInput class="visually-hidden" type="file" (change)="selectFile($event)" /></section>
-        <label>Asunto<input name="asunto" [(ngModel)]="subject" required placeholder="Material de Historia - Semana 4" /></label>
+         <section class="file-section"><p class="field-title">Archivo <span class="required-mark" aria-hidden="true">*</span></p><div class="drop-zone" [class.drop-zone--selected]="fileName()" (dragover)="$event.preventDefault()" (drop)="dropFile($event)"><span class="upload-icon" aria-hidden="true">↑</span><strong>{{ fileName() || 'Arrastra un archivo aquí' }}</strong>@if (!fileName()) {<span>o</span>}<button type="button" class="secondary-button" (click)="fileInput.click()">{{ fileName() ? 'Cambiar archivo' : 'Seleccionar archivo' }}</button>@if (fileName()) {<small>{{ fileSize() }} · {{ fileType() }} <button type="button" class="remove-file" (click)="removeFile()">Quitar</button></small>}</div><input #fileInput class="visually-hidden" type="file" (change)="selectFile($event)" required /></section>
+         <label>Asunto<input name="asunto" [(ngModel)]="subject" required placeholder="Material de Historia - Semana 4" /></label>
         <label>Mensaje <span class="optional">(opcional)</span><textarea name="mensaje" rows="4" [(ngModel)]="body" placeholder="Adjunto el material para la próxima clase."></textarea></label>
-        @if (message) {<p class="message" role="status">{{ message }}</p>}
-        <div class="actions"><button type="button" class="ghost-button">Cancelar</button><button type="submit" class="primary-button" [disabled]="!fileName() || !subject.trim()">Enviar archivo</button></div>
+         <div class="actions"><button type="button" class="ghost-button" (click)="cancelar()">Cancelar</button><button type="submit" class="primary-button" [disabled]="!fileName() || !subject.trim()">Enviar archivo</button></div>
       </form>
       @if (confirmationOpen()) {<div class="modal-backdrop" role="presentation"><section class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title"><p class="eyebrow">Confirmar envío</p><h3 id="confirm-title">¿Enviar archivo?</h3><p>Se enviará <strong>“{{ fileName() }}”</strong> a {{ recipients().length }} estudiantes de <strong>{{ grupos.etiqueta(currentGroup()) }}</strong>.</p><div class="actions"><button type="button" class="ghost-button" (click)="confirmationOpen.set(false)">Cancelar</button><button type="button" class="primary-button" (click)="confirmarEnvio()">Confirmar envío</button></div></section></div>}
     </section>
@@ -28,6 +28,7 @@ import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 // Permite compartir información de una sección.
 export class CompartirSeccionVistaComponent {
   protected readonly grupos = inject(GruposProfesorService);
+  private readonly feedback = inject(FeedbackService);
   protected readonly selectedGroupId = signal(this.grupos.grupoActual()?.id ?? '');
   protected readonly currentGroup = computed(() => this.grupos.grupos().find((group) => group.id === this.selectedGroupId()) ?? this.grupos.grupoActual());
   protected readonly recipients = computed(() => this.currentGroup()?.estudiantes ?? []);
@@ -38,14 +39,14 @@ export class CompartirSeccionVistaComponent {
   protected readonly fileType = signal('');
   protected subject = '';
   protected body = '';
-  protected message = '';
 
   protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); this.showRecipients.set(false); }
   protected selectFile(event: Event): void { const file = (event.target as HTMLInputElement).files?.[0]; if (file) this.setFile(file); }
   protected dropFile(event: DragEvent): void { event.preventDefault(); const file = event.dataTransfer?.files?.[0]; if (file) this.setFile(file); }
   protected removeFile(): void { this.fileName.set(''); this.fileSize.set(''); this.fileType.set(''); }
+  protected cancelar(): void { this.confirmationOpen.set(false); this.removeFile(); this.subject = ''; this.body = ''; }
   protected prepararEnvio(): void { if (this.fileName() && this.subject.trim()) this.confirmationOpen.set(true); }
-  protected confirmarEnvio(): void { this.confirmationOpen.set(false); this.message = 'El envío de archivos requiere integración con el backend.'; }
+  protected confirmarEnvio(): void { this.confirmationOpen.set(false); this.feedback.error('El envío de archivos todavía no está disponible porque requiere integración con el backend.', 'Funcionalidad no disponible'); }
   private setFile(file: File): void { this.fileName.set(file.name); this.fileSize.set(this.formatSize(file.size)); this.fileType.set(file.type || 'Tipo no disponible'); }
   private formatSize(bytes: number): string { if (!bytes) return '0 B'; const units = ['B', 'KB', 'MB', 'GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return `${(bytes / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`; }
 }

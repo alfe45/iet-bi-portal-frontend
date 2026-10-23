@@ -54,6 +54,14 @@ const ESTADOS = ['Activo', 'Inactivo'];
 const ROLES_USUARIO = ['Administrador', 'Profesor regular', 'Profesor Guía', 'Profesor Coordinador de Monografía', 'Profesor CAS', 'Profesor Coordinador de CAS'];
 const ROLES_BACKEND: Record<string, string> = { 'Administrador': 'ADMIN', 'Profesor regular': 'PROFESOR_REGULAR', 'Profesor Guía': 'GUIA', 'Profesor Coordinador de Monografía': 'COORD_MONOGRAFIA', 'Profesor CAS': 'PROFESOR_CAS', 'Profesor Coordinador de CAS': 'COORD_CAS' };
 const ROLES_FRONTEND: Record<string, string> = Object.fromEntries(Object.entries(ROLES_BACKEND).map(([label, role]) => [role, label]));
+const DESCRIPCIONES_ROL: Record<string, string> = {
+  'Administrador': 'Configuración institucional y gestión completa del portal.',
+  'Profesor regular': 'Registro académico, notas, estudiantes y ausentismo.',
+  'Profesor Guía': 'Seguimiento de su sección, reportes y monografías.',
+  'Profesor Coordinador de Monografía': 'Coordinación y seguimiento de monografías.',
+  'Profesor CAS': 'Registro y actualización de informes CAS.',
+  'Profesor Coordinador de CAS': 'Supervisión general y reportes del programa CAS.',
+};
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
   profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso (los administradores también son profesores con el rol Administrador).', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
@@ -79,27 +87,45 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        <app-stat-grid [cards]="statCards()" />
 
        @if (editorOpen()) {
-           <div class="modal-backdrop" role="presentation"><form class="surface editor" autocomplete="off" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
-           <div class="section-heading modal-header"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3><p>{{ readOnly ? 'Información de solo lectura.' : 'Complete los campos requeridos.' }}</p></div><button type="button" class="modal-close" aria-label="Cerrar modal" (click)="cerrarEditor()">×</button></div>
-            <div class="editor-grid">
-              @for (field of camposFormulario(); track field.key) {
-                  <label [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="key === 'profesores' && field.key === 'roles'" [class.account-field]="key === 'profesores' && field.key === 'modoCuenta'"><span>{{ field.label }}</span>
-                    @if (key === 'profesores' && field.key === 'modoCuenta') {
+            <div class="modal-backdrop" role="presentation"><form class="surface editor" [class.professor-editor]="key === 'profesores'" [class.student-editor]="key === 'estudiantes'" autocomplete="off" (ngSubmit)="guardar()" novalidate role="dialog" aria-modal="true" aria-labelledby="crud-editor-title">
+            <div class="section-heading modal-header"><div><p class="modal-kicker">{{ readOnly ? 'Consulta' : editingId ? 'Edición' : 'Nuevo registro' }}</p><h3 id="crud-editor-title">{{ editorTitle }}</h3>@if (!readOnly) { <p class="required-legend">* Campos obligatorios</p> } @else { <p>Información de solo lectura.</p> }</div><button type="button" class="modal-close" aria-label="Cerrar modal" (click)="cerrarEditor()">×</button></div>
+             <div class="editor-grid">
+               @if (key === 'profesores') {
+                 <div class="professor-wizard" aria-label="Progreso del registro de profesor">
+                   <div class="wizard-steps">
+                     @for (step of professorSteps; track step.number) {
+                       <div class="wizard-step" [class.active]="professorStep() === step.number" [class.complete]="professorStep() > step.number">
+                         <span class="wizard-step-number">{{ professorStep() > step.number ? '✓' : step.number }}</span>
+                         <span class="wizard-step-copy"><strong>{{ step.label }}</strong><small>{{ step.short }}</small></span>
+                       </div>
+                       @if (step.number < professorSteps.length) { <span class="wizard-connector" [class.complete]="professorStep() > step.number"></span> }
+                     }
+                   </div>
+                 </div>
+               }
+               @for (field of camposFormularioVisibles(); track field.key) {
+                      <div [class.student-field]="key === 'matriculas' && field.key === 'cedulaEstudiante'" [class.course-field]="(key === 'matriculas' || key === 'secciones' || key === 'asignaciones') && field.key === 'yearCiclo'" [class.registration-field]="key === 'estudiantes' && field.key === 'fechaRegistro'" [class.roles-field]="key === 'profesores' && field.key === 'roles'" [class.account-field]="key === 'profesores' && field.key === 'modoCuenta'" [class.professor-email-field]="key === 'profesores' && field.key === 'correo'" [class.professor-password-field]="key === 'profesores' && field.key === 'password'" [class.professor-personal-field]="key === 'profesores' && ['cedula', 'numeroCelular', 'fechaNacimiento'].includes(field.key)" [class.required-field]="campoRequerido(field)"><span>{{ field.label }}@if (campoRequerido(field)) { <span class="required-mark" aria-hidden="true">*</span> }</span>
+                     @if ((key === 'profesores' || key === 'estudiantes') && field.key === 'cedula') {
+                       <div class="identification-input">
+                         <input type="text" [name]="field.key" [ngModel]="draft[field.key]" (ngModelChange)="cambiarIdentificacion($event)" [attr.aria-label]="field.label" inputmode="text" maxlength="20" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" placeholder="1-1234-5678" />
+                         @if (!readOnly && !campoSoloLectura(field)) { <label class="foreign-identification"><input type="checkbox" name="identificacionExtranjera" [checked]="identificacionExtranjera" (change)="cambiarTipoIdentificacion($any($event.target).checked)" /> Identificación extranjera</label> }
+                       </div>
+                     } @else if (key === 'profesores' && field.key === 'modoCuenta') {
                        @if (draft['modoCuenta'] === 'actual') {
                          <div class="selected-student"><strong>{{ draft['emailOriginal'] }}</strong><span>Tiene cuenta de acceso.</span><small>Abajo puede cambiar el correo, poner una contraseña nueva, editar los roles o desactivarla. Al eliminar el profesor se elimina también su cuenta.</small></div>
                        } @else if (!editingId) {
-                         <div class="selected-student"><strong>Cuenta nueva</strong><span>Todo profesor tiene su cuenta de acceso.</span><small>Indique abajo el correo, la contraseña y los roles.</small></div>
+                           <div class="selected-student credentials-note"><strong>Credenciales de acceso:</strong> El profesor ingresará con ese correo y contraseña.</div>
                        } @else {
-                         <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly"><option value="ninguna">Mantener sin cuenta</option><option value="nueva">Crear su cuenta</option></select><small class="catalog-count">Este profesor se registró antes de que la cuenta fuera obligatoria.</small>
+                         <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly"><option value="ninguna">Mantener sin cuenta</option><option value="nueva">Crear su cuenta</option></select><small class="catalog-count">Este profesor se registró antes de que la cuenta fuera obligatoria.</small>
                        }
                     } @else if (key === 'asignaciones' && field.key === 'profesor') {
-                       <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione un profesor</option>@for (teacher of profesoresDisponiblesAsignacion(); track teacher.id) { <option [value]="teacher.nombre">{{ teacher.cedula }} · {{ teacher.nombre }}</option> }</select>
+                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione un profesor</option>@for (teacher of profesoresDisponiblesAsignacion(); track teacher.id) { <option [value]="teacher.nombre">{{ teacher.cedula }} · {{ teacher.nombre }}</option> }</select>
                     } @else if (key === 'asignaciones' && field.key === 'codigo') {
-                       <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione una asignatura</option>@for (subject of asignaturasDisponiblesAsignacion(); track subject.codigo) { <option [value]="subject.codigo">{{ subject.codigo }} · {{ subject.nombre }}</option> }</select>
+                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione una asignatura</option>@for (subject of asignaturasDisponiblesAsignacion(); track subject.codigo) { <option [value]="subject.codigo">{{ subject.codigo }} · {{ subject.nombre }}</option> }</select>
                      } @else if (key === 'asignaciones' && field.key === 'seccion') {
-                       <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione una sección</option>@for (section of seccionesAsignacion(); track section) { <option [value]="section">{{ section }}</option> }</select>
+                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly || campoSoloLectura(field)" [required]="field.required ?? true"><option value="">Seleccione una sección</option>@for (section of seccionesAsignacion(); track section) { <option [value]="section">{{ section }}</option> }</select>
                      } @else if (key === 'asignaciones' && field.key === 'yearCiclo') {
-                       <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [disabled]="readOnly || !!editingId" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
+                        <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [attr.aria-label]="field.label" [disabled]="readOnly || !!editingId" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                      } @else if (key === 'matriculas' && field.key === 'cedulaEstudiante') {
                        @if (editingId) {
                          <div class="selected-student"><strong>{{ estudianteSeleccionadoMatricula() }}</strong><span>{{ draft[field.key] }}</span><small>El estudiante no se puede cambiar al editar una matrícula.</small></div>
@@ -108,35 +134,42 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
         }
 
                    } @else if (key === 'matriculas' && field.key === 'yearCiclo') {
-                     <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
+                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                    } @else if (key === 'matriculas' && field.key === 'nivel') {
-                     <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="draft['numeroSeccion'] = ''" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un nivel</option><option value="11">Undécimo</option><option value="12">Duodécimo</option></select>
+                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="draft['numeroSeccion'] = ''" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un nivel</option><option value="11">Undécimo</option><option value="12">Duodécimo</option></select>
                   } @else if (key === 'secciones' && field.key === 'yearCiclo') {
-                    <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
+                     <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                   } @else if (key === 'secciones' && field.key === 'nivel') {
-                    <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un nivel</option><option value="11">Undécimo</option><option value="12">Duodécimo</option></select>
+                     <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un nivel</option><option value="11">Undécimo</option><option value="12">Duodécimo</option></select>
                      } @else if (key === 'matriculas' && field.key === 'numeroSeccion') {
-                       <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione una sección</option>@for (section of seccionesDisponiblesMatricula(); track section.idSeccion) { <option [value]="numeroSeccion(section.seccion)">{{ section.seccion }}</option> }</select>
+                        <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione una sección</option>@for (section of seccionesDisponiblesMatricula(); track section.idSeccion) { <option [value]="numeroSeccion(section.seccion)">{{ section.seccion }}</option> }</select>
                      } @else if (key === 'secciones' && field.key === 'numeroSeccion') {
-                       <input type="number" [name]="field.key" [(ngModel)]="draft[field.key]" min="1" max="99" step="1" inputmode="numeric" [readonly]="readOnly" [required]="field.required ?? true" />
+                        <input type="number" [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" min="1" max="99" step="1" inputmode="numeric" [readonly]="readOnly" [required]="field.required ?? true" />
                      } @else if (key === 'profesores' && field.key === 'roles') {
-                      <span class="roles-grid">@for (option of rolesDisponibles(); track option) { <label class="role-option"><input type="checkbox" [checked]="rolesSeleccionados().includes(option)" [disabled]="readOnly" (change)="cambiarRol(option, $any($event.target).checked)" /> {{ option }}</label> }</span>
-                    } @else if (key === 'asignaturas' && field.key === 'codigo') {
-                      <input type="text" [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="normalizarCodigoAsignatura($event)" maxlength="3" minlength="3" pattern="[A-Z]{3}" placeholder="Ej. MAT" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" />
+                       <span class="roles-grid">@for (option of rolesDisponibles(); track option) { <label class="role-card" [class.selected]="rolesSeleccionados().includes(option)" [class.role-admin]="option === 'Administrador'" [class.role-guide]="option === 'Profesor Guía'" [class.role-cas]="option.includes('CAS')" [class.role-monograph]="option.includes('Monografía')"><input type="checkbox" [attr.aria-label]="option" [checked]="rolesSeleccionados().includes(option)" [disabled]="readOnly" (change)="cambiarRol(option, $any($event.target).checked)" /><span class="role-card-mark">{{ rolesSeleccionados().includes(option) ? '✓' : '' }}</span><span class="role-card-copy"><strong>{{ option }}</strong><small>{{ descripcionRol(option) }}</small></span></label> }</span>
+                      } @else if ((key === 'profesores' || key === 'estudiantes') && field.key === 'numeroCelular') {
+                        <input type="tel" [name]="field.key" [ngModel]="formatearTelefono(draft[field.key])" (ngModelChange)="cambiarNumeroCelular($event)" [attr.aria-label]="field.label" inputmode="numeric" maxlength="9" autocomplete="tel" placeholder="0000-0000" [readonly]="campoSoloLectura(field)" [required]="campoRequerido(field)" />
+                      } @else if (key === 'asignaturas' && field.key === 'codigo') {
+                       <input type="text" [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="normalizarCodigoAsignatura($event)" [attr.aria-label]="field.label" maxlength="3" minlength="3" pattern="[A-Z]{3}" placeholder="Ej. MAT" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" />
                     } @else if (key === 'asignaturas' && (field.key === 'imparteNivel11' || field.key === 'imparteNivel12')) {
-                      <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="campoSoloLectura(field)" [required]="field.required ?? true"><option value="true">Sí</option><option value="false">No</option></select>
+                       <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="campoSoloLectura(field)" [required]="field.required ?? true"><option value="true">Sí</option><option value="false">No</option></select>
                     } @else if (field.type === 'select') {
-                     <select [name]="field.key" [(ngModel)]="draft[field.key]" [disabled]="campoSoloLectura(field)" [required]="field.required ?? true">@for (option of field.options ?? []; track option) { <option [value]="option">{{ option }}</option> }</select>
+                      <select [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [disabled]="campoSoloLectura(field)" [required]="field.required ?? true">@for (option of field.options ?? []; track option) { <option [value]="option">{{ option }}</option> }</select>
                       } @else {
-                      @if (field.type === 'password') { <span class="password-input"><input [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" [name]="field.key" [(ngModel)]="draft[field.key]" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /><span class="password-visibility"><input type="checkbox" [checked]="showPassword()" (change)="showPassword.set($any($event.target).checked)" /> Mostrar contraseña</span></span> } @else { <input [type]="field.type ?? 'text'" autocomplete="off" [name]="field.key" [(ngModel)]="draft[field.key]" [min]="fechaMinima(field.key)" [max]="fechaMaxima(field.key)" [readonly]="campoSoloLectura(field)" [required]="field.required ?? true" /> }
-                      }
-                  @if (fieldError(field.key)) { <small class="field-error" role="alert">{{ fieldError(field.key) }}</small> }
-                </label>
-             }
-           </div>
-            @if (apiError && !readOnly) { <p class="api-error" role="alert">{{ apiError }}</p> }
-            @if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> }
-          </form></div>
+                        @if (field.type === 'password') { <span class="password-input"><input [type]="showPassword() ? 'text' : 'password'" autocomplete="new-password" [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [readonly]="campoSoloLectura(field)" [required]="campoRequerido(field)" /><span class="password-visibility"><input type="checkbox" [attr.aria-label]="'Mostrar ' + field.label.toLowerCase()" [checked]="showPassword()" (change)="showPassword.set($any($event.target).checked)" /> Mostrar contraseña</span></span> } @else { <input [type]="field.type ?? 'text'" autocomplete="off" [name]="field.key" [(ngModel)]="draft[field.key]" [attr.aria-label]="field.label" [min]="fechaMinima(field.key)" [max]="fechaMaxima(field.key)" [readonly]="campoSoloLectura(field)" [required]="campoRequerido(field)" /> }
+                 }
+                 @if (fieldError(field.key)) { <small class="field-error" role="alert">{{ fieldError(field.key) }}</small> }
+                 </div>
+              }
+              @if (key === 'profesores' && professorStep() === 3 && !camposFormularioVisibles().length) {
+                <div class="role-empty-state"><span class="role-empty-icon">i</span><div><strong>Sin cuenta de acceso</strong><p>Este profesor no tiene una cuenta. Puedes crearla en la fase anterior para asignarle responsabilidades y permitirle iniciar sesión.</p></div></div>
+              }
+            </div>
+              @if (apiError && !readOnly && key !== 'profesores') { <p class="api-error" role="alert">{{ apiError }}</p> }
+             @if (key === 'profesores') {
+               <div class="form-actions wizard-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button><span class="wizard-actions-spacer"></span>@if (professorStep() > 1) { <button type="button" class="ghost-button" (click)="retrocederProfesor()">← Atrás</button> } @if (professorStep() < professorSteps.length) { <button type="button" class="primary-button" (click)="avanzarProfesor()">Continuar <span aria-hidden="true">→</span></button> } @else if (!readOnly) { <button type="submit" class="primary-button">Guardar cambios</button> }</div>
+             } @else if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> }
+           </form></div>
         }
 
         @if (promotionTarget(); as target) {
@@ -184,11 +217,12 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
      .eyebrow { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .74rem; color: #2f6b9a; font-weight: 700; }
     .section-heading p { margin: .35rem 0 0; color: #667085; }
       .modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(18,32,49,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:modal-fade-in .18s ease-out}
-       .editor { width:min(100%,760px);max-height:calc(100vh - 2rem);overflow:auto;padding:0;border:1px solid #dbe5ef;border-left:5px solid #2f6b9a;border-radius:14px;box-shadow:0 24px 70px rgba(18,32,49,.26); }
-      .editor .modal-header{align-items:flex-start;margin:0;padding:1.5rem 1.75rem .95rem;border-bottom:1px solid #edf1f4}.editor .modal-header h3{margin:0;color:#29344a;font-size:1.2rem}.editor .modal-header p:last-child{margin:.3rem 0 0;color:#667085;font-size:.8rem}.editor .modal-close{flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid #d7e0e8;border-radius:8px;color:#475467;background:#f8fafc;font-size:1.45rem;line-height:1;cursor:pointer}.editor .modal-close:hover{border-color:#9bb6c9;background:#eef5f8;color:#1e5578}
+       .editor { width:min(100%,760px);max-height:calc(100vh - 2rem);overflow:auto;padding:0;border:1px solid #dbe5ef;border-left:5px solid #2f6b9a;border-radius:14px;box-shadow:0 24px 70px rgba(18,32,49,.26); }.editor.professor-editor::before{display:none;content:none}
+       .editor .modal-header{align-items:flex-start;margin:0;padding:1.5rem 1.75rem .95rem;border-bottom:1px solid #edf1f4}.editor .modal-header h3{margin:0;color:#29344a;font-size:1.2rem}.editor .modal-header p:last-child{margin:.3rem 0 0;color:#667085;font-size:.8rem}.editor .modal-header .required-legend{margin:.3rem 0 0;color:#b42318;font-size:.78rem;font-weight:700}.editor .modal-close{flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid #d7e0e8;border-radius:8px;color:#475467;background:#f8fafc;font-size:1.45rem;line-height:1;cursor:pointer}.editor .modal-close:hover{border-color:#9bb6c9;background:#eef5f8;color:#1e5578}
       .user-editor { width:min(100%,700px); border-left-color:#1e7a68; }
       .modal-kicker { margin:0 0 .2rem; color:#1e7a68; font-size:.72rem; font-weight:800; letter-spacing:.11em; text-transform:uppercase; }
-       .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding:1.35rem 1.75rem 0; }
+          .editor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding:1.35rem 1.75rem 0; }.editor .required-field::before{content:none!important}.editor .required-field>span:first-child::after{content:none!important}.professor-editor .editor-grid,.student-editor .editor-grid{align-items:start}.professor-editor .editor-grid div:has(> input[required])::before,.professor-editor .editor-grid div:has(> select[required])::before,.professor-editor .editor-grid div:has(> textarea[required])::before,.student-editor .editor-grid div:has(> input[required])::before,.student-editor .editor-grid div:has(> select[required])::before,.student-editor .editor-grid div:has(> textarea[required])::before{content:none!important}.professor-wizard{grid-column:1 / -1}.professor-personal-field{align-self:start;align-content:start}.foreign-identification{display:inline-flex!important;align-items:center;justify-content:center;width:100%;gap:.4rem;transform:translateX(-.35rem)}.foreign-identification input[type="checkbox"]{width:auto;min-height:0}.student-editor .identification-input{width:100%}.student-editor .editor-grid>div{min-width:0;align-self:start}.professor-email-field{grid-column:1;align-content:start;min-width:0;grid-template-columns:minmax(0,1fr)}.professor-password-field{grid-column:2;align-content:start;min-width:0;grid-template-columns:minmax(0,1fr)}.professor-email-field>span:first-child,.professor-password-field>span:first-child{height:36px;min-height:36px;display:flex;align-items:flex-start;white-space:nowrap}.professor-email-field>input,.professor-password-field .password-input,.professor-password-field .password-input>input{width:100%;max-width:100%;min-width:0;box-sizing:border-box}.professor-password-field .password-input{grid-template-columns:minmax(0,1fr);justify-self:stretch;overflow:hidden}.selected-student.credentials-note{display:block;line-height:1.35}.credentials-note strong{color:#1e3a5f}
+        .professor-wizard{grid-column:1 / -1;display:grid;gap:1rem;margin:-.2rem 0 .15rem}.wizard-steps{display:flex;align-items:center;gap:.55rem}.wizard-step{display:flex;align-items:center;gap:.45rem;min-width:0;color:#98a2b3}.wizard-step-number{display:grid;place-items:center;width:1.8rem;height:1.8rem;border:2px solid #dbe5ef;border-radius:50%;background:#fff;color:#98a2b3;font-size:.72rem;font-weight:800;flex:0 0 auto}.wizard-step-copy{display:grid;gap:.08rem;white-space:nowrap}.wizard-step-copy strong{font-size:.75rem;color:#667085}.wizard-step-copy small{font-size:.64rem;color:#98a2b3}.wizard-step.active .wizard-step-number{border-color:#2f6b9a;background:#2f6b9a;color:#fff;box-shadow:0 0 0 4px #eaf3f8}.wizard-step.active .wizard-step-copy strong{color:#1e5578}.wizard-step.complete .wizard-step-number{border-color:#1e7a68;background:#1e7a68;color:#fff}.wizard-step.complete .wizard-step-copy strong{color:#1e7a68}.wizard-connector{height:2px;min-width:1.5rem;flex:1;background:#dbe5ef}.wizard-connector.complete{background:#8bc9b9}.wizard-actions-spacer{flex:1}
        .student-field { grid-column: 1 / -1; }.course-field, .registration-field { grid-column: span 2; }.student-field select, .course-field select, .registration-field input { width: 100%; min-width: 0; }.student-field .student-picker{width:100%}.registration-field input { min-width: 240px; }
        .user-editor .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:1rem; margin-top:0; }.user-editor .editor-grid>label{align-content:start}.user-editor .editor-grid>label>input:not([type="checkbox"]),.user-editor .editor-grid>label>select,.user-editor .password-input>input{height:50px;min-height:50px;align-self:start}
        .user-editor .roles-field, .roles-field, .account-field { grid-column:1 / -1; }.catalog-count{color:#667085;font-size:.72rem;font-weight:500}
@@ -196,14 +230,14 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
        .group-filter { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; padding:.7rem; background:#f2f7fa; border-radius:7px; }.group-filter label { display:flex; align-items:center; gap:.7rem; }.group-filter span { color:#667085; font-size:.82rem; }
         .table-tools{display:flex;align-items:end;justify-content:space-between;gap:.8rem;margin:0 0 1rem;padding:.75rem;background:#f8fafc;border:1px solid #e6edf3;border-radius:8px}.table-search{display:grid;gap:.25rem;flex:1;max-width:520px}.table-search span{color:#475467;font-size:.72rem;font-weight:800}.table-search input{width:100%;box-sizing:border-box}.table-search-actions{display:flex;gap:.5rem}.table-search-actions button{white-space:nowrap}
         .pagination-bar{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.75rem .2rem 0;color:#667085;font-size:.76rem}.pagination-actions{display:flex;align-items:center;gap:.7rem}.pagination-actions button{padding:.35rem .65rem;font-size:.72rem}.pagination-actions button:disabled{opacity:.45;cursor:not-allowed}
-       label { display: grid; gap: .25rem; font-weight: 700; }.student-picker{display:grid;gap:.55rem;padding:.7rem;border:1px solid #cfdbe5;border-radius:9px;background:#f8fbfd}.student-search{display:grid;gap:.3rem}.search-label{color:#1e3a5f;font-size:.76rem;font-weight:800}.student-search input{width:100%;box-sizing:border-box}.student-search small{color:#667085;font-size:.72rem;font-weight:500}.student-results{display:grid;gap:.35rem;max-height:220px;overflow:auto;padding-right:.15rem}.student-result{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;align-items:center;gap:.55rem;width:100%;padding:.55rem;border:1px solid #dbe5ef;border-radius:7px;background:#fff;color:#25364a;text-align:left;cursor:pointer}.student-result:hover,.student-result.selected{border-color:#2f6b9a;background:#eaf3f8}.student-avatar{display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:#d9eaf3;color:#1e5a78;font-size:.68rem;font-weight:800}.student-result-copy{display:grid;min-width:0;gap:.12rem}.student-result-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem}.student-result-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#667085;font-size:.7rem}.student-check{color:#2f6b9a;font-size:.65rem;font-weight:800}.student-empty{margin:0;padding:.8rem;color:#667085;font-size:.78rem;text-align:center}.selected-student{display:grid;gap:.2rem;padding:.75rem;border:1px solid #b9d3e5;border-radius:9px;background:#f0f8fc}.selected-student strong{color:#1e3a5f}.selected-student span,.selected-student small{color:#667085;font-size:.75rem}.student-selection{margin:0;color:#1e5a78;font-size:.75rem}
+        label, .editor-grid > div { display: grid; gap: .25rem; font-weight: 700; }.student-picker{display:grid;gap:.55rem;padding:.7rem;border:1px solid #cfdbe5;border-radius:9px;background:#f8fbfd}.student-search{display:grid;gap:.3rem}.search-label{color:#1e3a5f;font-size:.76rem;font-weight:800}.student-search input{width:100%;box-sizing:border-box}.student-search small{color:#667085;font-size:.72rem;font-weight:500}.student-results{display:grid;gap:.35rem;max-height:220px;overflow:auto;padding-right:.15rem}.student-result{display:grid;grid-template-columns:2rem minmax(0,1fr) auto;align-items:center;gap:.55rem;width:100%;padding:.55rem;border:1px solid #dbe5ef;border-radius:7px;background:#fff;color:#25364a;text-align:left;cursor:pointer}.student-result:hover,.student-result.selected{border-color:#2f6b9a;background:#eaf3f8}.student-avatar{display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:#d9eaf3;color:#1e5a78;font-size:.68rem;font-weight:800}.student-result-copy{display:grid;min-width:0;gap:.12rem}.student-result-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.78rem}.student-result-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#667085;font-size:.7rem}.student-check{color:#2f6b9a;font-size:.65rem;font-weight:800}.student-empty{margin:0;padding:.8rem;color:#667085;font-size:.78rem;text-align:center}.selected-student{display:grid;gap:.2rem;padding:.75rem;border:1px solid #b9d3e5;border-radius:9px;background:#f0f8fc}.selected-student strong{color:#1e3a5f}.selected-student span,.selected-student small{color:#667085;font-size:.75rem}.student-selection{margin:0;color:#1e5a78;font-size:.75rem}
       .form-actions { display: flex; justify-content: flex-end; gap: .75rem; margin:1.4rem 0 0; padding:1rem 1.75rem 1.35rem; border-top:1px solid #edf1f4; background:#fbfcfd; }
      .field-error { display: block; color: #b42318; font-size: .72rem; line-height: 1.2; font-weight: 600; }
-       .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; min-height: 0; padding: 0; }.roles-grid{display:grid;gap:.45rem;padding:.55rem;border:1px solid #cfdbe5;border-radius:5px;background:#f8fafc}.role-option{display:flex;grid-template-columns:none;align-items:center;gap:.4rem;font-size:.8rem;font-weight:500}.role-option input{width:auto;min-height:0;padding:0}
+         .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; min-height: 0; padding: 0; }.roles-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;padding:.2rem 0 0}.role-card{position:relative;display:grid;grid-template-columns:1.75rem minmax(0,1fr);align-items:center;gap:.65rem;min-height:4.4rem;padding:.75rem .8rem;border:1px solid #dbe5ef;border-left:4px solid #b9c9d6;border-radius:11px;background:#fff;color:#25364a;cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease}.role-card:hover{border-color:#8fb5cc;background:#f8fcff;transform:translateY(-1px)}.role-card input{position:absolute;width:1px;height:1px;opacity:0}.role-card-mark{display:grid;place-items:center;width:1.55rem;height:1.55rem;border:1.5px solid #b9c9d6;border-radius:50%;color:transparent;font-size:.78rem;font-weight:900}.role-card-copy{display:grid;gap:.18rem}.role-card-copy strong{font-size:.76rem;color:#1e3a5f}.role-card-copy small{color:#667085;font-size:.66rem;font-weight:500;line-height:1.35}.role-card.selected{border-color:#67a9c7;background:#f0f8fc;box-shadow:0 5px 16px rgba(47,107,154,.1)}.role-card.selected .role-card-mark{border-color:#2f6b9a;background:#2f6b9a;color:#fff}.role-card.role-cas{border-left-color:#1e7a68}.role-card.role-cas.selected{border-color:#78b9ab;background:#f0faf6}.role-card.role-cas.selected .role-card-mark{border-color:#1e7a68;background:#1e7a68}.role-card.role-guide{border-left-color:#c58b31}.role-card.role-guide.selected{border-color:#dfb66c;background:#fffaf0}.role-card.role-guide.selected .role-card-mark{border-color:#b87918;background:#b87918}.role-card.role-monograph{border-left-color:#8064a2}.role-card.role-monograph.selected{border-color:#b39acb;background:#faf7fd}.role-card.role-monograph.selected .role-card-mark{border-color:#8064a2;background:#8064a2}.role-card.role-admin{border-left-color:#c95b68}.role-card.role-admin.selected{border-color:#dd929b;background:#fff7f8}.role-card.role-admin.selected .role-card-mark{border-color:#b94352;background:#b94352}.role-empty-state{grid-column:1 / -1;display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border:1px dashed #b9d3e5;border-radius:11px;background:#f7fbfd;color:#475467}.role-empty-icon{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:#dceef7;color:#1e5a78;font-weight:900}.role-empty-state strong{color:#1e3a5f;font-size:.8rem}.role-empty-state p{margin:.2rem 0 0;font-size:.72rem;line-height:1.45}
         @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: 1 / -1; } }
-        @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } }
+         @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field, .professor-email-field, .professor-password-field { grid-column: span 1; } }
        .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #1b6f60;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
-        @media (max-width: 700px) { .modal-backdrop{align-items:start}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.promotion-summary{grid-template-columns:1fr} }
+         @media (max-width: 700px) { .modal-backdrop{align-items:start}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid,.roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.wizard-steps{gap:.25rem}.wizard-step-copy{display:none}.wizard-step{flex:0 0 auto}.wizard-connector{min-width:.5rem}.promotion-summary{grid-template-columns:1fr} }
   `,
 })
 // Administra los formularios y tablas de las funcionalidades seleccionadas.
@@ -263,10 +297,17 @@ export class FuncionalidadVistaComponent {
   protected readOnly = false;
    protected editorTitle = '';
    protected editingId: string | undefined;
-   protected draft: Record<string, string> = {};
-   protected validationAttempted = false;
-   protected readonly showPassword = signal(false);
-   protected studentSearch = '';
+    protected draft: Record<string, string> = {};
+    protected identificacionExtranjera = false;
+    protected validationAttempted = false;
+    protected readonly showPassword = signal(false);
+    protected readonly professorStep = signal(1);
+    protected readonly professorSteps = [
+      { number: 1, label: 'Perfil', short: 'Datos personales' },
+      { number: 2, label: 'Cuenta', short: 'Acceso al portal' },
+      { number: 3, label: 'Roles', short: 'Responsabilidades' },
+    ];
+    protected studentSearch = '';
    protected readonly selectedGroupId = signal(this.grupos.grupoActual()?.id ?? '');
   protected readonly String = String;
    protected readonly isTeacher = computed(() => !this.auth.hasRole('Administrador'));
@@ -322,15 +363,40 @@ export class FuncionalidadVistaComponent {
      }
 
     protected camposFormulario(): CampoFormulario[] {
-      if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
+       if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
       if (this.key === 'profesores') {
         const modo = this.draft['modoCuenta'];
         const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
         return this.config.fields.filter((field) => !['usuarioId', 'correo', 'password', 'roles', 'estado'].includes(field.key) || visibles.includes(field.key))
           .map((field) => modo === 'actual' && field.key === 'password' ? { ...field, label: 'Nueva contraseña (opcional)', required: false } : field);
       }
-      return this.config.fields;
-   }
+       return this.config.fields;
+    }
+
+    protected camposFormularioVisibles(): CampoFormulario[] {
+      if (this.key !== 'profesores') return this.camposFormulario();
+      const fields = this.camposFormulario();
+      if (this.professorStep() === 1) return fields.filter((field) => ['nombre', 'primerApellido', 'segundoApellido', 'cedula', 'numeroCelular', 'fechaNacimiento'].includes(field.key));
+      if (this.professorStep() === 2) return fields.filter((field) => ['modoCuenta', 'usuarioId', 'correo', 'password', 'estado'].includes(field.key));
+      return fields.filter((field) => field.key === 'roles');
+    }
+
+    protected descripcionRol(role: string): string { return DESCRIPCIONES_ROL[role] ?? 'Responsabilidad institucional del portal.'; }
+
+    protected avanzarProfesor(): void {
+      const error = this.validarPasoProfesor(this.professorStep());
+      this.validationAttempted = true;
+      if (error) { this.apiError = error; return; }
+      this.validationAttempted = false;
+      this.apiError = '';
+      this.professorStep.update((step) => Math.min(this.professorSteps.length, step + 1));
+    }
+
+    protected retrocederProfesor(): void {
+      this.validationAttempted = false;
+      this.apiError = '';
+      this.professorStep.update((step) => Math.max(1, step - 1));
+    }
 
    protected rolesDisponibles(): string[] {
      const roles = this.config.fields.find((field) => field.key === 'roles')?.options ?? [];
@@ -371,10 +437,12 @@ export class FuncionalidadVistaComponent {
     this.editingId = undefined;
     this.readOnly = false;
     this.validationAttempted = false;
-    this.apiError = '';
-    this.showPassword.set(false);
-    this.studentSearch = '';
-    this.editorTitle = `Registrar ${this.config.singular}`;
+     this.apiError = '';
+      this.showPassword.set(false);
+      this.professorStep.set(1);
+      this.studentSearch = '';
+      this.identificacionExtranjera = false;
+     this.editorTitle = `Registrar ${this.config.singular}`;
      this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, field.options?.[0] ?? '']));
       if (this.key === 'profesores') { this.draft['modoCuenta'] = 'nueva'; this.draft['roles'] = 'Profesor regular'; }
       if (this.key === 'asignaturas') { this.draft['imparteNivel11'] = 'true'; this.draft['imparteNivel12'] = 'true'; }
@@ -394,7 +462,7 @@ export class FuncionalidadVistaComponent {
     if (this.isAdmin() && this.key === 'periodos') { this.accionCursoLectivo(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.accionSeccion(event.action, registro); return; }
        if (event.action === 'delete' && this.isAdmin()) {
-        if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.apiError = 'Esta operación no está disponible para este catálogo.';
+         if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.feedback.error('Esta operación no está disponible para este catálogo.');
       return;
     }
     this.editingId = registro.id;
@@ -451,8 +519,54 @@ export class FuncionalidadVistaComponent {
         return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
     }
 
-    protected normalizarCodigoAsignatura(value: string): void {
-      this.draft['codigo'] = String(value ?? '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+     protected normalizarCodigoAsignatura(value: string): void {
+       this.draft['codigo'] = String(value ?? '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3);
+     }
+
+     protected formatearTelefono(value: unknown): string {
+       const digits = String(value ?? '').replace(/\D/g, '').slice(0, 8);
+       if (digits.length <= 4) return digits;
+       return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+     }
+
+     protected cambiarNumeroCelular(value: unknown): void {
+       this.draft['numeroCelular'] = this.formatearTelefono(value);
+     }
+
+    protected cambiarTipoIdentificacion(extranjera: boolean): void {
+      const actual = String(this.draft['cedula'] ?? '').trim();
+      if (!extranjera && actual && !this.esIdentificacionCostarricense(actual)) {
+        // No se destruye una identificación extranjera al cambiar accidentalmente la casilla.
+        this.identificacionExtranjera = true;
+        return;
+      }
+      this.identificacionExtranjera = extranjera;
+      this.draft['cedula'] = this.identificacionExtranjera
+        ? actual.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20)
+        : this.formatearCedulaCostarricense(actual);
+    }
+
+    protected cambiarIdentificacion(value: string): void {
+      const limpio = String(value ?? '')
+        .replace(this.identificacionExtranjera ? /[^A-Za-z0-9-]/g : /[^0-9]/g, '')
+        .slice(0, 20);
+      this.draft['cedula'] = this.identificacionExtranjera ? limpio : this.formatearCedulaCostarricense(limpio);
+    }
+
+    private formatearCedulaCostarricense(value: string): string {
+      const digits = value.replace(/[^0-9]/g, '').slice(0, 9);
+      if (digits.length <= 1) return digits;
+      if (digits.length <= 5) return `${digits.slice(0, 1)}-${digits.slice(1)}`;
+      return `${digits.slice(0, 1)}-${digits.slice(1, 5)}-${digits.slice(5)}`;
+    }
+
+    private inferirIdentificacionExtranjera(value: string | undefined): boolean {
+      const identification = String(value ?? '').trim();
+      return Boolean(identification) && !this.esIdentificacionCostarricense(identification);
+    }
+
+    private esIdentificacionCostarricense(value: string): boolean {
+      return /^\d{9}$/.test(value) || /^\d-\d{4}-\d{4}$/.test(value);
     }
 
    private accionesEstudiante(): Array<{ label: string; code: string; tone?: string }> {
@@ -461,12 +575,12 @@ export class FuncionalidadVistaComponent {
 
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
       this.apiError = '';
-          this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => { const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role); return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? String(item.email) : 'Sin cuenta', tieneCuenta: item.tieneCuenta, estado: item.tieneCuenta ? (item.activo ? 'Activo' : 'Inactivo') : '—', roles: roles.join('|'), rolesBackend: item.roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) }; })); }, error: () => { this.profesoresApiRows.set([]); this.apiError = 'No se pudieron consultar los profesores.'; } });
+           this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => { const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role); return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? String(item.email) : 'Sin cuenta', tieneCuenta: item.tieneCuenta, estado: item.tieneCuenta ? (item.activo ? 'Activo' : 'Inactivo') : '—', roles: roles.join('|'), rolesBackend: item.roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) }; })); }, error: () => { this.profesoresApiRows.set([]); this.notificarError(undefined, 'No se pudieron consultar los profesores.'); } });
     }
 
     private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
       this.apiError = '';
-         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => ({ id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: item.fechaRegistro, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: [...this.accionesEstudiante(), { label: 'Historial', code: 'history' }] }))); }, error: () => { this.estudiantesApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes.'; } });
+         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => ({ id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: item.fechaRegistro, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: [...this.accionesEstudiante(), { label: 'Historial', code: 'history' }] }))); }, error: () => { this.estudiantesApiRows.set([]); this.notificarError(undefined, 'No se pudieron consultar los estudiantes.'); } });
     }
 
      private cargarMatriculas(busqueda = '', pagina = this.paginaActual()): void {
@@ -474,30 +588,29 @@ export class FuncionalidadVistaComponent {
         this.estudiantesApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (students) => {
          this.estudiantesMatricula.set(students);
            this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => ({ id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: item.estado, fechaRetiro: item.fechaRetiro, nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Editar', code: 'edit' }, ...(item.nivel === 11 ? [{ label: 'Subir de nivel', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
-         }, error: () => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.apiError = 'No se pudieron consultar los estudiantes para las matrículas.'; } });
+          }, error: () => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.notificarError(undefined, 'No se pudieron consultar los estudiantes para las matrículas.'); } });
    }
 
    private cargarSecciones(): void {
-        this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).pipe(map((response) => response.elementos)).subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: () => { this.seccionesMatricula.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
+         this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).pipe(map((response) => response.elementos)).subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: () => { this.seccionesMatricula.set([]); this.notificarError(undefined, 'No se pudieron consultar las secciones.'); } });
    }
 
    private cargarCursosLectivos(): void {
-        this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: () => { this.cursosLectivosMatricula.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
+         this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: () => { this.cursosLectivosMatricula.set([]); this.notificarError(undefined, 'No se pudieron consultar los cursos lectivos.'); } });
    }
 
     private cargarCursosAdministracion(pagina = this.paginaActual()): void {
-        this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, estado: course.estado, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: () => { this.cursosApiRows.set([]); this.apiError = 'No se pudieron consultar los cursos lectivos.'; } });
+         this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, estado: course.estado, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: () => { this.cursosApiRows.set([]); this.notificarError(undefined, 'No se pudieron consultar los cursos lectivos.'); } });
     }
 
       private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
-         this.seccionesApi.listarPaginado({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; })); }, error: () => { this.seccionesApiRows.set([]); this.apiError = 'No se pudieron consultar las secciones.'; } });
+         this.seccionesApi.listarPaginado({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; })); }, error: () => { this.seccionesApiRows.set([]); this.notificarError(undefined, 'No se pudieron consultar las secciones.'); } });
     }
 
-    private notificarError(error: unknown, fallback: string): void {
-      const mensaje = (error as { error?: { mensaje?: string } })?.error?.mensaje ?? fallback;
-      this.apiError = mensaje;
-      if (!this.editorOpen()) this.feedback.error(mensaje);
-    }
+     private notificarError(error: unknown, fallback: string): void {
+       const mensaje = (error as { error?: { mensaje?: string } })?.error?.mensaje ?? fallback;
+       this.feedback.error(mensaje);
+     }
 
     private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
       this.usuariosApi.listar(busqueda, pagina, tamanoPagina).subscribe({
@@ -627,9 +740,11 @@ export class FuncionalidadVistaComponent {
       this.readOnly = action === 'view';
       this.editorTitle = this.readOnly ? 'Detalle de profesor' : 'Editar profesor';
       this.validationAttempted = false;
-      this.apiError = '';
-      this.showPassword.set(false);
-      this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
+       this.apiError = '';
+       this.showPassword.set(false);
+       this.professorStep.set(1);
+        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
+       this.identificacionExtranjera = this.inferirIdentificacionExtranjera(this.draft['cedula']);
       this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
       this.draft['password'] = '';
       // Con cuenta se editan correo, contraseña, roles y estado; un profesor anterior sin cuenta puede recibirla al guardar.
@@ -690,7 +805,8 @@ export class FuncionalidadVistaComponent {
        this.validationAttempted = false;
        this.apiError = '';
        this.showPassword.set(false);
-       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, registro[field.key] ?? '']));
+        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, registro[field.key] ?? '']));
+        this.identificacionExtranjera = this.inferirIdentificacionExtranjera(String(this.draft['cedula'] ?? ''));
        this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
        this.editorOpen.set(true);
        return;
@@ -711,10 +827,18 @@ export class FuncionalidadVistaComponent {
    }
 
    private estudianteRequest(): EstudianteRequest {
-     return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: String(this.draft['numeroCelular'] ?? '') || null, email: String(this.draft['correo'] ?? ''), fechaNacimiento: String(this.draft['fechaNacimiento'] ?? '') };
+      return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: this.formatearTelefono(this.draft['numeroCelular']) || null, email: String(this.draft['correo'] ?? ''), fechaNacimiento: String(this.draft['fechaNacimiento'] ?? '') };
    }
 
-   protected fieldError(key: string): string {
+    protected campoRequerido(field: CampoFormulario): boolean {
+      if (this.readOnly || field.required === false) return false;
+      if (this.key !== 'profesores') return field.required ?? true;
+      if (field.key === 'password') return this.draft['modoCuenta'] === 'nueva';
+      if (['correo', 'roles'].includes(field.key)) return ['nueva', 'actual'].includes(String(this.draft['modoCuenta'] ?? ''));
+      return field.required ?? true;
+    }
+
+     protected fieldError(key: string): string {
        if (!this.validationAttempted || this.readOnly || !['profesores', 'estudiantes', 'matriculas', 'periodos', 'secciones'].includes(this.key)) return '';
        const value = String(this.draft[key] ?? '').trim();
          const required = new Set(this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'actual' ? ['correo', 'roles'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
@@ -772,35 +896,44 @@ export class FuncionalidadVistaComponent {
     private profesorRequest(): RegistrarProfesorRequest {
       const modo = this.draft['modoCuenta'];
       const cuenta: CuentaProfesorRequest | null = modo === 'nueva' ? { email: String(this.draft['correo'] ?? '').trim(), contrasena: String(this.draft['password'] ?? ''), roles: this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role) } : null;
-      return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: String(this.draft['numeroCelular'] ?? '') || null, fechaNacimiento: String(this.draft['fechaNacimiento'] ?? ''), cuenta };
+       return { nombre: String(this.draft['nombre'] ?? ''), primerApellido: String(this.draft['primerApellido'] ?? ''), segundoApellido: String(this.draft['segundoApellido'] ?? '') || null, cedula: String(this.draft['cedula'] ?? ''), numeroCelular: this.formatearTelefono(this.draft['numeroCelular']) || null, fechaNacimiento: String(this.draft['fechaNacimiento'] ?? ''), cuenta };
   }
 
-   private validarProfesorDraft(): string | null {
-     if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
-    if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
-    if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
-    if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
-    if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
-    if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
-    if (!this.editingId && this.draft['modoCuenta'] !== 'nueva') return 'Indique el correo, la contraseña y los roles de la cuenta del profesor.';
-    if (this.draft['modoCuenta'] === 'actual') {
-      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
-      const nueva = String(this.draft['password'] ?? '');
-      if (nueva && (nueva.length < 8 || nueva.length > 128)) return 'La contraseña nueva debe tener entre 8 y 128 caracteres.';
-      if (!this.rolesSeleccionados().length) return 'La cuenta debe tener al menos un rol.';
+     private validarPasoProfesor(step: number): string | null {
+      if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
+      if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
+      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
+      if (step === 1) {
+        const birthDate = String(this.draft['fechaNacimiento'] ?? '');
+        if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900 y hoy.';
+        return null;
+      }
+      if (step === 2 && this.draft['modoCuenta'] === 'actual') {
+        if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
+        const nueva = String(this.draft['password'] ?? '');
+        if (nueva && (nueva.length < 8 || nueva.length > 128)) return 'La contraseña nueva debe tener entre 8 y 128 caracteres.';
+      }
+      if (step === 2 && this.draft['modoCuenta'] === 'nueva') {
+        if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
+        const password = String(this.draft['password'] ?? '');
+        if (password.length < 8 || password.length > 128) return 'La contraseña debe tener entre 8 y 128 caracteres.';
+      }
+      if (step === 2) return null;
+      if (this.draft['modoCuenta'] !== 'ninguna' && !this.rolesSeleccionados().length) return 'Seleccione al menos un rol para la cuenta.';
+      return null;
     }
-    if (this.draft['modoCuenta'] === 'nueva') {
-      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido para la cuenta.';
-      const password = String(this.draft['password'] ?? '');
-      if (password.length < 8 || password.length > 128) return 'La contraseña debe tener entre 8 y 128 caracteres.';
-      if (!this.rolesSeleccionados().length) return 'Seleccione al menos un rol para la cuenta.';
-    }
-    const birthDate = String(this.draft['fechaNacimiento'] ?? '');
-     if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900-01-01 y hoy.';
-     return null;
-  }
 
-   private validarCatalogoAdministrativo(): string | null {
+     private validarProfesorDraft(): string | null {
+       for (const step of this.professorSteps.map((item) => item.number)) {
+         const error = this.validarPasoProfesor(step);
+         if (error) return error;
+       }
+       return null;
+    }
+    private validarCatalogoAdministrativo(): string | null {
       const required = this.key === 'asignaturas' ? ['codigo', 'tipoAsignatura', 'nombre'] : ['profesor', 'codigo', 'yearCiclo', 'seccion'];
      const missing = required.find((key) => !String(this.draft[key] ?? '').trim());
       if (missing) return `El campo '${missing}' es obligatorio.`;
@@ -1027,7 +1160,7 @@ export class FuncionalidadVistaComponent {
        this.studentSearch = value;
        const busqueda = value.trim();
        if (busqueda.length === 1) return;
-       this.estudiantesApi.listar(busqueda).subscribe({ next: (students) => this.estudiantesMatricula.set(students), error: () => this.apiError = 'No se pudieron buscar estudiantes.' });
+       this.estudiantesApi.listar(busqueda).subscribe({ next: (students) => this.estudiantesMatricula.set(students), error: () => this.notificarError(undefined, 'No se pudieron buscar estudiantes.') });
      }
 
     protected seleccionarEstudianteMatricula(student: EstudianteApi): void {

@@ -45,7 +45,17 @@ a { color: inherit; }
 :focus-visible { outline: 3px solid rgba(64,153,255,.55); outline-offset: 2px; }
 
 input,select,textarea,.form-control,.form-select { width:100%; min-height:42px; padding:.65rem .8rem; border:1px solid var(--color-border); border-radius:6px; color:var(--color-text); background:#fff; box-shadow:none; }
+form:not(.professor-editor) label:has(input[required]),form:not(.professor-editor) label:has(select[required]),form:not(.professor-editor) label:has(textarea[required]) { position:relative; }
+form:not(.professor-editor) label:has(input[required])::before,form:not(.professor-editor) label:has(select[required])::before,form:not(.professor-editor) label:has(textarea[required])::before { content:'*'; position:absolute; top:-.1rem; left:-.7rem; color:#b42318; font-weight:800; line-height:1; }
+form:not(.professor-editor) div:has(> input[required]),form:not(.professor-editor) div:has(> select[required]),form:not(.professor-editor) div:has(> textarea[required]) { position:relative; }
+form:not(.professor-editor) div:has(> input[required])::before,form:not(.professor-editor) div:has(> select[required])::before,form:not(.professor-editor) div:has(> textarea[required])::before { content:'*'; position:absolute; top:0; left:-.7rem; color:#b42318; font-weight:800; line-height:1; }
+ .required-mark { margin-left:.15rem; color:#b42318; font-weight:800; }
+ .required-legend { margin:.3rem 0 0; color:#b42318 !important; font-size:.78rem; font-weight:700; }
+.identification-input { display:grid; gap:.45rem; }
+.foreign-identification { display:flex; align-items:center; gap:.4rem; color:#475467; font-size:.82rem; font-weight:600; }
+.foreign-identification input[type="checkbox"] { width:auto; min-height:0; }
 input[type="checkbox"] { width:auto; min-height:0; padding:0; border:0; border-radius:0; accent-color:#1b6f60; }
+form:not(.auth-form):not(.editor):not(.editor-modal):not(.student-editor):not(.modal-form):has([required])::before { content:'* Campos obligatorios'; display:block; grid-column:1 / -1; margin-bottom:.15rem; color:#b42318; font-size:.78rem; font-weight:700; }
 textarea { resize:vertical; }
 input:not([type="checkbox"]):focus,select:focus,textarea:focus { border-color:#4099ff; box-shadow:0 0 0 .2rem rgba(64,153,255,.14); outline:0; }
 input[type="checkbox"]:focus { box-shadow:none; }
