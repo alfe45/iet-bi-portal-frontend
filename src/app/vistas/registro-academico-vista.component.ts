@@ -64,8 +64,10 @@ export class RegistroAcademicoVistaComponent {
   protected readonly students = computed(() => (this.currentGroup()?.estudiantes ?? []).filter((student) => String(student['nombre']).toLowerCase().includes(this.search().toLowerCase()) || String(student['cedula']).includes(this.search())));
   protected readonly paginatedStudents = computed(() => { const students = this.students(); if (this.hasSearch()) return students; const start = this.studentPage() * this.pageSize; return students.slice(start, start + this.pageSize); });
   protected readonly totalPages = computed(() => Math.ceil(this.students().length / this.pageSize));
-  protected readonly incompleteCount = computed(() => (this.currentGroup()?.estudiantes ?? []).filter((student) => !this.evaluation(student.id).valor.trim()).length);
-  protected readonly missingNames = computed(() => (this.currentGroup()?.estudiantes ?? []).filter((student) => !this.evaluation(student.id).valor.trim()).map((student) => student['nombre']));
+  // RN-75: un estudiante retirado no se califica, así que no cuenta como pendiente al confirmar.
+  private readonly calificables = computed(() => (this.currentGroup()?.estudiantes ?? []).filter((student) => student['estado'] !== 'RETIRADA'));
+  protected readonly incompleteCount = computed(() => this.calificables().filter((student) => !this.evaluation(student.id).valor.trim()).length);
+  protected readonly missingNames = computed(() => this.calificables().filter((student) => !this.evaluation(student.id).valor.trim()).map((student) => student['nombre']));
     protected readonly submissionMessage = computed(() => this.submissionState() === 'incomplete' ? `Faltan ${this.incompleteCount()} estudiante(s) sin nota registrada: ${this.missingNames().join(', ')}.` : this.submissionState() === 'sent' ? 'Registro confirmado. Solicite al Profesor Guía que reactive la edición de los reportes de bandas de la sección si necesita realizar cambios.' : 'Todos los estudiantes tienen su valor registrado. Revise la advertencia antes de confirmar.');
 
   constructor() {
