@@ -3,6 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { EstudianteApi, EstudiantesApiService } from '../nucleo/api/estudiantes-api.service';
 import { MatriculaApi, MatriculasApiService } from '../nucleo/api/matriculas-api.service';
+import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 @Component({
   selector: 'app-historial-estudiante-vista',
@@ -13,8 +14,7 @@ import { MatriculaApi, MatriculasApiService } from '../nucleo/api/matriculas-api
         <div><p class="eyebrow">Estudiantes</p><h2>Historial académico</h2><p>Consulta las matrículas registradas para este estudiante.</p></div>
         <a class="ghost-button" routerLink="/estudiantes">Volver a estudiantes</a>
       </header>
-      @if (error()) { <p class="api-error" role="alert">{{ error() }}</p> }
-      @if (student(); as item) {
+       @if (student(); as item) {
         <section class="surface profile-card">
           <div class="profile-avatar">{{ initials(item) }}</div>
           <div><p class="eyebrow">Perfil del estudiante</p><h3>{{ fullName(item) }}</h3><p>{{ item.cedula }} · {{ item.email }}</p></div>
@@ -39,15 +39,15 @@ export class HistorialEstudianteVistaComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly estudiantesApi = inject(EstudiantesApiService);
   private readonly matriculasApi = inject(MatriculasApiService);
+  private readonly feedback = inject(FeedbackService);
   protected readonly student = signal<EstudianteApi | null>(null);
   protected readonly matriculas = signal<MatriculaApi[]>([]);
-  protected readonly error = signal('');
 
   constructor() {
     const cedula = this.route.snapshot.paramMap.get('cedula') ?? '';
     forkJoin({ student: this.estudiantesApi.obtener(cedula), history: this.matriculasApi.listar({ cedulaEstudiante: cedula, tamanoPagina: 100 }) }).subscribe({
       next: ({ student, history }) => { this.student.set(student); this.matriculas.set(history.elementos); },
-      error: () => this.error.set('No se pudo consultar el historial del estudiante.'),
+      error: () => this.feedback.error('No se pudo consultar el historial del estudiante.'),
     });
   }
 

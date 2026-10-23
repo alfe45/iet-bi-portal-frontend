@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { switchMap } from 'rxjs';
 import { EstudianteGuiaApi, PeriodoGuiaApi, ProfesorGuiaApiService, SeccionGuiaApi } from '../nucleo/api/profesor-guia-api.service';
+import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 @Component({
   selector: 'app-vista-seccion-guia',
@@ -12,8 +13,7 @@ import { EstudianteGuiaApi, PeriodoGuiaApi, ProfesorGuiaApiService, SeccionGuiaA
         <span class="period-chip">{{ periodoEtiqueta() }}</span>
       </header>
 
-      @if (error()) { <p class="surface error" role="alert">{{ error() }}</p> }
-      <section class="groups-layout">
+       <section class="groups-layout">
         <section class="surface group-table">
           <div class="table-head"><strong>Sección</strong><strong>Estudiantes</strong></div>
           @if (cargandoSecciones()) { <p class="empty">Cargando sección guía...</p> }
@@ -46,13 +46,13 @@ import { EstudianteGuiaApi, PeriodoGuiaApi, ProfesorGuiaApiService, SeccionGuiaA
 // Consulta la sección asignada al Profesor Guía sin mezclarla con sus grupos regulares.
 export class SeccionGuiaVistaComponent {
   private readonly api = inject(ProfesorGuiaApiService);
+  private readonly feedback = inject(FeedbackService);
   private readonly periodo = signal<PeriodoGuiaApi | null>(null);
   protected readonly secciones = signal<SeccionGuiaApi[]>([]);
   protected readonly estudiantes = signal<EstudianteGuiaApi[]>([]);
   private readonly seleccion = signal('');
   protected readonly cargandoSecciones = signal(true);
   protected readonly cargandoEstudiantes = signal(false);
-  protected readonly error = signal('');
   protected readonly studentPage = signal(0);
   protected readonly pageSize = 5;
   protected readonly seccionActual = computed(() => this.secciones().find((section) => this.clave(section) === this.seleccion()) ?? this.secciones()[0]);
@@ -69,7 +69,7 @@ export class SeccionGuiaVistaComponent {
         this.cargandoSecciones.set(false);
         if (secciones[0]) this.seleccionar(secciones[0]);
       },
-      error: () => { this.error.set('No se pudo cargar la sección guía del profesor.'); this.cargandoSecciones.set(false); },
+      error: () => { this.feedback.error('No se pudo cargar la sección guía del profesor.'); this.cargandoSecciones.set(false); },
     });
   }
 
@@ -81,7 +81,7 @@ export class SeccionGuiaVistaComponent {
     this.cargandoEstudiantes.set(true);
     this.api.listarEstudiantes(section).subscribe({
       next: (estudiantes) => { if (this.seleccion() === key) { this.estudiantes.set(estudiantes); this.cargandoEstudiantes.set(false); } },
-      error: () => { if (this.seleccion() === key) { this.error.set('No se pudieron cargar los estudiantes de la sección guía.'); this.cargandoEstudiantes.set(false); } },
+      error: () => { if (this.seleccion() === key) { this.feedback.error('No se pudieron cargar los estudiantes de la sección guía.'); this.cargandoEstudiantes.set(false); } },
     });
   }
 

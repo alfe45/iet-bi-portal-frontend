@@ -58,8 +58,13 @@ export class CoordinadorMonografiaApiService {
     return this.http.put<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/estado`, { estado });
   }
 
-  enviarReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {
+  confirmarReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {
     return this.http.put<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/reportes/${anio}/${encodeURIComponent(semestre)}`, { observaciones });
+  }
+
+  /** Compatibilidad con consumidores anteriores; la operación ahora se denomina confirmar. */
+  enviarReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {
+    return this.confirmarReporte(cedulaEstudiante, anio, semestre, observaciones);
   }
 
   guardarBorradorReporte(cedulaEstudiante: string, anio: number, semestre: string, observaciones: string): Observable<void> {

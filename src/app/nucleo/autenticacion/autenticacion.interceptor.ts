@@ -2,9 +2,21 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { EMPTY, catchError, switchMap, throwError } from 'rxjs';
 import { AutenticacionService } from './autenticacion.service';
+import { FeedbackService } from '../../compartidos/servicios/feedback.service';
+
+let avisoCierreSesionEnCurso = false;
+
+function cerrarSesionConAviso(auth: AutenticacionService, feedback: FeedbackService, mensaje: string): void {
+  if (avisoCierreSesionEnCurso) return;
+  avisoCierreSesionEnCurso = true;
+   void feedback.aviso(mensaje, 'Sesión finalizada', 'Aceptar')
+    .then(() => auth.expirarSesion())
+    .finally(() => { avisoCierreSesionEnCurso = false; });
+}
 
 export const autenticacionInterceptor: HttpInterceptorFn = (request, next) => {
   const auth = inject(AutenticacionService);
+  const feedback = inject(FeedbackService);
   const esAuth = request.url.includes('/api/auth/') || request.url.includes('/api/setup/');
   const conToken = auth.accessTokenValue();
   const requestAutorizada = conToken && !esAuth
@@ -15,13 +27,13 @@ export const autenticacionInterceptor: HttpInterceptorFn = (request, next) => {
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401 || esAuth) return throwError(() => error);
       if (!auth.refreshTokenValue()) {
-        auth.expirarSesion();
+        cerrarSesionConAviso(auth, feedback, 'La sesión ya no está disponible. Por seguridad, debe volver a iniciar sesión para continuar.');
         return EMPTY;
       }
       return auth.renovarAccessToken().pipe(
         switchMap((token) => next(request.clone({ setHeaders: { Authorization: `Bearer ${token}` } }))),
         catchError(() => {
-          auth.expirarSesion();
+          cerrarSesionConAviso(auth, feedback, 'No pudimos mantener su sesión activa. Por seguridad, debe volver a iniciar sesión para continuar.');
           return EMPTY;
         }),
       );

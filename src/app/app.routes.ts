@@ -13,9 +13,9 @@ import { ReportesVistaComponent } from './vistas/reportes-vista.component';
 import { ReportesBandasVistaComponent } from './vistas/reportes-bandas-vista.component';
 import { GrupoDocenteVistaComponent } from './vistas/grupo-docente-vista.component';
 import { GruposProfesorVistaComponent } from './vistas/grupos-profesor-vista.component';
-import { RegistroAcademicoVistaComponent } from './vistas/registro-academico-vista.component';
+import { RegistroAcademicoVistaComponent, registroAcademicoCanDeactivateGuard } from './vistas/registro-academico-vista.component';
 import { CompartirSeccionVistaComponent } from './vistas/compartir-seccion-vista.component';
-import { CasVistaComponent } from './vistas/cas-vista.component';
+import { CasVistaComponent, casCanDeactivateGuard } from './vistas/cas-vista.component';
 import { HistorialEstudianteVistaComponent } from './vistas/historial-estudiante-vista.component';
 import { authGuard, roleGuard } from './nucleo/autenticacion/autenticacion.guards';
 import { RolUsuario } from './nucleo/modelos/modelos-prototipo';
@@ -38,7 +38,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: TableroVistaComponent, data: { roles: TODOS } },
       { path: 'grupo', component: GrupoDocenteVistaComponent, data: { roles: REGULAR } },
       { path: 'grupos', component: GruposProfesorVistaComponent, data: { roles: REGULAR } },
-      { path: 'registro-academico', component: RegistroAcademicoVistaComponent, data: { roles: REGULAR } },
+      { path: 'registro-academico', component: RegistroAcademicoVistaComponent, canDeactivate: [registroAcademicoCanDeactivateGuard], data: { roles: REGULAR } },
       { path: 'compartir', component: CompartirSeccionVistaComponent, data: { roles: REGULAR } },
       { path: 'profesores', component: FuncionalidadVistaComponent, data: { roles: ADMIN } },
       { path: 'usuarios', redirectTo: 'profesores', pathMatch: 'full' }, // las cuentas se administran desde Profesores
@@ -61,8 +61,8 @@ export const routes: Routes = [
       { path: 'reportes/asignatura', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: REGULAR } },
       { path: 'monografias', component: MonografiasVista, data: { roles: ['Profesor Coordinador de Monografía'] } },
       { path: 'perfil', component: PerfilVistaComponent, data: { roles: TODOS } },
-      { path: 'cas', component: CasVistaComponent, data: { casMode: 'teacher', roles: ['Profesor CAS'] } },
-      { path: 'coordinacion-cas', component: CasVistaComponent, data: { casMode: 'coordinator', roles: ['Profesor Coordinador de CAS'] } },
+      { path: 'cas', component: CasVistaComponent, canDeactivate: [casCanDeactivateGuard], data: { casMode: 'teacher', roles: ['Profesor CAS'] } },
+      { path: 'coordinacion-cas', component: CasVistaComponent, canDeactivate: [casCanDeactivateGuard], data: { casMode: 'coordinator', roles: ['Profesor Coordinador de CAS'] } },
     ],
   },
   { path: '**', redirectTo: 'login' },

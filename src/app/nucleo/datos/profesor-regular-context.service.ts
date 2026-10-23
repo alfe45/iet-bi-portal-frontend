@@ -13,6 +13,7 @@ import {
   ProfesorRegularPeriodoApi,
 } from '../api/profesor-regular-api.service';
 import type { AusentismoVista, EvaluacionVista, RegistroVista } from '../modelos/datos-vista';
+import { FeedbackService } from '../../compartidos/servicios/feedback.service';
 
 export interface ProfesorRegularAsignacionView extends ProfesorRegularAsignacionApi {
   id: string;
@@ -44,6 +45,7 @@ export function adaptarEstudianteRegular(item: ProfesorRegularEstudianteApi): Re
 export class ProfesorRegularContextService {
   private readonly auth = inject(AutenticacionService);
   private readonly api = inject(ProfesorRegularApiService);
+  private readonly feedback = inject(FeedbackService);
   private readonly periodo = signal<ProfesorRegularPeriodoApi | null>(null);
   private readonly asignacionesState = signal<ProfesorRegularAsignacionView[]>([]);
   private readonly estudiantesState = signal<Record<string, RegistroVista[]>>({});
@@ -80,11 +82,11 @@ export class ProfesorRegularContextService {
     this.api.obtenerPeriodoActual().pipe(
       switchMap((periodo) => {
         this.periodo.set(periodo);
-        return forkJoin({ periodo: of(periodo), asignaciones: this.api.listarAsignaciones(periodo.anio), avisos: this.api.obtenerAvisos().pipe(catchError(() => of([]))) });
+        return forkJoin({ periodo: of(periodo), asignaciones: this.api.listarAsignaciones(periodo.anio), avisos: this.api.obtenerAvisos().pipe(catchError(() => { this.feedback.error('No se pudieron cargar los avisos del profesor regular.'); return of([]); })) });
       }),
     ).subscribe({
       next: ({ periodo, asignaciones, avisos }) => { if (generacion === this.generacion) this.cargarEstudiantes(periodo, asignaciones, avisos); },
-      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar las asignaciones del Profesor regular.'); this.cargando.set(false); } },
+      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar las asignaciones del Profesor regular.'); this.feedback.error('No se pudieron cargar las asignaciones del Profesor regular.'); this.cargando.set(false); } },
     });
   }
 
@@ -123,9 +125,15 @@ export class ProfesorRegularContextService {
     if (this.loadedAcademic.has(key)) return of(undefined);
     const pending = this.academicLoads.get(key);
     if (pending) return pending;
-    const request = forkJoin({ evaluaciones: this.api.listarEvaluaciones(group).pipe(map((response) => response.notas)), ausentismo: this.api.obtenerAusentismo(group) }).pipe(
+    const request = forkJoin({ evaluaciones: this.api.listarEvaluaciones(group), ausentismo: this.api.obtenerAusentismo(group) }).pipe(
       map(({ evaluaciones, ausentismo }) => {
-        this.evaluacionesState.update((state) => ({ ...state, [key]: evaluaciones }));
+        const confirmado = Boolean(evaluaciones.estado?.['confirmadoEn']);
+        this.evaluacionesState.update((state) => ({ ...state, [key]: evaluaciones.notas }));
+        if (confirmado) {
+          const enviados = new Set(this.enviados());
+          enviados.add(key);
+          this.enviados.set(enviados);
+        }
         this.ausentismoState.update((state) => ({ ...state, [key]: ausentismo }));
         this.loadedAcademic.add(key);
       }),
@@ -143,7 +151,7 @@ export class ProfesorRegularContextService {
     if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
     const evaluation = !valor.trim() && !observacion.trim()
       ? this.eliminarEvaluacion(group, cedula)
-      : this.api.actualizarEvaluaciones(group, [{ cedulaEstudiante: cedula, nota, observaciones: observacion.trim() }]);
+      : this.api.actualizarEvaluaciones(group, [{ cedulaEstudiante: cedula, nota, observaciones: observacion.trim() || null }]);
     const lesson = this.leccionParaCambio(group, cedula, asistencia);
     return forkJoin({ evaluation, lesson }).pipe(map(() => {
       const key = this.clave(group);
@@ -194,7 +202,7 @@ export class ProfesorRegularContextService {
         this.avisos.set(avisos);
         this.cargando.set(false);
       },
-      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.cargando.set(false); } },
+      error: () => { if (generacion === this.generacion) { this.error.set('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.feedback.error('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.cargando.set(false); } },
     });
   }
 

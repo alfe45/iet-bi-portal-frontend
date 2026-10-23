@@ -6,6 +6,7 @@ import { AlertBannerComponent } from '../compartidos/componentes/banner-alerta.c
 import { DataTableComponent } from '../compartidos/componentes/tabla-datos.component';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
+import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 @Component({
   selector: 'app-vista-reportes',
@@ -95,6 +96,7 @@ export class ReportesVistaComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly grupos = inject(GruposProfesorService);
   private readonly regularContext = inject(ProfesorRegularContextService);
+  private readonly feedback = inject(FeedbackService);
   private readonly location = inject(Location);
 
   protected readonly role = computed(() => this.auth.currentRole() ?? 'Administrador');
@@ -149,7 +151,7 @@ export class ReportesVistaComponent {
       const group = this.grupos.grupoActual();
       if (!this.grupos.esProfesorRegular() || !group) return;
       const consulta = this.regularContext.consultaDe(group);
-      if (consulta) this.regularContext.cargarAcademico(consulta).subscribe({ error: () => undefined });
+       if (consulta) this.regularContext.cargarAcademico(consulta).subscribe({ error: () => this.feedback.error(this.regularContext.error() || 'No se pudieron cargar los datos del reporte académico.') });
     });
   }
 
