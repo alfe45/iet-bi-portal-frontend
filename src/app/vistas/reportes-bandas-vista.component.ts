@@ -159,7 +159,7 @@ export class ReportesBandasVistaComponent {
        .pipe(finalize(() => this.reactivating.set(false)))
        .subscribe({
          next: () => { this.feedback.exito('Edición reactivada. Los profesores responsables ya pueden corregir y confirmar nuevamente las notas de la sección.'); this.cargar(section); },
-         error: () => this.feedback.error('No se pudo reactivar la edición de las notas de la sección.'),
+         error: (e: { error?: { mensaje?: string } }) => this.feedback.error(e.error?.mensaje ?? 'No se pudo reactivar la edición de las notas de la sección.'),
        });
    }
   protected abrirIncompletos(): void { this.incompleteModalOpen.set(true); }
@@ -210,7 +210,7 @@ export class ReportesBandasVistaComponent {
       anio: String(report.anio),
       filas: bands.map((item) => ({ asignatura: item.asignatura, bandaMinima: item.notaMinima ?? '—', bandaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
       teoriaConocimiento: theory ? { bandaAlcanzada: theory.nota ?? '—', ...this.attendance(theory), observaciones: this.observations(theory) } : { bandaAlcanzada: '—', tardias: '0', injustificadas: '0', justificadas: '0', observaciones: 'Sin registrar' },
-      reporteMonografia: { area: report.monografia?.area ?? '', coordinador: report.monografia?.nombreCoordinador ?? '', observaciones: report.monografia?.observaciones ?? 'Sin informe registrado' },
+      reporteMonografia: { area: report.monografia?.area ?? '', coordinador: report.monografia?.nombreCoordinador ?? '', observaciones: report.monografia?.enviadoEn ? report.monografia.observaciones ?? 'Sin informe registrado' : 'Sin informe registrado' },
       filasNumericas: numeric.map((item) => ({ asignatura: item.asignatura, notaMinima: item.notaMinima ?? '70', notaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
     };
   }

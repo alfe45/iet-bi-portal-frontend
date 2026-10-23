@@ -73,7 +73,7 @@ export class VerificacionMonografiasVistaComponent {
          .map((item) => ({ nombre: item.estudiante, detalle: `Área: ${item.area || 'sin especificar'}` }));
        const grupos: ProblemaVerificacionMonografia[] = [];
        if (incompletos.length) grupos.push({ titulo: 'Reportes de monografía incompletos', descripcion: 'No tienen las observaciones completas para este semestre.', estudiantes: incompletos });
-       if (pendientes.length) grupos.push({ titulo: 'Reportes de monografía pendientes de confirmación', descripcion: 'Están completos, pero todavía no han sido confirmados por el Profesor Guía.', estudiantes: pendientes });
+       if (pendientes.length) grupos.push({ titulo: 'Reportes de monografía pendientes de confirmación', descripcion: 'Están completos, pero todavía no han sido confirmados por el Coordinador de Monografía.', estudiantes: pendientes });
        return grupos;
      });
      protected readonly problemasModalOpen = signal(false);
@@ -126,7 +126,7 @@ export class VerificacionMonografiasVistaComponent {
        .pipe(finalize(() => this.saving.set(false)))
        .subscribe({
          next: () => { this.feedback.exito(`Edición reactivada. El Coordinador de Monografía ya puede corregir y confirmar nuevamente el reporte de ${item.estudiante}.`); this.cargar(section); },
-         error: () => this.feedback.error('No se pudo reactivar el reporte para el Coordinador de Monografía.'),
+         error: (e: { error?: { mensaje?: string } }) => this.feedback.error(e.error?.mensaje ?? 'No se pudo reactivar el reporte para el Coordinador de Monografía.'),
        });
    }
 
