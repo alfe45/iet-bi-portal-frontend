@@ -77,8 +77,8 @@ export class TableroVistaComponent {
     );
      if (this.isGuide()) links.push(
        { path: '/seccion-guia', label: 'Mi sección guía', description: 'Consultar la sección que asesoras.', icon: 'SG', featured: false },
-       { path: '/verificacion-monografias', label: 'Verificar reportes de monografía', description: 'Revisar los reportes de tu sección guía.', icon: 'VM', featured: false },
        { path: '/reportes/bandas', label: 'Reportes de Bandas', description: 'Consultar los reportes de tu sección guía.', icon: 'RB', featured: false },
+       { path: '/verificacion-monografias', label: 'Verificar reportes de monografía', description: 'Revisar los reportes de tu sección guía.', icon: 'VM', featured: false },
      );
     if (this.isMonographCoordinator()) links.push({ path: '/monografias', label: 'Mis estudiantes de monografía', description: 'Seguimientos y reportes al Profesor Guía.', icon: 'MO', featured: false });
       if (this.auth.hasRole('Profesor CAS')) {

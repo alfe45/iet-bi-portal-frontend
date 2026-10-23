@@ -10,6 +10,7 @@ export interface FeedbackActual {
 
 export type DialogoActual =
   | { tipo: 'confirmar'; titulo: string; mensaje: string; confirmar: string }
+  | { tipo: 'aviso'; titulo: string; mensaje: string; aceptar: string }
   | { tipo: 'texto'; titulo: string; mensaje: string; etiqueta: string; valorInicial: string };
 
 @Injectable({ providedIn: 'root' })
@@ -30,6 +31,13 @@ export class FeedbackService {
     return new Promise((resolve) => {
       this.resolverDialogo = (valor) => resolve(valor === true);
       this.dialogo.set({ tipo: 'confirmar', titulo, mensaje, confirmar });
+    });
+  }
+
+  aviso(mensaje: string, titulo = 'Aviso', aceptar = 'Aceptar'): Promise<void> {
+    return new Promise((resolve) => {
+      this.resolverDialogo = () => resolve();
+      this.dialogo.set({ tipo: 'aviso', titulo, mensaje, aceptar });
     });
   }
 

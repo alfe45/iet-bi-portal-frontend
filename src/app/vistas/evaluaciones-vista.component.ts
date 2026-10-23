@@ -3,6 +3,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-context.service';
+import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 @Component({
   selector: 'app-vista-evaluaciones',
@@ -12,7 +13,7 @@ import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-
       <header class="surface page-header"><div><p class="eyebrow">Registro académico</p><h2 id="evaluations-title">Evaluaciones</h2><p>Registra o modifica la evaluación de un estudiante.</p></div><div class="context-summary"><small>Periodo activo</small><strong>{{ grupos.periodoActivo() }}</strong></div></header>
       <section class="surface group-bar"><label>Grupo<select [ngModel]="grupos.grupoActual()?.id" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span><strong>{{ grupos.grupoActual()?.estudiantes?.length ?? 0 }}</strong> estudiantes · Escala {{ grupos.grupoActual()?.escala ?? '-' }}</span></section>
       <section class="surface student-work"><div class="section-heading"><div><h3>Estudiantes</h3><p>{{ grupos.etiqueta(grupos.grupoActual()) }}</p></div><input class="student-search" type="search" placeholder="Buscar estudiante" aria-label="Buscar estudiante" [ngModel]="search()" (ngModelChange)="search.set($event)" /></div><div class="student-list">@for (student of students(); track student.id) {<button type="button" class="student-row" [class.selected]="student.id === selectedId" [attr.aria-selected]="student.id === selectedId" (click)="seleccionar(student.id)"><span><strong>{{ student['nombre'] }}</strong><small>{{ student['cedula'] }}</small></span><span class="status">{{ student.grade ? 'Registrada' : 'Sin registrar' }}</span><b>{{ student.grade || '—' }}</b></button>} @empty {<p class="empty">No hay estudiantes que coincidan con la búsqueda.</p>}</div></section>
-      <form class="surface editor" (ngSubmit)="guardar()"><div><p class="eyebrow">Estudiante seleccionado</p><h3>{{ selectedName() }}</h3><p class="editor-context">{{ grupos.etiqueta(grupos.grupoActual()) }}</p></div><div class="editor-grid"><label><span>Valor mínimo</span><input [value]="minimumValue()" readonly /></label><label><span>Valor obtenido</span><input name="valor" type="text" [(ngModel)]="valor" required /></label><label class="full"><span>Observación académica</span><textarea name="observacion" rows="3" [(ngModel)]="observacion"></textarea></label></div>@if(message){<p class="message" role="status">{{ message }}</p>}<div class="actions"><button type="button" class="ghost-button" (click)="recargar()">Cancelar</button><button type="submit" class="primary-button" [attr.aria-label]="'Guardar evaluación de ' + selectedName()">Guardar evaluación</button></div></form>
+       <form class="surface editor" (ngSubmit)="guardar()"><div><p class="eyebrow">Estudiante seleccionado</p><h3>{{ selectedName() }}</h3><p class="required-legend">* Campos obligatorios</p><p class="editor-context">{{ grupos.etiqueta(grupos.grupoActual()) }}</p></div><div class="editor-grid"><label><span>Valor mínimo</span><input [value]="minimumValue()" readonly /></label><label><span>Valor obtenido</span><input name="valor" type="text" [(ngModel)]="valor" required /></label><label class="full"><span>Observación académica</span><textarea name="observacion" rows="3" [(ngModel)]="observacion"></textarea></label></div><div class="actions"><button type="button" class="ghost-button" (click)="recargar()">Cancelar</button><button type="submit" class="primary-button" [attr.aria-label]="'Guardar evaluación de ' + selectedName()">Guardar evaluación</button></div></form>
     </section>
   `,
   styles: `
@@ -23,27 +24,27 @@ import { ProfesorRegularContextService } from '../nucleo/datos/profesor-regular-
 export class EvaluacionesVistaComponent {
   protected readonly grupos = inject(GruposProfesorService);
   private readonly regularContext = inject(ProfesorRegularContextService);
+  private readonly feedback = inject(FeedbackService);
   private readonly route = inject(ActivatedRoute);
   protected readonly search = signal('');
   protected selectedId = '';
   protected valor = '';
   protected observacion = '';
-  protected message = '';
   protected readonly students = computed(() => (this.grupos.grupoActual()?.estudiantes ?? []).map((student) => ({ id: student.id, nombre: student['nombre'], cedula: student['cedula'], grade: this.evaluation(student.id).valor })).filter((student) => student.nombre.toLowerCase().includes(this.search().toLowerCase()) || student.cedula.includes(this.search())));
   protected readonly selectedName = computed(() => this.grupos.grupoActual()?.estudiantes.find((student) => student.id === this.selectedId)?.['nombre'] ?? 'Seleccione un estudiante');
   protected readonly minimumValue = computed(() => this.grupos.grupoActual()?.escala === '1–100' ? '70' : this.grupos.grupoActual()?.escala === 'A–E' ? 'D' : '4');
 
   constructor() { const query = this.route.snapshot.queryParamMap; this.grupos.seleccionarParametros(query.get('asignatura'), query.get('seccion'), query.get('periodo')); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.recargar(); }
   protected cambiarGrupo(id: string): void { this.grupos.seleccionar(id); this.selectedId = this.grupos.grupoActual()?.estudiantes[0]?.id ?? ''; this.search.set(''); this.recargar(); }
-  protected seleccionar(id: string): void { this.selectedId = id; this.message = ''; this.recargar(); }
+  protected seleccionar(id: string): void { this.selectedId = id; this.recargar(); }
   protected recargar(): void { const item = this.evaluation(this.selectedId); this.valor = item.valor; this.observacion = item.observacion; }
   protected guardar(): void {
     const group = this.grupos.grupoActual();
     const consulta = group ? this.regularContext.consultaDe(group) : null;
     if (!this.selectedId || !consulta) return;
     this.regularContext.guardarRegistro(consulta, this.selectedId, String(this.valor), this.observacion, this.regularContext.asistenciaDeGrupo(consulta, this.selectedId)).subscribe({
-      next: () => this.message = 'Evaluación guardada correctamente.',
-      error: (error: unknown) => this.message = error instanceof Error ? error.message : 'No se pudo guardar la evaluación en el backend.',
+       next: () => this.feedback.exito('Evaluación guardada correctamente.'),
+       error: (error: unknown) => this.feedback.error(error instanceof Error ? error.message : 'No se pudo guardar la evaluación en el backend.'),
     });
   }
   private evaluation(id: string) { const group = this.grupos.grupoActual(); const consulta = group ? this.regularContext.consultaDe(group) : null; return consulta ? this.regularContext.evaluacionDeGrupo(consulta, id) : { estudianteId: id, valor: '', observacion: '' }; }
