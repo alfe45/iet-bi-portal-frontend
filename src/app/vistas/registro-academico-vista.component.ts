@@ -164,7 +164,7 @@ export class RegistroAcademicoVistaComponent {
        if (!consulta) { this.feedback.error('El grupo no tiene los parámetros requeridos por el backend.'); return; }
       this.regularContext.guardarRegistro(consulta, id, this.draftValue, this.draftObservation, { estudianteId: id, tardias: this.draftTardias, injustificadas: this.draftInjustificadas, justificadas: this.draftJustificadas }).subscribe({
            next: () => { this.nextAfterSave.set(next); this.savedStudentName.set(this.selectedStudentName()); this.saveConfirmationOpen.set(true); },
-           error: (error: unknown) => this.feedback.error(error instanceof Error ? error.message : this.regularContext.error() || 'No se pudieron guardar los cambios en el backend.'),
+           error: (error: unknown) => this.feedback.error(error instanceof Error ? error.message : (error as { error?: { mensaje?: string } })?.error?.mensaje ?? (this.regularContext.error() || 'No se pudieron guardar los cambios en el backend.')),
         });
     }
    private cerrarAvisoSalida(allowed: boolean): void {
