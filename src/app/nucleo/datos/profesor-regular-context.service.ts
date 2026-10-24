@@ -151,7 +151,7 @@ export class ProfesorRegularContextService {
     if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
     const evaluation = !valor.trim() && !observacion.trim()
       ? this.eliminarEvaluacion(group, cedula)
-      : this.api.actualizarEvaluaciones(group, [{ cedulaEstudiante: cedula, nota, observaciones: observacion.trim() }]);
+      : this.api.actualizarEvaluaciones(group, [{ cedulaEstudiante: cedula, nota, observaciones: observacion.trim() || null }]);
     const lesson = this.leccionParaCambio(group, cedula, asistencia);
     return forkJoin({ evaluation, lesson }).pipe(map(() => {
       const key = this.clave(group);

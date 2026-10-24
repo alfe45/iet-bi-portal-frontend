@@ -159,7 +159,7 @@ export class ReportesBandasVistaComponent {
        .pipe(finalize(() => this.reactivating.set(false)))
        .subscribe({
          next: () => { this.feedback.exito('Edición reactivada. Los profesores responsables ya pueden corregir y confirmar nuevamente las notas de la sección.'); this.cargar(section); },
-         error: () => this.feedback.error('No se pudo reactivar la edición de las notas de la sección.'),
+         error: (e: { error?: { mensaje?: string } }) => this.feedback.error(e.error?.mensaje ?? 'No se pudo reactivar la edición de las notas de la sección.'),
        });
    }
   protected abrirIncompletos(): void { this.incompleteModalOpen.set(true); }

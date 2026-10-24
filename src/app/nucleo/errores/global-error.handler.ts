@@ -8,9 +8,7 @@ export class GlobalErrorHandler implements ErrorHandler {
   handleError(error: unknown): void {
     console.error(error);
     if (this.feedback.actual()) return;
-    const mensaje = error instanceof Error && error.message.trim()
-      ? error.message
-      : 'Ocurrió un error inesperado. Intente nuevamente. Si el problema continúa, contacte al administrador.';
-    this.feedback.error(mensaje, 'Ocurrió un error inesperado');
+    // El detalle técnico queda en la consola; al usuario solo se le muestra un mensaje general.
+    this.feedback.error('Ocurrió un error inesperado. Intente nuevamente. Si el problema continúa, contacte al administrador.', 'Ocurrió un error inesperado');
   }
 }

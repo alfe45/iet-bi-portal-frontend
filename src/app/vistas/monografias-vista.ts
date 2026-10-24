@@ -190,7 +190,7 @@ export class MonografiasVista implements OnInit {
            this.pendingObservation.set('');
            this.reportObservation = '';
            this.reportModal.set(null);
-             this.feedback.exito('Borrador guardado. El Profesor Guía podrá verlo cuando confirme y envíe el reporte.');
+             this.feedback.exito('Borrador guardado. El Profesor Guía lo ve como pendiente de confirmación hasta que usted lo confirme.');
            this.recargarDetalle(item.cedulaEstudiante);
          },
           error: (error: unknown) => this.feedback.error(this.mensajeError(error, 'No se pudieron guardar las observaciones.')),
