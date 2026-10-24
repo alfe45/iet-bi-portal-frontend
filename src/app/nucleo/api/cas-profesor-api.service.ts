@@ -21,7 +21,8 @@ export interface ProgresoCasApi {
 export interface ExperienciaCasApi {
   orden: number;
   descripcion: string;
-  fecha: string | null;
+  fechaInicio: string | null;
+  fechaFin: string | null;
   creatividad: boolean;
   actividad: boolean;
   servicio: boolean;
@@ -64,7 +65,7 @@ export interface GuardarInformeCasRequest {
   entrevista2: boolean;
   entrevistaFinal: boolean;
   observaciones: string | null;
-  experiencias: { descripcion: string; fecha: string | null; creatividad: boolean; actividad: boolean; servicio: boolean; resultadosAprendizaje: number[]; carpeta: boolean; reflexion: boolean; pruebas: boolean }[];
+  experiencias: { descripcion: string; fechaInicio: string | null; fechaFin: string | null; creatividad: boolean; actividad: boolean; servicio: boolean; resultadosAprendizaje: number[]; carpeta: boolean; reflexion: boolean; pruebas: boolean }[];
 }
 
 @Injectable({ providedIn: 'root' })

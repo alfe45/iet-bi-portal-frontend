@@ -26,6 +26,9 @@ export const autenticacionInterceptor: HttpInterceptorFn = (request, next) => {
   return next(requestAutorizada).pipe(
     catchError((error: HttpErrorResponse) => {
       if (error.status !== 401 || esAuth) return throwError(() => error);
+      // Al cerrar sesión pueden terminar peticiones de la vista anterior con 401.
+      // Es una transición intencional, no una sesión expirada que deba notificarse.
+      if (auth.estaCerrandoSesion()) return EMPTY;
       if (!auth.refreshTokenValue()) {
         cerrarSesionConAviso(auth, feedback, 'La sesión ya no está disponible. Por seguridad, debe volver a iniciar sesión para continuar.');
         return EMPTY;

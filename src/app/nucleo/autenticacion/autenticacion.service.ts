@@ -46,6 +46,7 @@ export class AutenticacionService {
   private readonly initialSession = this.cargarSesion();
   private readonly accessToken = signal(this.initialSession?.accessToken ?? '');
   private readonly refreshToken = signal(this.initialSession?.refreshToken ?? '');
+  private cierreSesionEnCurso = false;
   readonly currentRoles = signal<RolUsuario[]>(this.initialSession?.roles ?? []);
   readonly currentRole = computed(() => this.rolPrincipal(this.currentRoles()));
   readonly currentUsername = signal(this.initialSession?.email ?? '');
@@ -69,11 +70,21 @@ export class AutenticacionService {
   }
 
   cerrarSesion(): void {
+    if (this.cierreSesionEnCurso) return;
+    this.cierreSesionEnCurso = true;
     const token = this.refreshToken();
     const cierre = token
       ? this.http.post<void>(`${environment.apiUrl}/auth/logout`, { refreshToken: token }).pipe(catchError(() => of(undefined)))
       : of(undefined);
-    cierre.pipe(finalize(() => { this.limpiarSesion(); void this.router.navigateByUrl('/login'); })).subscribe();
+    cierre.pipe(finalize(() => {
+      this.limpiarSesion();
+      this.cierreSesionEnCurso = false;
+      void this.router.navigateByUrl('/login');
+    })).subscribe();
+  }
+
+  estaCerrandoSesion(): boolean {
+    return this.cierreSesionEnCurso;
   }
 
   expirarSesion(): void {
