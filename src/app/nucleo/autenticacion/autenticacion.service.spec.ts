@@ -47,4 +47,23 @@ describe('AutenticacionService', () => {
     expect(service.authenticated()).toBe(false);
     expect(router.navigateByUrl).toHaveBeenCalledWith('/login');
   });
+
+  it('shares a concurrent token renewal so the rotated refresh token is used once', () => {
+    const service = TestBed.inject(AutenticacionService);
+    const http = TestBed.inject(HttpTestingController);
+    service.iniciarSesion('docente@iet.test', 'demo1234').subscribe();
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush({ accessToken: 'access', accessTokenExpiresAt: '2026-09-25T12:00:00Z', refreshToken: 'refresh' });
+    http.expectOne(`${environment.apiUrl}/perfil`).flush({ id: 'user-1', email: 'docente@iet.test', activo: true, roles: ['PROFESOR_REGULAR'], nombreProfesor: 'Docente Demo' });
+
+    const results: string[] = [];
+    service.renovarAccessToken().subscribe((token) => results.push(token));
+    service.renovarAccessToken().subscribe((token) => results.push(token));
+
+    const renewals = http.match(`${environment.apiUrl}/auth/refresh`);
+    expect(renewals).toHaveLength(1);
+    renewals[0].flush({ accessToken: 'access-2', accessTokenExpiresAt: '2026-09-25T13:00:00Z', refreshToken: 'refresh-2' });
+
+    expect(results).toEqual(['access-2', 'access-2']);
+    http.verify();
+  });
 });

@@ -15,7 +15,7 @@ function asignatura(nombre: string, nota: string | null, confirmada = false): Ba
 }
 
 function banda(nombre: string, asignaturas: BandaAsignaturaGuiaApi[], monografia: ReporteBandasGuiaApi['monografia'] = null): ReporteBandasGuiaApi {
-  return { anio: 2026, semestre: 'II_SEMESTRE', nivel: 11, seccion: '11-1', cedulaEstudiante: nombre, nombreEstudiante: nombre, asignaturas, monografia };
+  return { anio: 2026, semestre: 'II_SEMESTRE', nivel: 11, seccion: '11-1', cedulaEstudiante: nombre, nombreEstudiante: nombre, nombreGuia: 'Profesor Guía', asignaturas, monografia };
 }
 
 function monografia(cedula: string, nombre: string, area = 'Historia'): MonografiaGuiaApi {

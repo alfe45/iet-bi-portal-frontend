@@ -100,6 +100,7 @@ export interface ReporteBandasGuiaApi {
   seccion: string;
   cedulaEstudiante: string;
   nombreEstudiante: string;
+  nombreGuia: string | null;
   asignaturas: BandaAsignaturaGuiaApi[];
   monografia: MonografiaReporteGuiaApi | null;
 }

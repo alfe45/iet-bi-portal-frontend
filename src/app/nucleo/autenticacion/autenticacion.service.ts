@@ -1,7 +1,7 @@
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { catchError, finalize, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import { catchError, finalize, map, Observable, of, shareReplay, switchMap, tap, throwError } from 'rxjs';
 import { RolUsuario } from '../modelos/modelos-prototipo';
 import { environment } from '../../../env/environment';
 
@@ -47,6 +47,8 @@ export class AutenticacionService {
   private readonly accessToken = signal(this.initialSession?.accessToken ?? '');
   private readonly refreshToken = signal(this.initialSession?.refreshToken ?? '');
   private cierreSesionEnCurso = false;
+  private versionSesion = 0;
+  private renovacionEnCurso: Observable<string> | null = null;
   readonly currentRoles = signal<RolUsuario[]>(this.initialSession?.roles ?? []);
   readonly currentRole = computed(() => this.rolPrincipal(this.currentRoles()));
   readonly currentUsername = signal(this.initialSession?.email ?? '');
@@ -78,8 +80,9 @@ export class AutenticacionService {
       : of(undefined);
     cierre.pipe(finalize(() => {
       this.limpiarSesion();
-      this.cierreSesionEnCurso = false;
-      void this.router.navigateByUrl('/login');
+      void Promise.resolve(this.router.navigateByUrl('/login')).finally(() => {
+        this.cierreSesionEnCurso = false;
+      });
     })).subscribe();
   }
 
@@ -105,15 +108,26 @@ export class AutenticacionService {
   }
 
   renovarAccessToken(): Observable<string> {
+    if (this.renovacionEnCurso) return this.renovacionEnCurso;
     const token = this.refreshToken();
     if (!token) return throwError(() => new Error('No existe una sesión renovable.'));
-    return this.http.post<RespuestaAutenticacion>(`${environment.apiUrl}/auth/refresh`, { refreshToken: token }).pipe(
-      tap((tokens) => this.guardarTokens(tokens)),
-      map((tokens) => tokens.accessToken),
+    const version = this.versionSesion;
+    this.renovacionEnCurso = this.http.post<RespuestaAutenticacion>(`${environment.apiUrl}/auth/refresh`, { refreshToken: token }).pipe(
+      switchMap((tokens) => {
+        if (this.cierreSesionEnCurso || this.versionSesion !== version || this.refreshToken() !== token) {
+          return throwError(() => new Error('La sesión cambió durante la renovación.'));
+        }
+        this.guardarTokens(tokens);
+        return of(tokens.accessToken);
+      }),
+      finalize(() => { this.renovacionEnCurso = null; }),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+    return this.renovacionEnCurso;
   }
 
   limpiarSesion(): void {
+    this.versionSesion += 1;
     this.accessToken.set('');
     this.refreshToken.set('');
     this.currentRoles.set([]);
@@ -123,6 +137,7 @@ export class AutenticacionService {
   }
 
   private guardarTokens(tokens: RespuestaAutenticacion): void {
+    this.versionSesion += 1;
     this.accessToken.set(tokens.accessToken);
     this.refreshToken.set(tokens.refreshToken);
   }
