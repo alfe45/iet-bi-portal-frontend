@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:5149/api',
+  apiUrl: 'https://iet-bi-portal-api.onrender.com/api',
 };
