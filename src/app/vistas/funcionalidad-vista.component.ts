@@ -215,7 +215,8 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   styles: `
      .page-grid { min-height: 100%; grid-template-rows: auto auto auto; }
      .eyebrow { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .74rem; color: #2f6b9a; font-weight: 700; }
-    .section-heading p { margin: .35rem 0 0; color: #667085; }
+      .section-heading p { margin: .35rem 0 0; color: #667085; }
+      .section-heading > .primary-button { flex: 0 0 auto; white-space: nowrap; }
       .modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;place-items:center;padding:1rem;background:rgba(18,32,49,.58);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:modal-fade-in .18s ease-out}
        .editor { width:min(100%,760px);max-height:calc(100vh - 2rem);overflow:auto;padding:0;border:1px solid #dbe5ef;border-left:5px solid #2f6b9a;border-radius:14px;box-shadow:0 24px 70px rgba(18,32,49,.26); }.editor.professor-editor::before{display:none;content:none}
        .editor .modal-header{align-items:flex-start;margin:0;padding:1.5rem 1.75rem .95rem;border-bottom:1px solid #edf1f4}.editor .modal-header h3{margin:0;color:#29344a;font-size:1.2rem}.editor .modal-header p:last-child{margin:.3rem 0 0;color:#667085;font-size:.8rem}.editor .modal-header .required-legend{margin:.3rem 0 0;color:#b42318;font-size:.78rem;font-weight:700}.editor .modal-close{flex:0 0 auto;width:36px;height:36px;padding:0;border:1px solid #d7e0e8;border-radius:8px;color:#475467;background:#f8fafc;font-size:1.45rem;line-height:1;cursor:pointer}.editor .modal-close:hover{border-color:#9bb6c9;background:#eef5f8;color:#1e5578}

@@ -100,11 +100,19 @@ export interface DocumentoReporteBandas {
          <table><thead><tr><th>Área</th><th>Profesor Coordinador de Monografía</th><th>Observaciones</th></tr></thead><tbody><tr><td>{{ report().reporteMonografia.area }}</td><td>{{ report().reporteMonografia.coordinador }}</td><td class="observations">{{ report().reporteMonografia.observaciones }}</td></tr></tbody></table>
        </section>
 
-       <section class="continuation-block numeric-block">
-         <h2>ASIGNATURAS DEL MEP</h2>
-         <table><thead><tr><th>Asignatura</th><th>Nota mínima</th><th>Nota alcanzada</th><th colspan="3">Ausentismo</th><th>Observaciones del profesor</th></tr><tr><th></th><th></th><th></th><th>Tardías</th><th>Injustificadas</th><th>Justificadas</th><th></th></tr></thead><tbody>@for (row of report().filasNumericas; track row.asignatura) {<tr><td>{{ row.asignatura }}</td><td class="center">{{ row.notaMinima }}</td><td class="center">{{ row.notaAlcanzada }}</td><td class="center">{{ row.tardias }}</td><td class="center">{{ row.injustificadas }}</td><td class="center">{{ row.justificadas }}</td><td class="observations">{{ row.observaciones }}</td></tr>} @empty {<tr><td class="empty" colspan="7">No hay asignaturas con escala numérica registradas.</td></tr>}</tbody></table>
-       </section>
-    </article>
+        @if (report().filasNumericas.length) {
+          <section class="continuation-block numeric-block">
+            <h2>ASIGNATURAS DEL MEP</h2>
+            <table><thead><tr><th>Asignatura</th><th>Nota mínima</th><th>Nota alcanzada</th><th colspan="3">Ausentismo</th><th>Observaciones del profesor</th></tr><tr><th></th><th></th><th></th><th>Tardías</th><th>Injustificadas</th><th>Justificadas</th><th></th></tr></thead><tbody>@for (row of report().filasNumericas; track row.asignatura) {<tr><td>{{ row.asignatura }}</td><td class="center">{{ row.notaMinima }}</td><td class="center">{{ row.notaAlcanzada }}</td><td class="center">{{ row.tardias }}</td><td class="center">{{ row.injustificadas }}</td><td class="center">{{ row.justificadas }}</td><td class="observations">{{ row.observaciones }}</td></tr>}</tbody></table>
+          </section>
+        }
+
+        <section class="signatures-block">
+          <div class="signature"><span></span><strong>Firma del profesor guía</strong></div>
+          <div class="signature"><span></span><strong>Firma del encargado(a)</strong></div>
+          <div class="signature signature-date"><span></span><strong>Fecha</strong></div>
+        </section>
+     </article>
   `,
   styles: `
     :host { display: block; color: #111; font-family: Arial, Helvetica, sans-serif; }
@@ -123,11 +131,16 @@ export interface DocumentoReporteBandas {
     .bands-table th { text-align: center; font-weight: 700; }.bands-table thead tr:first-child th { height: 13mm; }.col-subject { width: calc(27mm + 1px); }.col-min { width: 19mm; }.col-achieved { width: 30.4mm; }.col-absence { width: 11.4mm; }.col-observations { width: calc(79.4mm - 1px); }
     .vertical-headings th { height: 17mm; padding: 0; vertical-align: middle; }.vertical-headings th { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; font-size: 7pt; line-height: 1; }
      .center { text-align: center; }.observations { text-align: left; white-space: normal; overflow-wrap: anywhere; line-height: 1.2; }.empty { text-align: center; padding: 7mm; }
-     .continuation-block { margin-top: 8mm; }.continuation-block h2 { margin: 0; padding: 3mm; border: 1px solid #222; border-bottom: 0; text-align: center; font-size: 10pt; }.continuation-block table th { text-align: left; }.continuation-block table td { vertical-align: top; }.continuation-block table th:not(:last-child),.continuation-block table td:not(:last-child) { text-align: left; }.continuation-block .center { text-align: center; }.scale-note { margin: 0; padding: 2mm 3mm; border-left: 1px solid #222; border-right: 1px solid #222; font-size: 8pt; font-style: italic; }.theory-block table th,.numeric-block table th { text-align: center; }
+     .continuation-block { margin-top: 8mm; }.continuation-block h2 { margin: 0; padding: 3mm; border: 1px solid #222; border-bottom: 0; text-align: center; font-size: 10pt; }.continuation-block table th { text-align: left; }.continuation-block table td { vertical-align: top; }.continuation-block table th:not(:last-child),.continuation-block table td:not(:last-child) { text-align: left; }.continuation-block .center { text-align: center; }.scale-note { margin: 0; padding: 2mm 3mm; border-left: 1px solid #222; border-right: 1px solid #222; font-size: 8pt; font-style: italic; }.theory-block table th,.numeric-block table th { text-align: center; }.numeric-block { margin-top: 12mm; }.numeric-block table th:not(:first-child):not(:last-child),.numeric-block table td:not(:first-child):not(:last-child) { text-align: center; }
+     .signatures-block { display: grid; grid-template-columns: 1fr 1fr 32mm; gap: 8mm; margin-top: 14mm; padding-top: 8mm; break-inside: avoid; page-break-inside: avoid; }.signature { display: grid; gap: 1.5mm; text-align: center; font-size: 8pt; }.signature span { display: block; min-height: 7mm; border-bottom: 1px solid #222; }.signature strong { min-height: 4mm; font-size: 8pt; font-weight: 400; }.signature small { font-size: 7.5pt; }.signature-date strong { font-weight: 700; }
     @media print {
       .report-page { max-width: none; margin: 0; padding: 0; break-after: page; page-break-after: always; }
       :host:last-child .report-page, .report-page:last-child { break-after: auto; page-break-after: auto; }
       .reports-preview--all app-reporte-bandas-estudiante:last-child .report-page { break-after: auto; page-break-after: auto; }
+      .continuation-block { break-inside: avoid; page-break-inside: avoid; }
+      .continuation-block h2, .continuation-block .scale-note { break-after: avoid; page-break-after: avoid; }
+      .continuation-block table { break-before: avoid; page-break-before: avoid; }
+      .signatures-block { break-inside: avoid; page-break-inside: avoid; }
       .bands-table tr { break-inside: avoid; page-break-inside: avoid; }
     }
   `,
