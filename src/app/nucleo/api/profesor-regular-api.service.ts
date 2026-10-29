@@ -130,6 +130,27 @@ export interface ProfesorRegularEvaluacionesResponse {
   notas: ProfesorRegularEvaluacionApi[];
 }
 
+export interface ProfesorRegularCorreoEstudiante {
+  cedula: string;
+  nombre: string;
+}
+
+// Profesor Regular CU12: resultado del correo a una sección (RN-92).
+export interface ProfesorRegularCorreoResultado {
+  anio: number;
+  seccion: string;
+  asunto: string;
+  enviados: ProfesorRegularCorreoEstudiante[];
+  fallidos: ProfesorRegularCorreoEstudiante[];
+}
+
+export interface ProfesorRegularCorreoEnvio {
+  asunto: string;
+  mensaje: string;
+  cedulas: string[];
+  adjuntos: File[];
+}
+
 export interface ProfesorRegularConsulta {
   anio: number;
   nivel: number;
@@ -206,6 +227,16 @@ export class ProfesorRegularApiService {
 
   obtenerAusentismo(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularAusentismoApi[]> {
     return this.http.get<ProfesorRegularAusentismoApi[]>(`${this.url}/ausentismo`, { params: this.consultaParams(consulta) });
+  }
+
+  // Multipart: cedulas y adjuntos se repiten una vez por valor; sin cedulas el backend envía a todos los estudiantes sin retiro.
+  enviarCorreo(anio: number, nivel: number, numero: number, envio: ProfesorRegularCorreoEnvio): Observable<ProfesorRegularCorreoResultado> {
+    const form = new FormData();
+    form.append('asunto', envio.asunto);
+    form.append('mensaje', envio.mensaje);
+    for (const cedula of envio.cedulas) form.append('cedulas', cedula);
+    for (const archivo of envio.adjuntos) form.append('adjuntos', archivo, archivo.name);
+    return this.http.post<ProfesorRegularCorreoResultado>(`${this.url}/secciones/${anio}/${nivel}/${numero}/correo`, form);
   }
 
   private consultaParams(consulta: ProfesorRegularConsulta): HttpParams {

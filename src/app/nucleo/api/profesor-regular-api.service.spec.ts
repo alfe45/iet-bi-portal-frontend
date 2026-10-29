@@ -40,6 +40,27 @@ describe('ProfesorRegularApiService', () => {
     http.verify();
   });
 
+  it('envía el correo a la sección como multipart con cédulas y adjuntos repetidos', () => {
+    const service = TestBed.inject(ProfesorRegularApiService);
+    const http = TestBed.inject(HttpTestingController);
+    const pdf = new File(['%PDF'], 'guia.pdf', { type: 'application/pdf' });
+    const png = new File(['png'], 'imagen.png', { type: 'image/png' });
+    let result: unknown;
+
+    service.enviarCorreo(2026, 11, 1, { asunto: 'Material', mensaje: 'Hola', cedulas: ['1-1', '1-2'], adjuntos: [pdf, png] }).subscribe((value) => result = value);
+    const request = http.expectOne(`${environment.apiUrl}/profesor/secciones/2026/11/1/correo`);
+    expect(request.request.method).toBe('POST');
+    const body = request.request.body as FormData;
+    expect(body.get('asunto')).toBe('Material');
+    expect(body.get('mensaje')).toBe('Hola');
+    expect(body.getAll('cedulas')).toEqual(['1-1', '1-2']);
+    expect((body.getAll('adjuntos') as File[]).map((file) => file.name)).toEqual(['guia.pdf', 'imagen.png']);
+    request.flush({ anio: 2026, seccion: '11-1', asunto: 'Material', enviados: [{ cedula: '1-1', nombre: 'Ana' }], fallidos: [] });
+
+    expect(result).toEqual(expect.objectContaining({ seccion: '11-1', fallidos: [] }));
+    http.verify();
+  });
+
   it('confirma las notas de la asignación en la ruta de confirmación', () => {
     const service = TestBed.inject(ProfesorRegularApiService);
     const http = TestBed.inject(HttpTestingController);
