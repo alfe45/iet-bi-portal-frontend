@@ -59,11 +59,17 @@ export class ProfesoresApiService {
   listarPaginado(busqueda = '', pagina = 1, tamanoPagina = 20): Observable<ResultadoPaginado<ProfesorApi>> {
     let params = new HttpParams().set('pagina', pagina).set('tamanoPagina', tamanoPagina);
     if (busqueda.trim()) params = params.set('busqueda', busqueda.trim());
-    return this.http.get<ResultadoPaginado<ProfesorBackend>>(this.url, { params }).pipe(map((response) => ({ ...response, elementos: response.elementos.map((item) => ({ ...item, idProfesor: item.cedula, fechaRegistro: '', tieneCuenta: Boolean(item.idUsuario), activo: item.activo === true, roles: item.roles ?? [] })) })));
+    return this.http.get<ResultadoPaginado<ProfesorBackend>>(this.url, { params }).pipe(map((response) => ({ ...response, elementos: response.elementos.map((item) => this.aProfesorApi(item)) })));
   }
+  // CU02: detalle por cédula (404 NF002 si ya no existe).
+  obtener(cedula: string): Observable<ProfesorApi> { return this.http.get<ProfesorBackend>(`${this.url}/${encodeURIComponent(cedula)}`).pipe(map((item) => this.aProfesorApi(item))); }
   listar(busqueda = ''): Observable<ProfesorApi[]> { return this.listarPaginado(busqueda).pipe(map((response) => response.elementos)); }
   registrar(request: RegistrarProfesorRequest): Observable<{ cedula: string }> { return this.http.post<{ cedula: string }>(this.url, request); }
   actualizar(cedula: string, request: ActualizarProfesorRequest): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(cedula)}`, request); }
   crearCuenta(cedula: string, cuenta: CuentaProfesorRequest): Observable<{ idUsuario: string }> { return this.http.post<{ idUsuario: string }>(`${this.url}/${encodeURIComponent(cedula)}/cuenta`, cuenta); }
   borrar(cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedula)}`); }
+
+  private aProfesorApi(item: ProfesorBackend): ProfesorApi {
+    return { ...item, idProfesor: item.cedula, fechaRegistro: '', tieneCuenta: Boolean(item.idUsuario), activo: item.activo === true, roles: item.roles ?? [] };
+  }
 }

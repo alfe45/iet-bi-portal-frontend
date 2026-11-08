@@ -7,7 +7,7 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
 import { FuncionalidadAdministrativa, RegistroVista } from '../nucleo/modelos/datos-vista';
 import { ColumnaTabla } from '../nucleo/modelos/modelos-prototipo';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
-import { CuentaProfesorRequest, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
+import { CuentaProfesorRequest, ProfesorApi, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
 import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucleo/api/estudiantes-api.service';
 import { MatriculasApiService, RegistrarMatriculaRequest } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
@@ -200,7 +200,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
           <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
           @if (busquedaDisponible()) {
             <div class="table-tools">
-              <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
+              <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" maxlength="100" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
               <div class="table-search-actions"><button type="button" class="primary-button" (click)="buscarRegistros()">Buscar</button>@if (adminSearch) { <button type="button" class="ghost-button" (click)="limpiarBusqueda()">Limpiar</button> }</div>
             </div>
           }
@@ -527,7 +527,7 @@ export class FuncionalidadVistaComponent {
    }
 
       private accionesProfesor(tieneCuenta: boolean): Array<{ label: string; code: string; tone?: string }> {
-        return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
+        return [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
     }
 
      protected normalizarCodigoAsignatura(value: string): void {
@@ -584,9 +584,14 @@ export class FuncionalidadVistaComponent {
      return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
    }
 
+    private profesorRow(item: ProfesorApi): Record<string, unknown> {
+      const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role);
+      return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? String(item.email) : 'Sin cuenta', tieneCuenta: item.tieneCuenta, estado: item.tieneCuenta ? (item.activo ? 'Activo' : 'Inactivo') : '—', roles: roles.join('|'), rolesBackend: item.roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) };
+    }
+
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
       this.apiError = '';
-           this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => { const roles = item.roles.map((role) => ROLES_FRONTEND[role] ?? role); return { id: item.cedula, usuarioId: item.idUsuario ?? '', nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email ?? '', cuenta: item.tieneCuenta ? String(item.email) : 'Sin cuenta', tieneCuenta: item.tieneCuenta, estado: item.tieneCuenta ? (item.activo ? 'Activo' : 'Inactivo') : '—', roles: roles.join('|'), rolesBackend: item.roles.join('|'), rolesTexto: roles.join(', ') || '—', numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', password: '', acciones: this.accionesProfesor(item.tieneCuenta) }; })); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
+           this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
     }
 
     private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
@@ -634,9 +639,9 @@ export class FuncionalidadVistaComponent {
      private ultimaRecargaPor404 = 0;
 
      private recargarListado(): void {
-       if (this.key === 'profesores') this.cargarProfesores();
-       else if (this.key === 'estudiantes') this.cargarEstudiantes();
-       else if (this.key === 'matriculas') this.cargarMatriculas();
+       if (this.key === 'profesores') this.cargarProfesores(this.adminSearch);
+       else if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch);
+       else if (this.key === 'matriculas') this.cargarMatriculas(this.adminSearch);
        else if (this.key === 'periodos') this.cargarCursosAdministracion();
        else if (this.key === 'secciones') this.cargarSeccionesAdministracion();
        else if (this.key === 'asignaturas') this.cargarAsignaturas();
@@ -767,7 +772,18 @@ export class FuncionalidadVistaComponent {
        return;
      }
      if (action === 'view' || action === 'edit') {
-      this.editingId = registro.id;
+      // RD-008: el detalle y la edición se abren con los datos vigentes del servidor (GET por cédula); si el profesor
+      // fue eliminado mientras tanto, la API responde 404 y se informa y actualiza el listado (CU02 FA 3).
+      this.profesoresApi.obtener(String(registro['cedula'])).subscribe({
+        next: (profesor) => this.abrirProfesor(action, this.profesorRow(profesor)),
+        error: (error) => this.notificarError(error, 'No se pudo consultar el profesor.'),
+      });
+      return;
+    }
+   }
+
+   private abrirProfesor(action: string, registro: Record<string, unknown>): void {
+      this.editingId = String(registro['id']);
       this.readOnly = action === 'view';
       this.editorTitle = this.readOnly ? 'Detalle de profesor' : 'Editar profesor';
       this.validationAttempted = false;
@@ -783,8 +799,6 @@ export class FuncionalidadVistaComponent {
       if (!registro['tieneCuenta']) { this.draft['usuarioId'] = ''; this.draft['correo'] = ''; this.draft['roles'] = 'Profesor regular'; this.draft['estado'] = 'Activo'; }
       else { this.draft['emailOriginal'] = String(registro['correo'] ?? ''); this.draft['rolesBackend'] = String(registro['rolesBackend'] ?? ''); this.draft['estadoOriginal'] = String(registro['estado'] ?? ''); }
       this.editorOpen.set(true);
-      return;
-    }
    }
 
   private guardarProfesor(): void {
