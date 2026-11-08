@@ -1187,7 +1187,7 @@ export class FuncionalidadVistaComponent {
     protected confirmarEliminacionProfesor(): void {
       const target = this.professorDeleteTarget();
       if (!target) return;
-      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el profesor.') });
+      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.feedback.exito('El profesor fue eliminado.'); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => { this.professorDeleteTarget.set(null); this.notificarError(error, 'No se pudo eliminar el profesor.'); } });
     }
 
     protected confirmarPromocion(): void {
