@@ -499,7 +499,9 @@ export class FuncionalidadVistaComponent {
 
   protected campoSoloLectura(field: CampoFormulario): boolean {
     if (this.readOnly || field.readOnly === true) return true;
-    if (this.key === 'profesores') return field.key === 'cedula' && Boolean(this.editingId);
+    // RD-020: la cédula identifica al profesor o estudiante y no se modifica al editar.
+    if ((this.key === 'profesores' || this.key === 'estudiantes') && field.key === 'cedula') return Boolean(this.editingId);
+    if (this.key === 'profesores') return false;
     if (!this.editingId) return false;
     if (this.key === 'periodos' && field.key === 'yearCiclo') return true;
      if (this.key === 'asignaturas' && ['codigo', 'tipoBanda', 'permiteMonografia'].includes(field.key)) return true;
