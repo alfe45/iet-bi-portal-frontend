@@ -45,6 +45,14 @@ export interface ActualizarProfesorRequest {
   fechaNacimiento: string;
 }
 
+// Cambios de la cuenta al modificar el profesor (CU03): estado deseado completo; contrasena null = no cambia.
+export type CuentaProfesorCambios = { email: string; contrasena: string | null; activo: boolean; roles: string[] };
+
+// CU03: datos y, opcionalmente, cuenta en una sola petición (la API los aplica en una transacción, RD-010).
+export interface ModificarProfesorRequest extends ActualizarProfesorRequest {
+  cuenta?: CuentaProfesorCambios | null;
+}
+
 export interface RegistrarProfesorRequest extends ActualizarProfesorRequest {
   cedula: string;
   cuenta?: CuentaProfesorRequest | null;
@@ -65,8 +73,7 @@ export class ProfesoresApiService {
   obtener(cedula: string): Observable<ProfesorApi> { return this.http.get<ProfesorBackend>(`${this.url}/${encodeURIComponent(cedula)}`).pipe(map((item) => this.aProfesorApi(item))); }
   listar(busqueda = ''): Observable<ProfesorApi[]> { return this.listarPaginado(busqueda).pipe(map((response) => response.elementos)); }
   registrar(request: RegistrarProfesorRequest): Observable<{ cedula: string }> { return this.http.post<{ cedula: string }>(this.url, request); }
-  actualizar(cedula: string, request: ActualizarProfesorRequest): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(cedula)}`, request); }
-  crearCuenta(cedula: string, cuenta: CuentaProfesorRequest): Observable<{ idUsuario: string }> { return this.http.post<{ idUsuario: string }>(`${this.url}/${encodeURIComponent(cedula)}/cuenta`, cuenta); }
+  actualizar(cedula: string, request: ModificarProfesorRequest): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(cedula)}`, request); }
   borrar(cedula: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedula)}`); }
 
   private aProfesorApi(item: ProfesorBackend): ProfesorApi {

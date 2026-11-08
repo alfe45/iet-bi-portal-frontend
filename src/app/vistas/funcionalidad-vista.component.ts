@@ -7,7 +7,7 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
 import { FuncionalidadAdministrativa, RegistroVista } from '../nucleo/modelos/datos-vista';
 import { ColumnaTabla } from '../nucleo/modelos/modelos-prototipo';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
-import { CuentaProfesorRequest, ProfesorApi, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
+import { CuentaProfesorCambios, CuentaProfesorRequest, ProfesorApi, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
 import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucleo/api/estudiantes-api.service';
 import { MatriculasApiService, RegistrarMatriculaRequest } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
@@ -15,8 +15,7 @@ import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '
 import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
 import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucleo/api/asignaturas-api.service';
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
-import { concat } from 'rxjs';
-import { map, toArray } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 interface CampoFormulario {
@@ -808,34 +807,28 @@ export class FuncionalidadVistaComponent {
     const request = this.profesorRequest();
     const terminar = (mensaje: string) => { this.feedback.exito(mensaje); this.cerrarEditor(); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); };
       if (this.editingId) {
+        // RD-010: datos y cuenta van en una sola petición; la API los aplica en una transacción (si algo falla, no se guarda nada).
         const cedula = String(this.draft['cedulaOriginal'] ?? this.draft['cedula']);
-        const { cuenta, cedula: _cedula, ...datos } = request;
-        this.profesoresApi.actualizar(cedula, datos).subscribe({ next: () => {
-          if (this.draft['modoCuenta'] === 'actual') { this.guardarCuentaProfesor(terminar); return; }
-          if (!cuenta) { terminar('El profesor fue actualizado.'); return; }
-          this.profesoresApi.crearCuenta(cedula, cuenta).subscribe({ next: () => terminar('El profesor fue actualizado y se le creó la cuenta.'), error: (error) => { this.cargarProfesores(); this.notificarError(error, 'Los datos se guardaron, pero no se pudo crear la cuenta.'); } });
-        }, error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
+        const { cuenta: _nueva, cedula: _cedula, ...datos } = request;
+        const cuenta = this.cuentaProfesorCambios();
+        const mensaje = this.draft['modoCuenta'] === 'nueva' ? 'El profesor fue actualizado y se le creó la cuenta.' : cuenta ? 'El profesor y su cuenta fueron actualizados.' : 'El profesor fue actualizado.';
+        this.profesoresApi.actualizar(cedula, { ...datos, cuenta }).subscribe({ next: () => terminar(mensaje), error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
       } else {
         this.profesoresApi.registrar(request).subscribe({ next: () => terminar('El profesor y su cuenta fueron creados.'), error: (error) => this.notificarError(error, 'No se pudo guardar el profesor.') });
       }
    }
 
-  // Aplica sobre el usuario del profesor solo lo que cambió (correo, contraseña, estado y roles).
-  private guardarCuentaProfesor(terminar: (mensaje: string) => void): void {
-    const id = String(this.draft['usuarioId'] ?? '');
-    const email = String(this.draft['correo'] ?? '').trim();
+  // Cambios de la cuenta para el PUT del profesor: el estado deseado completo (la API solo aplica lo que cambió).
+  private cuentaProfesorCambios(): CuentaProfesorCambios | null {
+    const modo = this.draft['modoCuenta'];
+    if (modo !== 'actual' && modo !== 'nueva') return null;
     const password = String(this.draft['password'] ?? '');
-    const actuales = new Set(String(this.draft['rolesBackend'] ?? '').split('|').filter(Boolean));
-    const deseados = new Set(this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role));
-    const operaciones = [] as Array<ReturnType<UsuariosApiService['actualizarEmail']>>;
-    if (email !== this.draft['emailOriginal']) operaciones.push(this.usuariosApi.actualizarEmail(id, email));
-    if (password) operaciones.push(this.usuariosApi.resetearContrasena(id, password));
-    if (this.draft['estado'] !== this.draft['estadoOriginal']) operaciones.push(this.draft['estado'] === 'Activo' ? this.usuariosApi.activar(id) : this.usuariosApi.desactivar(id));
-    for (const role of deseados) if (!actuales.has(role)) operaciones.push(this.usuariosApi.agregarRol(id, role));
-    for (const role of actuales) if (!deseados.has(role)) operaciones.push(this.usuariosApi.quitarRol(id, role));
-    if (!operaciones.length) { terminar('El profesor fue actualizado.'); return; }
-    // En serie: cada cambio es una petición y una transacción; si uno falla, los anteriores quedan aplicados.
-    concat(...operaciones).pipe(toArray()).subscribe({ next: () => terminar('El profesor y su cuenta fueron actualizados.'), error: (error) => { this.cargarProfesores(); this.notificarError(error, 'Los datos del profesor se guardaron, pero no todos los cambios de la cuenta.'); } });
+    return {
+      email: String(this.draft['correo'] ?? '').trim(),
+      contrasena: password || null,
+      activo: modo === 'nueva' ? true : this.draft['estado'] === 'Activo',
+      roles: this.rolesSeleccionados().map((role) => ROLES_BACKEND[role] ?? role),
+    };
   }
 
     private async accionEstudiante(action: string, registro: RegistroVista): Promise<void> {
