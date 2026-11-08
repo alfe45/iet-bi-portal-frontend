@@ -64,6 +64,27 @@ describe('AutenticacionService', () => {
     renewals[0].flush({ accessToken: 'access-2', accessTokenExpiresAt: '2026-09-25T13:00:00Z', refreshToken: 'refresh-2' });
 
     expect(results).toEqual(['access-2', 'access-2']);
+    // RD-053: el par rotado queda persistido para recargas y otras pestañas.
+    expect(JSON.parse(localStorage.getItem('iet-bi-portal:sesion:v2') ?? '{}').refreshToken).toBe('refresh-2');
+    http.verify();
+  });
+
+  it('uses the tokens rotated by another tab instead of renewing with the old refresh token', () => {
+    const service = TestBed.inject(AutenticacionService);
+    const http = TestBed.inject(HttpTestingController);
+    service.iniciarSesion('docente@iet.test', 'demo1234').subscribe();
+    http.expectOne(`${environment.apiUrl}/auth/login`).flush({ accessToken: 'access', accessTokenExpiresAt: '2026-09-25T12:00:00Z', refreshToken: 'refresh' });
+    http.expectOne(`${environment.apiUrl}/perfil`).flush({ id: 'user-1', email: 'docente@iet.test', activo: true, roles: ['PROFESOR_REGULAR'], nombreProfesor: 'Docente Demo' });
+
+    const guardada = JSON.parse(localStorage.getItem('iet-bi-portal:sesion:v2') ?? '{}');
+    localStorage.setItem('iet-bi-portal:sesion:v2', JSON.stringify({ ...guardada, accessToken: 'access-otra', refreshToken: 'refresh-otra' }));
+
+    const results: string[] = [];
+    service.renovarAccessToken().subscribe((token) => results.push(token));
+
+    http.expectNone(`${environment.apiUrl}/auth/refresh`);
+    expect(results).toEqual(['access-otra']);
+    expect(service.refreshTokenValue()).toBe('refresh-otra');
     http.verify();
   });
 });
