@@ -156,14 +156,14 @@ export class AsignacionesCasGuiaVistaComponent {
     if (!this.draft.cedula || !this.draft.seccion) return;
     const [anio, nivel, numero] = String(this.draft.seccion).split('-').map(Number);
     if (this.isGuide) {
-      this.seccionesApi.asignarGuia(anio, nivel, numero, this.draft.cedula).subscribe({ next: () => { this.feedback.exito('El profesor guía fue asignado.'); this.cargarGuias(); this.cerrar(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo asignar el profesor guía.') });
+      this.seccionesApi.asignarGuia(anio, nivel, numero, this.draft.cedula).subscribe({ next: () => { this.feedback.exito('El profesor guía fue asignado.'); this.cargarGuias(); this.cerrar(); }, error: (error) => this.errorAccion(error, 'No se pudo asignar el profesor guía.') });
       return;
     }
     const current = this.editingId() ? this.apiCasAssignments().find((item) => item.id === this.editingId()) : undefined;
     const operation = current
       ? this.asignacionesApi.cambiarProfesor(current.anio!, current.nivel!, current.numero!, 'CAS', current.cedula!, this.draft.cedula)
       : this.asignacionesApi.registrar({ anio, nivel, numero, codigoAsignatura: 'CAS', cedulaProfesor: this.draft.cedula });
-    operation.subscribe({ next: () => { this.feedback.exito(current ? 'El profesor CAS fue actualizado.' : 'El profesor CAS fue asignado.'); this.cargarAsignacionesCas(this.apiSections()); this.cerrar(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo guardar la asignación CAS.') });
+    operation.subscribe({ next: () => { this.feedback.exito(current ? 'El profesor CAS fue actualizado.' : 'El profesor CAS fue asignado.'); this.cargarAsignacionesCas(this.apiSections()); this.cerrar(); }, error: (error) => this.errorAccion(error, 'No se pudo guardar la asignación CAS.') });
   }
 
   private cargarGuias(): void { this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => { this.apiSections.set(response.elementos); this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos)); }, error: () => this.feedback.error('No se pudieron actualizar las asignaciones de profesores guía.') }); }
@@ -171,10 +171,10 @@ export class AsignacionesCasGuiaVistaComponent {
   protected async eliminar(item: AssignmentRow): Promise<void> {
     if (!await this.feedback.confirmar(`¿Eliminar la asignación de ${item.profesor}?`, 'Eliminar asignación', 'Eliminar')) return;
     if (this.isGuide) {
-      this.seccionesApi.quitarGuia(item.anio!, item.nivel!, item.numero!).subscribe({ next: () => { this.feedback.exito('La asignación de guía fue eliminada.'); this.cargarGuias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la asignación de guía.') });
+      this.seccionesApi.quitarGuia(item.anio!, item.nivel!, item.numero!).subscribe({ next: () => { this.feedback.exito('La asignación de guía fue eliminada.'); this.cargarGuias(); }, error: (error) => this.errorAccion(error, 'No se pudo eliminar la asignación de guía.') });
       return;
     }
-    this.asignacionesApi.borrar(item.anio!, item.nivel!, item.numero!, 'CAS', item.cedula!).subscribe({ next: () => { this.feedback.exito('La asignación CAS fue eliminada.'); this.cargarAsignacionesCas(this.apiSections()); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la asignación CAS.') });
+    this.asignacionesApi.borrar(item.anio!, item.nivel!, item.numero!, 'CAS', item.cedula!).subscribe({ next: () => { this.feedback.exito('La asignación CAS fue eliminada.'); this.cargarAsignacionesCas(this.apiSections()); }, error: (error) => this.errorAccion(error, 'No se pudo eliminar la asignación CAS.') });
   }
 
   protected sectionKey(section: SeccionApi): string { return `${section.anio}-${section.nivel}-${section.numero}`; }
@@ -192,6 +192,14 @@ export class AsignacionesCasGuiaVistaComponent {
       this.apiCasAssignments.set(rows);
       this.casLoaded.set(true);
     }, error: (error) => { this.casLoaded.set(true); this.feedback.error(error.error?.mensaje ?? 'No se pudieron cargar las asignaciones CAS.'); } });
+  }
+
+  /** RD-012: si el registro ya no existe, informa, cierra el formulario y actualiza el listado. */
+  private errorAccion(error: { status?: number; error?: { mensaje?: string } }, respaldo: string): void {
+    this.feedback.error(error.error?.mensaje ?? respaldo);
+    if (error.status !== 404) return;
+    this.cerrar();
+    if (this.isGuide) this.cargarGuias(); else this.cargarAsignacionesCas(this.apiSections());
   }
 
   protected cerrar(): void { this.editorOpen.set(false); }

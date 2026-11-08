@@ -98,11 +98,19 @@ export class AsignacionesMonografiaVistaComponent {
       if (!Number.isInteger(anio) || anio < 2000 || anio > 2100) { this.feedback.error('Indique un año de inicio válido.'); return; }
       const request = { anio, cedulaEstudiante: String(student['cedula']), cedulaCoordinador: String(teacher['cedula']), codigoAsignatura: String(subject['codigo']) };
      const operation = this.editingId() ? this.monografiasApi.actualizar(request.cedulaEstudiante, request.cedulaCoordinador, request.codigoAsignatura) : this.monografiasApi.registrar(request);
-     operation.subscribe({ next: () => { this.feedback.exito(this.editingId() ? 'La coordinación de monografía fue actualizada.' : 'La coordinación de monografía fue registrada.'); this.cargarMonografias(); this.cerrar(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo guardar la coordinación de monografía.') });
+     operation.subscribe({ next: () => { this.feedback.exito(this.editingId() ? 'La coordinación de monografía fue actualizada.' : 'La coordinación de monografía fue registrada.'); this.cargarMonografias(); this.cerrar(); }, error: (error) => this.errorAccion(error, 'No se pudo guardar la coordinación de monografía.') });
    }
      protected async eliminar(item: MonografiaRow): Promise<void> {
       if (!await this.feedback.confirmar(`¿Eliminar la coordinación de ${item.estudiante}?`, 'Eliminar coordinación', 'Eliminar')) return;
-      this.monografiasApi.borrar(String(item.id)).subscribe({ next: () => { this.feedback.exito('La coordinación de monografía fue eliminada.'); this.cargarMonografias(); }, error: (error) => this.feedback.error(error.error?.mensaje ?? 'No se pudo eliminar la coordinación de monografía.') });
+      this.monografiasApi.borrar(String(item.id)).subscribe({ next: () => { this.feedback.exito('La coordinación de monografía fue eliminada.'); this.cargarMonografias(); }, error: (error) => this.errorAccion(error, 'No se pudo eliminar la coordinación de monografía.') });
    }
+  /** RD-012: si el registro ya no existe, informa, cierra el formulario y actualiza el listado. */
+  private errorAccion(error: { status?: number; error?: { mensaje?: string } }, respaldo: string): void {
+    this.feedback.error(error.error?.mensaje ?? respaldo);
+    if (error.status !== 404) return;
+    this.cerrar();
+    this.cargarMonografias();
+  }
+
   protected cerrar(): void { this.editorOpen.set(false); }
 }

@@ -614,6 +614,26 @@ export class FuncionalidadVistaComponent {
      private notificarError(error: unknown, fallback: string): void {
        const mensaje = (error as { error?: { mensaje?: string } })?.error?.mensaje ?? fallback;
        this.feedback.error(mensaje);
+       // RD-012: si el registro ya no existe (otro administrador lo eliminó), se cierra el formulario y se
+       // actualiza el listado. Los listados no responden 404; el intervalo evita repetir la recarga en cadena.
+       if ((error as { status?: number })?.status === 404 && Date.now() - this.ultimaRecargaPor404 > 2000) {
+         this.ultimaRecargaPor404 = Date.now();
+         this.cerrarEditor();
+         this.professorDeleteTarget.set(null);
+         this.recargarListado();
+       }
+     }
+
+     private ultimaRecargaPor404 = 0;
+
+     private recargarListado(): void {
+       if (this.key === 'profesores') this.cargarProfesores();
+       else if (this.key === 'estudiantes') this.cargarEstudiantes();
+       else if (this.key === 'matriculas') this.cargarMatriculas();
+       else if (this.key === 'periodos') this.cargarCursosAdministracion();
+       else if (this.key === 'secciones') this.cargarSeccionesAdministracion();
+       else if (this.key === 'asignaturas') this.cargarAsignaturas();
+       else if (this.key === 'asignaciones') this.cargarAsignaciones();
      }
 
     private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
