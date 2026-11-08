@@ -507,10 +507,9 @@ export class FuncionalidadVistaComponent {
     return false;
   }
 
-   /** RD-001: en profesores el aviso general se muestra si ningún campo visible ya explica el error. */
+   /** RD-001/RD-017: el aviso general se muestra solo si ningún campo visible ya explica el error (sin duplicarlo). */
    protected mostrarApiError(): boolean {
      if (!this.apiError || this.readOnly) return false;
-     if (this.key !== 'profesores') return true;
      return !this.camposFormularioVisibles().some((field) => this.fieldError(field.key));
    }
 
@@ -557,10 +556,21 @@ export class FuncionalidadVistaComponent {
     }
 
     protected cambiarIdentificacion(value: string): void {
-      const limpio = String(value ?? '')
-        .replace(this.identificacionExtranjera ? /[^A-Za-z0-9-]/g : /[^0-9]/g, '')
-        .slice(0, 20);
-      this.draft['cedula'] = this.identificacionExtranjera ? limpio : this.formatearCedulaCostarricense(limpio);
+      const texto = String(value ?? '');
+      // RD-016: con letras y sin marcar "Identificación extranjera" no se reescribe en silencio:
+      // se conserva lo escrito y la validación avisa (errorCedulaNacional).
+      if (this.identificacionExtranjera || /[A-Za-z]/.test(texto)) {
+        this.draft['cedula'] = texto.replace(/[^A-Za-z0-9-]/g, '').slice(0, 20);
+        return;
+      }
+      this.draft['cedula'] = this.formatearCedulaCostarricense(texto.replace(/[^0-9]/g, '').slice(0, 20));
+    }
+
+    /** RD-016: una cédula nacional debe estar completa (0-0000-0000); al editar no se valida (no se modifica). */
+    private errorCedulaNacional(): string | null {
+      const cedula = String(this.draft['cedula'] ?? '').trim();
+      if (!cedula || this.identificacionExtranjera || this.editingId || this.esIdentificacionCostarricense(cedula)) return null;
+      return 'La cédula nacional debe tener 9 dígitos con el formato 0-0000-0000; para otra identificación marque «Identificación extranjera».';
     }
 
     private formatearCedulaCostarricense(value: string): string {
@@ -860,7 +870,7 @@ export class FuncionalidadVistaComponent {
       if (this.editingId) {
         this.estudiantesApi.actualizar(String(this.draft['cedulaOriginal'] ?? this.draft['cedula']), { nombre: request.nombre, primerApellido: request.primerApellido, segundoApellido: request.segundoApellido, numeroCelular: request.numeroCelular, email: request.email, fechaNacimiento: request.fechaNacimiento }).subscribe({ next: () => { this.feedback.exito('El estudiante fue actualizado.'); this.cerrarEditor(); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
       } else {
-        this.estudiantesApi.registrar(request).subscribe({ next: () => { this.feedback.exito('El estudiante fue creado.'); this.cerrarEditor(); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
+        this.estudiantesApi.registrar(request).subscribe({ next: () => { this.feedback.exito('El estudiante fue creado.'); this.cerrarEditor(); this.cargarEstudiantes(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
       }
    }
 
@@ -885,6 +895,7 @@ export class FuncionalidadVistaComponent {
       if (required.has(key) && !value) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
       if ((key === 'nombre' || key === 'primerApellido') && value.length > 0 && value.length < 2) return `El campo '${label}' debe tener al menos 2 caracteres.`;
       if ((key === 'cedula' || key === 'cedulaEstudiante') && value.length > 0 && value.length < 5) return `El campo '${label}' debe tener al menos 5 caracteres.`;
+      if (key === 'cedula' && (this.key === 'profesores' || this.key === 'estudiantes') && value.length >= 5) { const errorCedula = this.errorCedulaNacional(); if (errorCedula) return errorCedula; }
       // RD-001: la contraseña (nueva o de reemplazo) se valida en el campo, igual que la API (8 a 128).
       if (key === 'password' && this.key === 'profesores') { const clave = String(this.draft[key] ?? ''); if (clave && (clave.length < 8 || clave.length > 128)) return `El campo '${label}' debe tener entre 8 y 128 caracteres.`; }
        if (this.key === 'matriculas' && (key === 'yearCiclo' || key === 'numeroSeccion') && value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) return `El campo '${label}' debe ser un número válido mayor que cero.`;
@@ -927,6 +938,7 @@ export class FuncionalidadVistaComponent {
      if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'Fecha de nacimiento' es obligatorio y no puede estar vacío.";
      if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
+     { const errorCedula = this.errorCedulaNacional(); if (errorCedula) return errorCedula; }
      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido.';
      const birthDate = String(this.draft['fechaNacimiento'] ?? '');
        if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900 y hoy.';
@@ -946,6 +958,7 @@ export class FuncionalidadVistaComponent {
       if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'Fecha de nacimiento' es obligatorio y no puede estar vacío.";
       if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
       if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
+      { const errorCedula = this.errorCedulaNacional(); if (errorCedula) return errorCedula; }
       if (step === 1) {
         const birthDate = String(this.draft['fechaNacimiento'] ?? '');
         if (!this.esFechaIsoValida(birthDate) || birthDate < '1900-01-01' || birthDate > new Date().toISOString().slice(0, 10)) return 'La fecha de nacimiento debe ser real y estar entre 1900 y hoy.';
