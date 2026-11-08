@@ -165,9 +165,9 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                 <div class="role-empty-state"><span class="role-empty-icon">i</span><div><strong>Sin cuenta de acceso</strong><p>Este profesor no tiene una cuenta. Puedes crearla en la fase anterior para asignarle responsabilidades y permitirle iniciar sesión.</p></div></div>
               }
             </div>
-              @if (apiError && !readOnly && key !== 'profesores') { <p class="api-error" role="alert">{{ apiError }}</p> }
+              @if (mostrarApiError()) { <p class="api-error" role="alert">{{ apiError }}</p> }
              @if (key === 'profesores') {
-               <div class="form-actions wizard-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button><span class="wizard-actions-spacer"></span>@if (professorStep() > 1) { <button type="button" class="ghost-button" (click)="retrocederProfesor()">← Atrás</button> } @if (professorStep() < professorSteps.length) { <button type="button" class="primary-button" (click)="avanzarProfesor()">Continuar <span aria-hidden="true">→</span></button> } @else if (!readOnly) { <button type="submit" class="primary-button">Guardar cambios</button> }</div>
+               <div class="form-actions wizard-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button><span class="wizard-actions-spacer"></span>@if (professorStep() > 1) { <button type="button" class="ghost-button" (click)="retrocederProfesor()">← Atrás</button> } @if (professorStep() < professorSteps.length) { <button type="button" class="primary-button" (click)="avanzarProfesor()">Continuar <span aria-hidden="true">→</span></button> } @else if (!readOnly) { <button type="submit" class="primary-button">{{ editingId ? 'Guardar cambios' : 'Registrar' }}</button> }</div>
              } @else if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> }
            </form></div>
         }
@@ -507,6 +507,13 @@ export class FuncionalidadVistaComponent {
      if (this.key === 'asignaciones' && field.key !== 'profesor') return true;
     return false;
   }
+
+   /** RD-001: en profesores el aviso general se muestra si ningún campo visible ya explica el error. */
+   protected mostrarApiError(): boolean {
+     if (!this.apiError || this.readOnly) return false;
+     if (this.key !== 'profesores') return true;
+     return !this.camposFormularioVisibles().some((field) => this.fieldError(field.key));
+   }
 
    protected cerrarEditor(): void {
       this.editorOpen.set(false);
@@ -871,6 +878,8 @@ export class FuncionalidadVistaComponent {
       if (required.has(key) && !value) return `El campo '${label}' es obligatorio y no puede estar vacío.`;
       if ((key === 'nombre' || key === 'primerApellido') && value.length > 0 && value.length < 2) return `El campo '${label}' debe tener al menos 2 caracteres.`;
       if ((key === 'cedula' || key === 'cedulaEstudiante') && value.length > 0 && value.length < 5) return `El campo '${label}' debe tener al menos 5 caracteres.`;
+      // RD-001: la contraseña (nueva o de reemplazo) se valida en el campo, igual que la API (8 a 128).
+      if (key === 'password' && this.key === 'profesores') { const clave = String(this.draft[key] ?? ''); if (clave && (clave.length < 8 || clave.length > 128)) return `El campo '${label}' debe tener entre 8 y 128 caracteres.`; }
        if (this.key === 'matriculas' && (key === 'yearCiclo' || key === 'numeroSeccion') && value && (!Number.isInteger(Number(value)) || Number(value) <= 0)) return `El campo '${label}' debe ser un número válido mayor que cero.`;
        if (key === 'correo' && value && !/^\S+@\S+\.\S+$/.test(value)) return "El campo 'Correo electrónico' no tiene un formato válido.";
        if (['fechaNacimiento', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'].includes(key) && value && !this.esFechaIsoValida(value)) return `El campo '${label}' debe contener una fecha real.`;
