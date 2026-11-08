@@ -904,11 +904,11 @@ export class FuncionalidadVistaComponent {
     }
 
    private validarEstudianteDraft(): string | null {
-     if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['correo'] ?? '').trim()) return "El campo 'correo' es obligatorio y no puede estar vacío.";
-     if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
+     if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'Nombre' es obligatorio y no puede estar vacío.";
+     if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'Primer apellido' es obligatorio y no puede estar vacío.";
+     if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'Cédula' es obligatorio y no puede estar vacío.";
+     if (!String(this.draft['correo'] ?? '').trim()) return "El campo 'Correo electrónico' es obligatorio y no puede estar vacío.";
+     if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'Fecha de nacimiento' es obligatorio y no puede estar vacío.";
      if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
      if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
      if (!/^\S+@\S+\.\S+$/.test(String(this.draft['correo'] ?? '').trim())) return 'Escriba un correo electrónico válido.';
@@ -924,10 +924,10 @@ export class FuncionalidadVistaComponent {
   }
 
      private validarPasoProfesor(step: number): string | null {
-      if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'nombre' es obligatorio y no puede estar vacío.";
-      if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'primerApellido' es obligatorio y no puede estar vacío.";
-      if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'cedula' es obligatorio y no puede estar vacío.";
-      if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'fechaNacimiento' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['nombre'] ?? '').trim()) return "El campo 'Nombre' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['primerApellido'] ?? '').trim()) return "El campo 'Primer apellido' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['cedula'] ?? '').trim()) return "El campo 'Cédula' es obligatorio y no puede estar vacío.";
+      if (!String(this.draft['fechaNacimiento'] ?? '').trim()) return "El campo 'Fecha de nacimiento' es obligatorio y no puede estar vacío.";
       if (String(this.draft['nombre'] ?? '').trim().length < 2 || String(this.draft['primerApellido'] ?? '').trim().length < 2) return 'El nombre y el primer apellido deben tener al menos 2 caracteres.';
       if (String(this.draft['cedula'] ?? '').trim().length < 5) return 'La cédula debe tener al menos 5 caracteres.';
       if (step === 1) {
@@ -950,6 +950,11 @@ export class FuncionalidadVistaComponent {
       return null;
     }
 
+    /** RD-017: los avisos nombran el campo con la etiqueta del formulario, no con su clave técnica. */
+    private etiquetaCampo(key: string): string {
+      return this.config.fields.find((field) => field.key === key)?.label.replace(/\s*\(.*\)$/, '') ?? key;
+    }
+
      private validarProfesorDraft(): string | null {
        for (const step of this.professorSteps.map((item) => item.number)) {
          const error = this.validarPasoProfesor(step);
@@ -960,7 +965,7 @@ export class FuncionalidadVistaComponent {
     private validarCatalogoAdministrativo(): string | null {
       const required = this.key === 'asignaturas' ? ['codigo', 'tipoAsignatura', 'nombre'] : ['profesor', 'codigo', 'yearCiclo', 'seccion'];
      const missing = required.find((key) => !String(this.draft[key] ?? '').trim());
-      if (missing) return `El campo '${missing}' es obligatorio.`;
+      if (missing) return `El campo '${this.etiquetaCampo(missing)}' es obligatorio.`;
       if (this.key === 'asignaturas' && !/^[A-Z]{3}$/.test(String(this.draft['codigo']).trim())) return 'El código debe tener exactamente tres letras mayúsculas.';
       if (this.key === 'asignaturas' && String(this.draft['nombre'] ?? '').trim().length < 2) return 'El nombre de la asignatura debe tener al menos 2 caracteres.';
       if (this.key === 'asignaturas' && this.draft['imparteNivel11'] !== 'true' && this.draft['imparteNivel12'] !== 'true') return 'La asignatura debe impartirse al menos en nivel 11 o nivel 12.';
