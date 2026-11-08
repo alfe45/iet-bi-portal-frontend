@@ -17,6 +17,7 @@ import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucl
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
 import { map } from 'rxjs/operators';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
+import { fechaCostaRica } from '../compartidos/utilidades/fechas';
 
 interface CampoFormulario {
   key: string;
@@ -167,7 +168,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
               @if (mostrarApiError()) { <p class="api-error" role="alert">{{ apiError }}</p> }
              @if (key === 'profesores') {
                <div class="form-actions wizard-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">{{ readOnly ? 'Cerrar' : 'Cancelar' }}</button><span class="wizard-actions-spacer"></span>@if (professorStep() > 1) { <button type="button" class="ghost-button" (click)="retrocederProfesor()">← Atrás</button> } @if (professorStep() < professorSteps.length) { <button type="button" class="primary-button" (click)="avanzarProfesor()">Continuar <span aria-hidden="true">→</span></button> } @else if (!readOnly) { <button type="submit" class="primary-button">{{ editingId ? 'Guardar cambios' : 'Registrar' }}</button> }</div>
-             } @else if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> }
+             } @else if (!readOnly) { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cancelar</button><button type="submit" class="primary-button">Guardar</button></div> } @else { <div class="form-actions"><button type="button" class="ghost-button" (click)="cerrarEditor()">Cerrar</button></div> }
            </form></div>
         }
 
@@ -590,7 +591,7 @@ export class FuncionalidadVistaComponent {
     }
 
    private accionesEstudiante(): Array<{ label: string; code: string; tone?: string }> {
-     return [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
+     return [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
    }
 
     private profesorRow(item: ProfesorApi): Record<string, unknown> {
@@ -603,9 +604,14 @@ export class FuncionalidadVistaComponent {
            this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
     }
 
+    private estudianteRow(item: EstudianteApi): Record<string, unknown> {
+      // RD-018: la fecha de registro (UTC en la API) se muestra en hora de Costa Rica como dd/MM/aaaa.
+      return { id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: fechaCostaRica(item.fechaRegistro), primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: [...this.accionesEstudiante(), { label: 'Historial', code: 'history' }] };
+    }
+
     private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
       this.apiError = '';
-         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => ({ id: item.cedula, nombre: item.nombre, nombreCompleto: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '), cedula: item.cedula, correo: item.email, numeroCelular: item.numeroCelular ?? '', fechaNacimiento: item.fechaNacimiento, fechaRegistro: item.fechaRegistro, primerApellido: item.primerApellido, segundoApellido: item.segundoApellido ?? '', acciones: [...this.accionesEstudiante(), { label: 'Historial', code: 'history' }] }))); }, error: (error) => { this.estudiantesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes.'); } });
+         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => this.estudianteRow(item))); }, error: (error) => { this.estudiantesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes.'); } });
     }
 
      private cargarMatriculas(busqueda = '', pagina = this.paginaActual()): void {
@@ -847,19 +853,27 @@ export class FuncionalidadVistaComponent {
         return;
       }
       if (action === 'view' || action === 'edit') {
-       this.editingId = registro.id;
-       this.readOnly = action === 'view';
-       this.editorTitle = this.readOnly ? 'Detalle de estudiante' : 'Editar estudiante';
-       this.validationAttempted = false;
-       this.apiError = '';
-       this.showPassword.set(false);
-        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, registro[field.key] ?? '']));
-        this.identificacionExtranjera = this.inferirIdentificacionExtranjera(String(this.draft['cedula'] ?? ''));
-       this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
-       this.editorOpen.set(true);
-       return;
-     }
-       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar al estudiante ${registro['nombreCompleto']}?`, 'Eliminar estudiante', 'Eliminar')) this.estudiantesApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('El estudiante fue eliminado.'); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el estudiante.') });
+        // RD-008: detalle y edición con los datos vigentes del servidor; un 404 informa y actualiza el listado.
+        this.estudiantesApi.obtener(String(registro['cedula'])).subscribe({
+          next: (estudiante) => this.abrirEstudiante(action, this.estudianteRow(estudiante)),
+          error: (error) => this.notificarError(error, 'No se pudo consultar el estudiante.'),
+        });
+        return;
+      }
+       if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar al estudiante ${registro['nombreCompleto']}?`, 'Eliminar estudiante', 'Eliminar')) this.estudiantesApi.borrar(String(registro['cedula'])).subscribe({ next: () => { this.feedback.exito('El estudiante fue eliminado.'); this.cargarEstudiantes(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el estudiante.') });
+   }
+
+   private abrirEstudiante(action: string, registro: Record<string, unknown>): void {
+     this.editingId = String(registro['id']);
+     this.readOnly = action === 'view';
+     this.editorTitle = this.readOnly ? 'Detalle de estudiante' : 'Editar estudiante';
+     this.validationAttempted = false;
+     this.apiError = '';
+     this.showPassword.set(false);
+     this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
+     this.identificacionExtranjera = this.inferirIdentificacionExtranjera(String(this.draft['cedula'] ?? ''));
+     this.draft['cedulaOriginal'] = String(registro['cedula'] ?? '');
+     this.editorOpen.set(true);
    }
 
    private guardarEstudiante(): void {
@@ -868,7 +882,7 @@ export class FuncionalidadVistaComponent {
      if (validation) { this.apiError = validation; return; }
      const request = this.estudianteRequest();
       if (this.editingId) {
-        this.estudiantesApi.actualizar(String(this.draft['cedulaOriginal'] ?? this.draft['cedula']), { nombre: request.nombre, primerApellido: request.primerApellido, segundoApellido: request.segundoApellido, numeroCelular: request.numeroCelular, email: request.email, fechaNacimiento: request.fechaNacimiento }).subscribe({ next: () => { this.feedback.exito('El estudiante fue actualizado.'); this.cerrarEditor(); this.cargarEstudiantes(); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
+        this.estudiantesApi.actualizar(String(this.draft['cedulaOriginal'] ?? this.draft['cedula']), { nombre: request.nombre, primerApellido: request.primerApellido, segundoApellido: request.segundoApellido, numeroCelular: request.numeroCelular, email: request.email, fechaNacimiento: request.fechaNacimiento }).subscribe({ next: () => { this.feedback.exito('El estudiante fue actualizado.'); this.cerrarEditor(); this.cargarEstudiantes(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
       } else {
         this.estudiantesApi.registrar(request).subscribe({ next: () => { this.feedback.exito('El estudiante fue creado.'); this.cerrarEditor(); this.cargarEstudiantes(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo guardar el estudiante.') });
       }
