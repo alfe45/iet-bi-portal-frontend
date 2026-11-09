@@ -9,7 +9,7 @@ import { ColumnaTabla } from '../nucleo/modelos/modelos-prototipo';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { CuentaProfesorCambios, CuentaProfesorRequest, ProfesorApi, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
 import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucleo/api/estudiantes-api.service';
-import { MatriculasApiService, RegistrarMatriculaRequest, SeccionSubidaApi } from '../nucleo/api/matriculas-api.service';
+import { MatriculaApi, MatriculasApiService, RegistrarMatriculaRequest, SeccionSubidaApi } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
 import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '../nucleo/api/cursos-lectivos-api.service';
 import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
@@ -69,7 +69,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'semestreI', label: 'I semestre' }, { key: 'semestreII', label: 'II semestre' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estadoTexto', label: 'Estado', readOnly: true, required: false }, { key: 'semestreActual', label: 'Semestre en curso', readOnly: true, required: false }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'guia', label: 'Profesor guía' }, { key: 'cantidadEstudiantes', label: 'Estudiantes' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'guia', label: 'Profesor guía', readOnly: true, required: false }, { key: 'cantidadEstudiantes', label: 'Cantidad de estudiantes', readOnly: true, required: false }] },
-  matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
+  matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'fechaMatricula', label: 'Fecha de matrícula' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'fechaMatriculaIso', label: 'Fecha de matrícula (opcional; por defecto, hoy)', type: 'date', required: false }, { key: 'fechaMatricula', label: 'Fecha de matrícula', readOnly: true, required: false }, { key: 'estado', label: 'Estado', readOnly: true, required: false }, { key: 'fechaRetiro', label: 'Fecha de retiro', readOnly: true, required: false }, { key: 'motivoRetiro', label: 'Motivo del retiro', readOnly: true, required: false }] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (3 letras)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Año' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
 };
@@ -204,6 +204,15 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
             <div class="table-tools">
               <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" maxlength="100" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
               <div class="table-search-actions"><button type="button" class="primary-button" (click)="buscarRegistros()">Buscar</button>@if (adminSearch) { <button type="button" class="ghost-button" (click)="limpiarBusqueda()">Limpiar</button> }</div>
+            </div>
+          }
+          @if (isAdmin() && key === 'matriculas') {
+            <div class="table-tools">
+              <label class="table-search"><span>Curso lectivo</span><select [(ngModel)]="filtroMatAnio" aria-label="Filtrar matrículas por curso lectivo"><option value="">Todos</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ course.yearCiclo }}</option> }</select></label>
+              <label class="table-search"><span>Nivel</span><select [(ngModel)]="filtroMatNivel" aria-label="Filtrar matrículas por nivel"><option value="">Todos</option><option value="11">Undécimo (11)</option><option value="12">Duodécimo (12)</option></select></label>
+              <label class="table-search"><span>Número de sección</span><input type="number" min="1" max="99" [(ngModel)]="filtroMatNumero" aria-label="Filtrar matrículas por número de sección" /></label>
+              <label class="table-search"><span>Estado</span><select [(ngModel)]="filtroMatEstado" aria-label="Filtrar matrículas por estado"><option value="">Todos</option><option value="PROGRAMADA">Programada</option><option value="ACTIVA">Activa</option><option value="FINALIZADA">Finalizada</option><option value="RETIRADA">Retirada</option></select></label>
+              <div class="table-search-actions"><button type="button" class="primary-button" (click)="filtrarMatriculas()">Filtrar</button>@if (filtroMatAnio || filtroMatNivel || filtroMatNumero || filtroMatEstado) { <button type="button" class="ghost-button" (click)="limpiarFiltrosMatriculas()">Limpiar filtros</button> }</div>
             </div>
           }
           @if (isAdmin() && key === 'secciones') {
@@ -374,6 +383,11 @@ export class FuncionalidadVistaComponent {
 
     protected camposFormulario(): CampoFormulario[] {
        if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
+       // RD-030/RD-031: la fecha opcional solo al registrar; fecha, estado y retiro solo en el detalle.
+       if (this.key === 'matriculas') {
+         const soloDetalle = ['fechaMatricula', 'estado', 'fechaRetiro', 'motivoRetiro'];
+         return this.config.fields.filter((field) => field.key === 'fechaMatriculaIso' ? !this.editingId : soloDetalle.includes(field.key) ? this.readOnly : true);
+       }
        // RD-023/RD-025: estado, semestre en curso, guía y cantidad de estudiantes solo en el detalle o la edición.
        if (this.key === 'periodos') return this.config.fields.filter((field) => !['estadoTexto', 'semestreActual'].includes(field.key) || Boolean(this.editingId));
        if (this.key === 'secciones') return this.config.fields.filter((field) => !['guia', 'cantidadEstudiantes'].includes(field.key) || this.readOnly);
@@ -628,11 +642,25 @@ export class FuncionalidadVistaComponent {
          this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => this.estudianteRow(item))); }, error: (error) => { this.estudiantesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes.'); } });
     }
 
+    /** RD-031/RD-029: estado con texto, fechas dd/mm/aaaa y acciones de retiro según el estado. */
+    private matriculaRow(item: MatriculaApi): Record<string, unknown> {
+      const estados: Record<string, string> = { PROGRAMADA: 'Programada', ACTIVA: 'Activa', FINALIZADA: 'Finalizada', RETIRADA: 'Retirada' };
+      const retiro = item.fechaRetiro ? [{ label: 'Corregir retiro', code: 'retire' }, { label: 'Anular retiro', code: 'unretire' }] : [{ label: 'Registrar retiro', code: 'retire' }];
+      return { id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: estados[item.estado] ?? item.estado, fechaMatricula: fechaCostaRica(item.fechaMatricula), fechaRetiro: item.fechaRetiro ? fechaCostaRica(item.fechaRetiro) : '—', motivoRetiro: item.motivoRetiro ?? '—', nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, ...retiro, ...(item.nivel === 11 ? [{ label: 'Subir sección', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
+    }
+
+    protected filtroMatAnio = '';
+    protected filtroMatNivel = '';
+    protected filtroMatNumero = '';
+    protected filtroMatEstado = '';
+    protected filtrarMatriculas(): void { this.paginaActual.set(1); this.cargarMatriculas(this.adminSearch, 1); }
+    protected limpiarFiltrosMatriculas(): void { this.filtroMatAnio = ''; this.filtroMatNivel = ''; this.filtroMatNumero = ''; this.filtroMatEstado = ''; this.filtrarMatriculas(); }
+
      private cargarMatriculas(busqueda = '', pagina = this.paginaActual()): void {
       this.apiError = '';
         this.estudiantesApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (students) => {
          this.estudiantesMatricula.set(students);
-           this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => ({ id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: item.estado, fechaRetiro: item.fechaRetiro, nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Editar', code: 'edit' }, ...(item.nivel === 11 ? [{ label: 'Subir de nivel', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
+           this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina, anio: this.filtroMatAnio ? Number(this.filtroMatAnio) : undefined, nivel: this.filtroMatNivel ? Number(this.filtroMatNivel) : undefined, numero: this.filtroMatNumero ? Number(this.filtroMatNumero) : undefined, estado: this.filtroMatEstado || undefined }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => this.matriculaRow(item))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
           }, error: (error) => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes para las matrículas.'); } });
    }
 
@@ -1107,14 +1135,21 @@ export class FuncionalidadVistaComponent {
     private async accionMatricula(action: string, registro: RegistroVista): Promise<void> {
       const anio = Number(registro['yearCiclo']);
       const cedula = String(registro['cedulaEstudiante'] ?? '');
-      if (action === 'edit') {
-        this.editingId = registro.id;
-        this.readOnly = false;
-        this.validationAttempted = false;
-        this.apiError = '';
-        this.editorTitle = 'Cambiar sección de matrícula';
-        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
-        this.editorOpen.set(true);
+      if (action === 'view' || action === 'edit') {
+        // RD-031/RD-008: detalle y edición con los datos vigentes (GET); un 404 informa y actualiza el listado.
+        this.matriculasApi.obtener(anio, cedula).subscribe({
+          next: (matricula) => {
+            const fila = this.matriculaRow(matricula);
+            this.editingId = String(fila['id']);
+            this.readOnly = action === 'view';
+            this.validationAttempted = false;
+            this.apiError = '';
+            this.editorTitle = this.readOnly ? 'Detalle de matrícula' : 'Cambiar sección de matrícula';
+            this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(fila[field.key] ?? '')]));
+            this.editorOpen.set(true);
+          },
+          error: (error) => this.notificarError(error, 'No se pudo consultar la matrícula.'),
+        });
         return;
       }
        if (action === 'promote') {
@@ -1148,7 +1183,8 @@ export class FuncionalidadVistaComponent {
          this.matriculasApi.cambiarSeccion(anio, String(this.draft['cedulaEstudiante']), { nivel, numero }).subscribe({ next: () => { this.feedback.exito('La sección de la matrícula fue actualizada.'); this.cerrarEditor(); this.cargarMatriculas(); }, error: (response) => this.notificarError(response, 'No se pudo cambiar la sección de la matrícula.') });
          return;
        }
-       const request: RegistrarMatriculaRequest = { cedulaEstudiante: String(this.draft['cedulaEstudiante'] ?? '').trim(), anio, nivel, numero };
+       const fechaMatricula = String(this.draft['fechaMatriculaIso'] ?? '').trim();
+       const request: RegistrarMatriculaRequest = { cedulaEstudiante: String(this.draft['cedulaEstudiante'] ?? '').trim(), anio, nivel, numero, ...(fechaMatricula ? { fechaMatricula } : {}) };
        this.matriculasApi.registrar(request).subscribe({ next: () => { this.feedback.exito('La matrícula fue registrada.'); this.cerrarEditor(); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo registrar la matrícula.') });
    }
 

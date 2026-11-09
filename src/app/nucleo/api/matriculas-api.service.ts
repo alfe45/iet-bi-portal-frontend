@@ -44,6 +44,7 @@ export interface ConsultaMatriculas {
   nivel?: number;
   numero?: number;
   cedulaEstudiante?: string;
+  estado?: string;
   busqueda?: string;
   pagina?: number;
   tamanoPagina?: number;
@@ -62,6 +63,8 @@ export class MatriculasApiService {
     }
     return this.http.get<ResultadoPaginado<MatriculaApi>>(this.url, { params });
   }
+  // CU19: detalle (404 NF009 si ya no existe).
+  obtener(anio: number, cedula: string): Observable<MatriculaApi> { return this.http.get<MatriculaApi>(`${this.url}/${anio}/${encodeURIComponent(cedula)}`); }
   registrar(request: RegistrarMatriculaRequest): Observable<void> { return this.http.post<void>(this.url, request); }
   subirSeccion(request: SubirSeccionRequest): Observable<SeccionSubidaApi> { return this.http.post<SeccionSubidaApi>(`${this.url}/subir-seccion`, request); }
   cambiarSeccion(anio: number, cedula: string, request: CambiarSeccionRequest): Observable<void> { return this.http.put<void>(`${this.url}/${anio}/${encodeURIComponent(cedula)}/seccion`, request); }
