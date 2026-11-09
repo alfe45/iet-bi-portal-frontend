@@ -4,11 +4,14 @@ import { ActivatedRoute } from '@angular/router';
 import { AsignacionesApiService } from '../nucleo/api/asignaciones-api.service';
 import { ProfesoresApiService } from '../nucleo/api/profesores-api.service';
 import { SeccionesApiService, SeccionApi } from '../nucleo/api/secciones-api.service';
+import { CursosLectivosApiService } from '../nucleo/api/cursos-lectivos-api.service';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
 interface ProfesorAsignable {
   id: string | number;
   cedula: string;
+  activo?: boolean;
+  roles?: string[];
   nombre: string;
 }
 
@@ -76,7 +79,8 @@ interface AssignmentDraft {
           <form class="editor-modal" (ngSubmit)="guardar()" novalidate>
              <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Coordinación CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3><p class="required-legend">* Campos obligatorios</p></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
              <div class="form-grid">
-                 <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of teachers(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select></label>
+                 <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of profesoresElegibles(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select>@if (isGuide && !profesoresElegibles().length) {<small class="hint">No hay profesores con el rol Profesor Guía disponibles para este curso lectivo.</small>}</label>
+                @if (isGuide && draft.seccion) { <p class="current-guide"><strong>Guía actual:</strong> {{ guiaActual() }}</p> }
                 @if (isGuide) { <label>Responsabilidad<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor Guía">Profesor Guía</option></select></label> }
                  <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of seccionesDisponibles(); track section.idSeccion) {<option [value]="sectionKey(section)">{{ section.anio }} · {{ section.nombre }}</option>}</select></label>
             </div>
@@ -96,6 +100,8 @@ export class AsignacionesCasGuiaVistaComponent {
   private readonly asignacionesApi = inject(AsignacionesApiService);
   private readonly profesoresApi = inject(ProfesoresApiService);
   private readonly seccionesApi = inject(SeccionesApiService);
+  private readonly cursosApi = inject(CursosLectivosApiService);
+  private readonly estadosPeriodo = signal<Record<number, string>>({});
   private readonly feedback = inject(FeedbackService);
   protected readonly isGuide = this.route.snapshot.data['assignmentMode'] === 'guide';
   protected readonly assignments = computed<AssignmentRow[]>(() => this.isGuide ? this.apiGuideAssignments() : this.apiCasAssignments());
@@ -118,7 +124,8 @@ export class AsignacionesCasGuiaVistaComponent {
   protected draft: AssignmentDraft = {};
 
   constructor() {
-    this.profesoresApi.listar().subscribe({ next: (items) => this.apiTeachers.set(items.filter((item) => item.activo).map((item) => ({ id: item.idProfesor, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los profesores disponibles.') });
+    this.cargarProfesores();
+    if (this.isGuide) this.cursosApi.listarPaginado(1, 100).subscribe({ next: (response) => this.estadosPeriodo.set(Object.fromEntries(response.elementos.map((curso) => [curso.anio, curso.estado]))) });
     this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => {
       this.apiSections.set(response.elementos);
       if (this.isGuide) this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos));
@@ -131,9 +138,10 @@ export class AsignacionesCasGuiaVistaComponent {
      this.editingId.set('');
      const section = this.seccionesDisponibles()[0];
      if (!section) { this.feedback.error(this.isGuide ? 'Todas las secciones ya tienen profesor guía asignado.' : 'Todas las secciones ya tienen profesor CAS asignado. Use «Editar» en una fila para cambiarlo.', 'No hay secciones disponibles'); return; }
-    const assignedGuideCedulas = new Set(this.sections().filter((item) => item.cedulaGuia).map((item) => item.cedulaGuia));
-    const teacher = this.isGuide ? this.teachers().find((item) => !assignedGuideCedulas.has(item.cedula)) ?? this.teachers()[0] : this.teachers()[0];
-    this.draft = { cedula: teacher?.cedula ?? '', profesor: teacher?.nombre ?? '', responsabilidad: 'Profesor Guía', seccion: section ? this.sectionKey(section) : '' };
+    this.draft = { cedula: '', profesor: '', responsabilidad: 'Profesor Guía', seccion: section ? this.sectionKey(section) : '' };
+    const teacher = this.profesoresElegibles()[0];
+    this.draft.cedula = teacher?.cedula ?? '';
+    this.draft.profesor = teacher?.nombre ?? '';
     this.editorOpen.set(true);
   }
 
@@ -146,6 +154,31 @@ export class AsignacionesCasGuiaVistaComponent {
     this.editingId.set(item.id);
     this.draft = { id: item.id, cedula: item.cedula, profesor: item.profesor, responsabilidad: 'Profesor Guía', seccion: `${item.anio}-${item.nivel}-${item.numero}` };
     this.editorOpen.set(true);
+  }
+
+  private cargarProfesores(): void {
+    this.profesoresApi.listarPaginado('', 1, 100).subscribe({ next: (response) => this.apiTeachers.set(response.elementos.map((item) => ({ id: item.idProfesor, cedula: item.cedula, activo: item.activo, roles: item.roles, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los profesores disponibles.') });
+  }
+
+  /**
+   * RD-027: profesores que se pueden elegir. Como guía: con cuenta activa y rol Profesor Guía, y que no guíen otra
+   * sección del mismo año (en un periodo finalizado, digitalización, no se exige el rol: RN-37). Para CAS: activos.
+   */
+  protected profesoresElegibles(): ProfesorAsignable[] {
+    const activos = this.teachers().filter((teacher) => teacher.activo);
+    if (!this.isGuide) return activos;
+    const [anio] = String(this.draft.seccion ?? '').split('-').map(Number);
+    const finalizado = this.estadosPeriodo()[anio] === 'FINALIZADO';
+    const ocupados = new Set(this.sections().filter((section) => section.anio === anio && section.cedulaGuia && this.sectionKey(section) !== this.draft.seccion).map((section) => section.cedulaGuia));
+    const elegibles = (finalizado ? this.teachers() : activos.filter((teacher) => teacher.roles?.includes('GUIA'))).filter((teacher) => !ocupados.has(teacher.cedula));
+    // El guía actual siempre aparece, para que el formulario lo muestre seleccionado.
+    const actual = this.teachers().find((teacher) => teacher.cedula === this.draft.cedula);
+    return actual && !elegibles.includes(actual) ? [actual, ...elegibles] : elegibles;
+  }
+
+  protected guiaActual(): string {
+    const section = this.sections().find((item) => this.sectionKey(item) === this.draft.seccion);
+    return section?.nombreGuia ?? 'Sin asignar';
   }
 
   protected seleccionarProfesor(cedula: string): void { this.draft.cedula = cedula; this.draft.profesor = this.teachers().find((teacher) => teacher.cedula === cedula)?.nombre ?? ''; }
@@ -199,6 +232,7 @@ export class AsignacionesCasGuiaVistaComponent {
     this.feedback.error(error.error?.mensaje ?? respaldo);
     if (error.status !== 404) return;
     this.cerrar();
+    this.cargarProfesores();
     if (this.isGuide) this.cargarGuias(); else this.cargarAsignacionesCas(this.apiSections());
   }
 
