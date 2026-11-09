@@ -9,7 +9,7 @@ import { ColumnaTabla } from '../nucleo/modelos/modelos-prototipo';
 import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { CuentaProfesorCambios, CuentaProfesorRequest, ProfesorApi, ProfesoresApiService, RegistrarProfesorRequest } from '../nucleo/api/profesores-api.service';
 import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucleo/api/estudiantes-api.service';
-import { MatriculasApiService, RegistrarMatriculaRequest } from '../nucleo/api/matriculas-api.service';
+import { MatriculasApiService, RegistrarMatriculaRequest, SeccionSubidaApi } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
 import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '../nucleo/api/cursos-lectivos-api.service';
 import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
@@ -43,6 +43,8 @@ interface PromotionTarget {
   cursoActual: number;
   cursoDestino: number;
   numeroSeccion: number;
+  cantidadEstudiantes?: number;
+  guia?: string | null;
 }
 
 interface ProfessorDeleteTarget {
@@ -176,10 +178,10 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
           <div class="modal-backdrop" role="presentation" (click)="cancelarPromocion()">
             <section class="promotion-modal" role="dialog" aria-modal="true" aria-labelledby="promotion-title" (click)="$event.stopPropagation()">
               <div class="promotion-icon" aria-hidden="true">↑</div>
-              <div class="promotion-copy"><p class="modal-kicker">Cambio académico</p><h3 id="promotion-title">Confirmar subida de nivel</h3><p>Esta acción trasladará la matrícula de <strong>{{ target.estudiante }}</strong> a duodécimo (nivel 12), junto con el guía y los profesores de la sección.</p></div>
-              <dl class="promotion-summary"><div><dt>Identificación</dt><dd>{{ target.cedula }}</dd></div><div><dt>Sección actual</dt><dd>{{ target.cursoActual }} · {{ target.seccion }}</dd></div><div><dt>Nuevo curso</dt><dd>{{ target.cursoDestino }} · Sección {{ target.numeroSeccion }}</dd></div></dl>
-              <p class="promotion-warning">La operación actualizará la sección académica de esta matrícula.</p>
-              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarPromocion()">Cancelar</button><button type="button" class="primary-button" (click)="confirmarPromocion()">Subir a duodécimo</button></div>
+              <div class="promotion-copy"><p class="modal-kicker">Cambio académico</p><h3 id="promotion-title">Subir la sección a duodécimo</h3><p>Se matricula en duodécimo a <strong>todos los estudiantes sin retiro</strong> de la sección {{ target.seccion }} ({{ target.cantidadEstudiantes ?? 0 }} matriculados en {{ target.cursoActual }}), no solo a {{ target.estudiante }}. También se copian el guía ({{ target.guia || 'la sección no tiene guía' }}) y los profesores, si pueden continuar.</p></div>
+              <dl class="promotion-summary"><div><dt>Estudiantes</dt><dd>{{ target.cantidadEstudiantes ?? 0 }}</dd></div><div><dt>Sección actual</dt><dd>{{ target.cursoActual }} · {{ target.seccion }}</dd></div><div><dt>Nuevo curso</dt><dd>{{ target.cursoDestino }} · Sección 12-{{ target.numeroSeccion }}</dd></div></dl>
+              <p class="promotion-warning">Quien ya tenga matrícula en {{ target.cursoDestino }} se omite; la operación se puede repetir.</p>
+              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarPromocion()">Cancelar</button><button type="button" class="primary-button" (click)="confirmarPromocion()">Subir la sección</button></div>
             </section>
           </div>
         }
@@ -1116,7 +1118,11 @@ export class FuncionalidadVistaComponent {
         return;
       }
        if (action === 'promote') {
-         this.promotionTarget.set({ estudiante: String(registro['estudiante'] ?? 'Estudiante'), cedula, seccion: String(registro['seccion'] ?? ''), cursoActual: anio, cursoDestino: anio + 1, numeroSeccion: Number(registro['numeroSeccion']) });
+         // RD-028: se sube toda la sección 11-N; la confirmación muestra cuántos estudiantes y el guía que se copiará.
+         this.seccionesApi.obtener(anio, 11, Number(registro['numeroSeccion'])).subscribe({
+           next: (seccion) => this.promotionTarget.set({ estudiante: String(registro['estudiante'] ?? 'Estudiante'), cedula, seccion: seccion.nombre, cursoActual: anio, cursoDestino: anio + 1, numeroSeccion: seccion.numero, cantidadEstudiantes: seccion.cantidadEstudiantes, guia: seccion.nombreGuia }),
+           error: (error) => this.notificarError(error, 'No se pudo consultar la sección.'),
+         });
          return;
        }
       if (action === 'retire' && await this.feedback.confirmar('¿Registrar el retiro de esta matrícula?', 'Registrar retiro', 'Continuar')) {
@@ -1257,6 +1263,16 @@ export class FuncionalidadVistaComponent {
 
     protected cancelarPromocion(): void { this.promotionTarget.set(null); }
 
+    /** RD-028: resultado completo de subir la sección (matriculados, omitidos, guía y profesores). */
+    private resumenSubida(target: PromotionTarget, r: SeccionSubidaApi): string {
+      const partes = [`Sección 12-${target.numeroSeccion} de ${target.cursoDestino}${r.seccionCreada ? ' creada' : ''}.`, `Matriculados: ${r.matriculados.length}${r.matriculados.length ? ` (${r.matriculados.join(', ')})` : ''}.`];
+      partes.push(r.omitidos.length ? `Omitidos por tener ya matrícula en ${target.cursoDestino}: ${r.omitidos.join(', ')}.` : 'Sin omitidos.');
+      partes.push(r.guiaCopiado ? `Guía copiado: ${target.guia ?? r.guiaCopiado}.` : target.guia ? `Guía no copiado (${target.guia}): no puede continuar como guía en ${target.cursoDestino} o la sección ya tenía guía.` : 'La sección no tenía guía que copiar.');
+      partes.push(`Profesores copiados: ${r.asignacionesCopiadas.length ? r.asignacionesCopiadas.join(', ') : 'ninguno'}.`);
+      if (r.asignacionesOmitidas.length) partes.push(`Profesores omitidos: ${r.asignacionesOmitidas.join(', ')}.`);
+      return partes.join(' ');
+    }
+
     protected cancelarEliminacionProfesor(): void { this.professorDeleteTarget.set(null); }
 
     protected confirmarEliminacionProfesor(): void {
@@ -1268,7 +1284,7 @@ export class FuncionalidadVistaComponent {
     protected confirmarPromocion(): void {
       const target = this.promotionTarget();
       if (!target) return;
-      this.matriculasApi.subirSeccion({ anio: target.cursoDestino, numero: target.numeroSeccion }).subscribe({ next: (resultado) => { this.promotionTarget.set(null); this.feedback.exito(`La sección fue subida a duodécimo: ${resultado.matriculados.length} matriculados${resultado.omitidos.length ? `, ${resultado.omitidos.length} ya estaban matriculados` : ''}; ${resultado.guiaCopiado ? 'se copió el guía' : 'sin guía que copiar'} y ${resultado.asignacionesCopiadas.length} asignaciones de profesores.`); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo subir la sección a duodécimo.') });
+      this.matriculasApi.subirSeccion({ anio: target.cursoDestino, numero: target.numeroSeccion }).subscribe({ next: (resultado) => { this.promotionTarget.set(null); this.feedback.exito(this.resumenSubida(target, resultado)); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo subir la sección a duodécimo.') });
     }
 
      protected estudiantesResultadosMatricula(): EstudianteApi[] {
