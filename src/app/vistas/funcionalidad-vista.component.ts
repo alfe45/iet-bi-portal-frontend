@@ -65,7 +65,7 @@ const DESCRIPCIONES_ROL: Record<string, string> = {
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
   profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso. Cada profesor se registra con su cuenta; los administradores son profesores con el rol Administrador, salvo el primer administrador de la instalación.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
-  periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'fechaInicio', label: 'Inicio' }, { key: 'fechaFin', label: 'Fin' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', readOnly: true }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
+  periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'semestreI', label: 'I semestre' }, { key: 'semestreII', label: 'II semestre' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estadoTexto', label: 'Estado', readOnly: true, required: false }, { key: 'semestreActual', label: 'Semestre en curso', readOnly: true, required: false }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (3 letras)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
@@ -365,6 +365,8 @@ export class FuncionalidadVistaComponent {
 
     protected camposFormulario(): CampoFormulario[] {
        if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
+       // RD-023/RD-025: estado, semestre en curso, guía y cantidad de estudiantes solo en el detalle o la edición.
+       if (this.key === 'periodos') return this.config.fields.filter((field) => !['estadoTexto', 'semestreActual'].includes(field.key) || Boolean(this.editingId));
       if (this.key === 'profesores') {
         const modo = this.draft['modoCuenta'];
         const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
@@ -632,8 +634,27 @@ export class FuncionalidadVistaComponent {
          this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: (error) => { this.cursosLectivosMatricula.set([]); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
    }
 
+    /** RD-023: estado con texto, fechas de cada semestre (dd/mm/aaaa) y semestre en curso. */
+    private cursoLectivoRow(course: CursoLectivoApi): Record<string, unknown> {
+      const estados: Record<string, string> = { PROGRAMADO: 'Programado', EN_CURSO: 'En curso', FINALIZADO: 'Finalizado' };
+      const semestres: Record<string, string> = { I_SEMESTRE: 'I semestre', II_SEMESTRE: 'II semestre' };
+      return { id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, estado: course.estado, estadoTexto: estados[course.estado] ?? course.estado, semestreActual: course.semestreActual ? (semestres[course.semestreActual] ?? course.semestreActual) : 'Ninguno', semestreI: `${fechaCostaRica(course.inicioSemestreI)} – ${fechaCostaRica(course.finSemestreI)}`, semestreII: `${fechaCostaRica(course.inicioSemestreII)} – ${fechaCostaRica(course.finSemestreII)}`, fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
+    }
+
     private cargarCursosAdministracion(pagina = this.paginaActual()): void {
-         this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => ({ id: String(course.idCursoLectivo), yearCiclo: course.yearCiclo, estado: course.estado, fechaInicio: this.formatearFecha(course.fechaInicio), fechaFin: this.formatearFecha(course.fechaFin), fechaInicioI: course.inicioSemestreI, fechaFinI: course.finSemestreI, fechaInicioII: course.inicioSemestreII, fechaFinII: course.finSemestreII, acciones: [{ label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] }))); }, error: (error) => { this.cursosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
+         this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => this.cursoLectivoRow(course))); }, error: (error) => { this.cursosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
+    }
+
+    protected filtroAnio = '';
+    protected filtroNivel = '';
+
+    protected filtrarSecciones(): void { this.paginaActual.set(1); this.cargarSeccionesAdministracion(1); }
+    protected limpiarFiltrosSecciones(): void { this.filtroAnio = ''; this.filtroNivel = ''; this.filtrarSecciones(); }
+
+    /** RD-025: la sección muestra su profesor guía y la cantidad de estudiantes. */
+    private seccionRow(section: SeccionApi): Record<string, unknown> {
+      const parts = section.seccion.split('-');
+      return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], guia: section.nombreGuia ?? 'Sin asignar', cantidadEstudiantes: String(section.cantidadEstudiantes ?? 0), acciones: [{ label: 'Ver', code: 'view' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
     }
 
       private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
@@ -1132,13 +1153,20 @@ export class FuncionalidadVistaComponent {
 
     private async accionCursoLectivo(action: string, registro: RegistroVista): Promise<void> {
      if (action === 'view' || action === 'edit') {
-       this.editingId = registro.id;
-       this.readOnly = action === 'view';
-       this.editorTitle = this.readOnly ? 'Detalle de curso lectivo' : 'Editar curso lectivo';
-       this.validationAttempted = false;
-       this.apiError = '';
-       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
-       this.editorOpen.set(true);
+       // RD-008: detalle y edición con los datos vigentes (GET por año); un 404 informa y actualiza el listado.
+       this.cursosLectivosApi.obtener(Number(registro['yearCiclo'])).subscribe({
+         next: (curso) => {
+           const fila = this.cursoLectivoRow(curso);
+           this.editingId = String(fila['id']);
+           this.readOnly = action === 'view';
+           this.editorTitle = this.readOnly ? 'Detalle de curso lectivo' : 'Editar curso lectivo';
+           this.validationAttempted = false;
+           this.apiError = '';
+           this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(fila[field.key] ?? '')]));
+           this.editorOpen.set(true);
+         },
+         error: (error) => this.notificarError(error, 'No se pudo consultar el curso lectivo.'),
+       });
        return;
      }
        if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar el curso lectivo ${registro['yearCiclo']}?`, 'Eliminar curso lectivo', 'Eliminar')) this.cursosLectivosApi.borrar(Number(registro['yearCiclo'])).subscribe({ next: () => { this.feedback.exito('El curso lectivo fue eliminado.'); this.cargarCursosAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar el curso lectivo.') });

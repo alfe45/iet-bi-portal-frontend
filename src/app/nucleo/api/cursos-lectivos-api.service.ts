@@ -46,6 +46,8 @@ export class CursosLectivosApiService {
     const params = { pagina, tamanoPagina };
     return this.http.get<ResultadoPaginado<CursoLectivoApi>>(this.url, { params }).pipe(map((response) => ({ ...response, elementos: response.elementos.map((item) => ({ ...item, idCursoLectivo: String(item.anio), yearCiclo: item.anio, fechaInicio: item.inicioSemestreI, fechaFin: item.finSemestreII })) })));
   }
+  // CU10: detalle por año (404 NF004 si ya no existe).
+  obtener(anio: number): Observable<CursoLectivoApi> { return this.http.get<CursoLectivoApi>(`${this.url}/${anio}`).pipe(map((item) => ({ ...item, idCursoLectivo: String(item.anio), yearCiclo: item.anio, fechaInicio: item.inicioSemestreI, fechaFin: item.finSemestreII }))); }
   listar(): Observable<CursoLectivoApi[]> { return this.listarPaginado().pipe(map((response) => response.elementos)); }
   obtenerActual(): Observable<PeriodoActualApi> { return this.http.get<PeriodoActualApi>(`${environment.apiUrl}/periodos/actual`); }
   abrir(request: CursoLectivoRequest): Observable<{ anio: number }> { return this.http.post<{ anio: number }>(this.url, request); }

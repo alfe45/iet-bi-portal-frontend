@@ -17,7 +17,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
               <tr>@for (column of columns(); track column.key) { <td>
                 @switch (column.type ?? 'text') {
                   @case ('badge') { <span class="badge" [class.badge--success]="isPositive(row[column.key])" [class.badge--danger]="isNegative(row[column.key])">{{ row[column.key] }}</span> }
-                  @case ('badge-periodo') { <span class="badge" [class]="badgePeriodoClass(row[column.key])">{{ row[column.key] }}</span> }
+                  @case ('badge-periodo') { <span class="badge" [class]="badgePeriodoClass(row[column.key])">{{ etiquetaEstadoPeriodo(row[column.key]) }}</span> }
                     @case ('actions') { <div class="action-list">@for (action of asActionArray(row[column.key]); track action.label) { <button type="button" class="btn btn-sm table-action" [class.btn-outline-danger]="action.tone === 'danger'" [class.btn-outline-primary]="action.tone !== 'danger'" (click)="actionSelected.emit({ action: action.code ?? action.label, row })">{{ action.label }}</button> }</div> }
                   @case ('avatar') { <div class="avatar-cell"><div class="avatar-dot">{{ getInitials(row[column.key]) }}</div><div><strong>{{ getAvatarTitle(row[column.key]) }}</strong><small>{{ getAvatarSubtitle(row[column.key]) }}</small></div></div> }
                   @case ('list') { <div class="list-cell">@for (item of asStringArray(row[column.key]); track item) { <span>{{ item }}</span> }</div> }
@@ -53,6 +53,11 @@ export class DataTableComponent {
     if (!Array.isArray(value)) return [];
     return value.map((item) => (typeof item === 'string' ? { label: item } : (item as TableAction)));
   }
+  /** RD-023: el estado del periodo se muestra con texto, no con el código de la API. */
+  protected etiquetaEstadoPeriodo(value: unknown): string {
+    return ({ PROGRAMADO: 'Programado', EN_CURSO: 'En curso', FINALIZADO: 'Finalizado' } as Record<string, string>)[String(value ?? '')] ?? String(value ?? '');
+  }
+
   protected badgePeriodoClass(value: unknown): string {
     const estado = String(value ?? '');
     switch (estado) {
