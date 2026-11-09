@@ -136,7 +136,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
         }
 
                    } @else if (key === 'matriculas' && field.key === 'yearCiclo') {
-                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
+                      <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [attr.aria-label]="field.label" [disabled]="readOnly || !!editingId" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                    } @else if (key === 'matriculas' && field.key === 'nivel') {
                       <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="draft['numeroSeccion'] = ''" [attr.aria-label]="field.label" [disabled]="readOnly" [required]="field.required ?? true"><option value="">Seleccione un nivel</option><option value="11">Undécimo</option><option value="12">Duodécimo</option></select>
                   } @else if (key === 'secciones' && field.key === 'yearCiclo') {
@@ -1130,11 +1130,11 @@ export class FuncionalidadVistaComponent {
         if (!fecha) return;
         const motivo = await this.feedback.solicitarTexto('Indique el motivo del retiro si corresponde.', '', 'Motivo del retiro');
         if (motivo === null) return;
-        this.matriculasApi.retirar(anio, cedula, fecha, motivo || undefined).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue registrado.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo registrar el retiro.') });
+        this.matriculasApi.retirar(anio, cedula, fecha, motivo || undefined).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue registrado.'); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo registrar el retiro.') });
         return;
       }
-      if (action === 'unretire' && await this.feedback.confirmar('¿Anular el retiro de esta matrícula?', 'Anular retiro', 'Anular')) this.matriculasApi.quitarRetiro(anio, cedula).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue anulado.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo anular el retiro.') });
-      if (action === 'delete' && await this.feedback.confirmar('¿Eliminar esta matrícula?', 'Eliminar matrícula', 'Eliminar')) this.matriculasApi.borrar(anio, cedula).subscribe({ next: () => { this.feedback.exito('La matrícula fue eliminada.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la matrícula.') });
+      if (action === 'unretire' && await this.feedback.confirmar('¿Anular el retiro de esta matrícula?', 'Anular retiro', 'Anular')) this.matriculasApi.quitarRetiro(anio, cedula).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue anulado.'); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo anular el retiro.') });
+      if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la matrícula de ${registro['estudiante']} en ${registro['yearCiclo']} (${registro['seccion']})?`, 'Eliminar matrícula', 'Eliminar')) this.matriculasApi.borrar(anio, cedula).subscribe({ next: () => { this.feedback.exito('La matrícula fue eliminada.'); this.cargarMatriculas(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la matrícula.') });
    }
 
    private guardarMatricula(): void {
