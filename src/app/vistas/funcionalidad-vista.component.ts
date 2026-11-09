@@ -66,7 +66,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso. Cada profesor se registra con su cuenta; los administradores son profesores con el rol Administrador, salvo el primer administrador de la instalación.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'semestreI', label: 'I semestre' }, { key: 'semestreII', label: 'II semestre' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estadoTexto', label: 'Estado', readOnly: true, required: false }, { key: 'semestreActual', label: 'Semestre en curso', readOnly: true, required: false }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
-  secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
+  secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'guia', label: 'Profesor guía' }, { key: 'cantidadEstudiantes', label: 'Estudiantes' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'guia', label: 'Profesor guía', readOnly: true, required: false }, { key: 'cantidadEstudiantes', label: 'Cantidad de estudiantes', readOnly: true, required: false }] },
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (3 letras)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Año' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
@@ -202,6 +202,13 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
             <div class="table-tools">
               <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" maxlength="100" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
               <div class="table-search-actions"><button type="button" class="primary-button" (click)="buscarRegistros()">Buscar</button>@if (adminSearch) { <button type="button" class="ghost-button" (click)="limpiarBusqueda()">Limpiar</button> }</div>
+            </div>
+          }
+          @if (isAdmin() && key === 'secciones') {
+            <div class="table-tools">
+              <label class="table-search"><span>Curso lectivo</span><select [(ngModel)]="filtroAnio" aria-label="Filtrar por curso lectivo"><option value="">Todos</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ course.yearCiclo }}</option> }</select></label>
+              <label class="table-search"><span>Nivel</span><select [(ngModel)]="filtroNivel" aria-label="Filtrar por nivel"><option value="">Todos</option><option value="11">Undécimo (11)</option><option value="12">Duodécimo (12)</option></select></label>
+              <div class="table-search-actions"><button type="button" class="primary-button" (click)="filtrarSecciones()">Filtrar</button>@if (filtroAnio || filtroNivel) { <button type="button" class="ghost-button" (click)="limpiarFiltrosSecciones()">Limpiar</button> }</div>
             </div>
           }
            @if (apiError && !editorOpen()) { <p class="api-error" role="alert">{{ apiError }}</p> }
@@ -367,6 +374,7 @@ export class FuncionalidadVistaComponent {
        if (this.key === 'estudiantes') return this.config.fields.filter((field) => field.key !== 'fechaRegistro' || Boolean(this.editingId));
        // RD-023/RD-025: estado, semestre en curso, guía y cantidad de estudiantes solo en el detalle o la edición.
        if (this.key === 'periodos') return this.config.fields.filter((field) => !['estadoTexto', 'semestreActual'].includes(field.key) || Boolean(this.editingId));
+       if (this.key === 'secciones') return this.config.fields.filter((field) => !['guia', 'cantidadEstudiantes'].includes(field.key) || this.readOnly);
       if (this.key === 'profesores') {
         const modo = this.draft['modoCuenta'];
         const visibles = modo === 'nueva' ? ['correo', 'password', 'roles'] : modo === 'actual' ? ['correo', 'password', 'roles', 'estado'] : [];
@@ -658,7 +666,9 @@ export class FuncionalidadVistaComponent {
     }
 
       private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
-         this.seccionesApi.listarPaginado({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => { const parts = section.seccion.split('-'); return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], acciones: [{ label: 'Eliminar', code: 'delete', tone: 'danger' }] }; })); }, error: (error) => { this.seccionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
+         // RD-025: en la vista de secciones se aplican los filtros de año y nivel.
+         const filtros = this.key === 'secciones' ? { anio: this.filtroAnio ? Number(this.filtroAnio) : undefined, nivel: this.filtroNivel ? Number(this.filtroNivel) : undefined } : {};
+         this.seccionesApi.listarPaginado({ ...filtros, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => this.seccionRow(section))); }, error: (error) => { this.seccionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
     }
 
      private notificarError(error: unknown, fallback: string): void {
@@ -1200,12 +1210,20 @@ export class FuncionalidadVistaComponent {
 
     private async accionSeccion(action: string, registro: RegistroVista): Promise<void> {
      if (action === 'view') {
-       this.readOnly = true;
-       this.editorTitle = 'Detalle de sección';
-       this.validationAttempted = false;
-       this.apiError = '';
-       this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
-       this.editorOpen.set(true);
+       // RD-025/RD-008: detalle de solo lectura con los datos vigentes (GET); un 404 informa y actualiza el listado.
+       this.seccionesApi.obtener(Number(registro['yearCiclo']), Number(registro['nivel']), Number(registro['numeroSeccion'])).subscribe({
+         next: (seccion) => {
+           const fila = this.seccionRow(seccion);
+           this.editingId = String(fila['id']);
+           this.readOnly = true;
+           this.editorTitle = 'Detalle de sección';
+           this.validationAttempted = false;
+           this.apiError = '';
+           this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(fila[field.key] ?? '')]));
+           this.editorOpen.set(true);
+         },
+         error: (error) => this.notificarError(error, 'No se pudo consultar la sección.'),
+       });
        return;
      }
        if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la sección ${registro['seccion']} del curso ${registro['yearCiclo']}?`, 'Eliminar sección', 'Eliminar')) this.seccionesApi.borrar(Number(registro['yearCiclo']), Number(registro['nivel']), Number(registro['numeroSeccion'])).subscribe({ next: () => { this.feedback.exito('La sección fue eliminada.'); this.cargarSeccionesAdministracion(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la sección.') });
