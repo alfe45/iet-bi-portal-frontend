@@ -51,7 +51,7 @@ interface AssignmentDraft {
             @if (isGuide) {
               <div class="table-head guide-table-head"><strong>Profesor</strong><strong>Año</strong><strong>Sección</strong><strong>Tipo</strong><strong></strong></div>
             } @else {
-              <div class="table-head"><strong>Sección</strong><strong>Profesor</strong><strong>Estudiantes</strong><strong>Estado</strong><strong></strong></div>
+              <div class="table-head"><strong>Año · sección</strong><strong>Profesor</strong><strong>Estudiantes</strong><strong>Estado</strong><strong></strong></div>
             }
           @for (item of assignments(); track item.id) {
             @if (isGuide) {
@@ -64,7 +64,7 @@ interface AssignmentDraft {
               </div>
             } @else {
               <div class="assignment-row">
-                <div><strong>{{ item.seccion }}</strong><small>Asignatura CAS</small></div>
+                <div><strong>{{ item.anio }} · {{ item.seccion }}</strong><small>Asignatura CAS</small></div>
                 <span>{{ item.profesor }}</span>
                 <span>{{ (item.cantidadEstudiantes ?? 0) + ' estudiantes' }}</span>
                 <span>{{ item.estado || 'Activo' }}</span>
