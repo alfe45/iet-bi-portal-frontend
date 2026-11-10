@@ -213,6 +213,16 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
               <div class="table-search-actions"><button type="button" class="primary-button" (click)="filtrarAsignaturas()">Filtrar</button>@if (filtroAsigTipo || filtroAsigNivel) { <button type="button" class="ghost-button" (click)="limpiarFiltrosAsignaturas()">Limpiar filtros</button> }</div>
             </div>
           }
+          @if (isAdmin() && key === 'asignaciones') {
+            <div class="table-tools">
+              <label class="table-search"><span>Curso lectivo</span><select [(ngModel)]="filtroAsgAnio" aria-label="Filtrar asignaciones por curso lectivo"><option value="">Todos</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ course.yearCiclo }}</option> }</select></label>
+              <label class="table-search"><span>Nivel</span><select [(ngModel)]="filtroAsgNivel" aria-label="Filtrar asignaciones por nivel"><option value="">Todos</option><option value="11">Undécimo (11)</option><option value="12">Duodécimo (12)</option></select></label>
+              <label class="table-search"><span>Número de sección</span><input type="number" min="1" max="99" [(ngModel)]="filtroAsgNumero" aria-label="Filtrar asignaciones por número de sección" /></label>
+              <label class="table-search"><span>Asignatura</span><select [(ngModel)]="filtroAsgAsignatura" aria-label="Filtrar asignaciones por asignatura"><option value="">Todas</option>@for (subject of asignaturasDisponiblesAsignacion(); track subject.codigo) { <option [value]="subject.codigo">{{ subject.codigo }} · {{ subject.nombre }}</option> }</select></label>
+              <label class="table-search"><span>Profesor</span><select [(ngModel)]="filtroAsgProfesor" aria-label="Filtrar asignaciones por profesor"><option value="">Todos</option>@for (teacher of profesoresDisponiblesAsignacion(); track teacher.id) { <option [value]="teacher.cedula">{{ teacher.nombre }}</option> }</select></label>
+              <div class="table-search-actions"><button type="button" class="primary-button" (click)="filtrarAsignaciones()">Filtrar</button>@if (hayFiltrosAsignaciones()) { <button type="button" class="ghost-button" (click)="limpiarFiltrosAsignaciones()">Limpiar filtros</button> }</div>
+            </div>
+          }
           @if (isAdmin() && key === 'matriculas') {
             <div class="table-tools">
               <label class="table-search"><span>Curso lectivo</span><select [(ngModel)]="filtroMatAnio" aria-label="Filtrar matrículas por curso lectivo"><option value="">Todos</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ course.yearCiclo }}</option> }</select></label>
@@ -789,8 +799,18 @@ export class FuncionalidadVistaComponent {
       return tipo === 'TRONCAL' ? 'A-E' : tipo === 'MEP' ? '0-100' : '1-7';
     }
 
+    protected filtroAsgAnio = '';
+    protected filtroAsgNivel = '';
+    protected filtroAsgNumero = '';
+    protected filtroAsgAsignatura = '';
+    protected filtroAsgProfesor = '';
+    protected filtrarAsignaciones(): void { this.paginaActual.set(1); this.cargarAsignaciones(1); }
+    protected limpiarFiltrosAsignaciones(): void { this.filtroAsgAnio = ''; this.filtroAsgNivel = ''; this.filtroAsgNumero = ''; this.filtroAsgAsignatura = ''; this.filtroAsgProfesor = ''; this.filtrarAsignaciones(); }
+    protected hayFiltrosAsignaciones(): boolean { return Boolean(this.filtroAsgAnio || this.filtroAsgNivel || this.filtroAsgNumero || this.filtroAsgAsignatura || this.filtroAsgProfesor); }
+
     private cargarAsignaciones(pagina = this.paginaActual()): void {
-      this.asignacionesApi.listar({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({
+      const filtros = { anio: this.filtroAsgAnio ? Number(this.filtroAsgAnio) : undefined, nivel: this.filtroAsgNivel ? Number(this.filtroAsgNivel) : undefined, numero: this.filtroAsgNumero ? Number(this.filtroAsgNumero) : undefined, codigoAsignatura: this.filtroAsgAsignatura || undefined, cedulaProfesor: this.filtroAsgProfesor || undefined };
+      this.asignacionesApi.listar({ ...filtros, pagina, tamanoPagina: this.tamanoPagina }).subscribe({
         next: (response) => { this.actualizarPaginacion(response); this.asignacionesApiRows.set(response.elementos.map((item) => ({
           id: `${item.anio}-${item.nivel}-${item.numero}-${item.codigoAsignatura}-${item.cedulaProfesor}`,
           anio: item.anio,
