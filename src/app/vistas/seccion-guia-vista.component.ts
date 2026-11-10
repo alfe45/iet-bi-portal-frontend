@@ -80,7 +80,9 @@ export class SeccionGuiaVistaComponent {
 
   protected estado(student: EstudianteGuiaApi): string {
     const texto = etiquetaEstadoMatricula(student.estado).toLowerCase();
-    return student.estado === 'RETIRADA' && student.fechaRetiro ? `${texto} el ${fechaCostaRica(student.fechaRetiro)}` : texto;
+    if (student.estado !== 'RETIRADA') return texto;
+    // PG02: si se retiró, la fecha y el motivo del retiro.
+    return `${texto}${student.fechaRetiro ? ' el ' + fechaCostaRica(student.fechaRetiro) : ''}${student.motivoRetiro ? ' · Motivo: ' + student.motivoRetiro : ''}`;
   }
   protected previousPage(): void { this.studentPage.update((page) => Math.max(0, page - 1)); }
   protected nextPage(): void { this.studentPage.update((page) => Math.min(this.totalPages() - 1, page + 1)); }
