@@ -871,7 +871,7 @@ export class FuncionalidadVistaComponent {
     }
 
    private async accionAsignacion(action: string, registro: RegistroVista): Promise<void> {
-      if (action === 'delete' && await this.feedback.confirmar('¿Eliminar esta asignación académica?', 'Eliminar asignación', 'Eliminar')) {
+      if (action === 'delete' && await this.feedback.confirmar(`¿Eliminar la asignación de ${registro['profesor']} en ${registro['codigoAsignatura']}, sección ${registro['seccion']} de ${registro['anio']}?`, 'Eliminar asignación', 'Eliminar')) {
         this.asignacionesApi.borrar(Number(registro['anio']), Number(registro['nivel']), Number(registro['numero']), String(registro['codigo'] ?? ''), String(registro['cedulaProfesor'] ?? '')).subscribe({ next: () => { this.feedback.exito('La asignación fue eliminada.'); this.cargarAsignaciones(); }, error: (error) => this.notificarError(error, 'No se pudo eliminar la asignación.') });
         return;
       }
