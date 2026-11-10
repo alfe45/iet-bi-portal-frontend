@@ -70,7 +70,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'semestreI', label: 'I semestre' }, { key: 'semestreII', label: 'II semestre' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estadoTexto', label: 'Estado', readOnly: true, required: false }, { key: 'semestreActual', label: 'Semestre en curso', readOnly: true, required: false }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'guia', label: 'Profesor guía' }, { key: 'cantidadEstudiantes', label: 'Estudiantes' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'guia', label: 'Profesor guía', readOnly: true, required: false }, { key: 'cantidadEstudiantes', label: 'Cantidad de estudiantes', readOnly: true, required: false }] },
   matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'fechaMatricula', label: 'Fecha de matrícula' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'fechaMatriculaIso', label: 'Fecha de matrícula (opcional; por defecto, hoy)', type: 'date', required: false }, { key: 'fechaMatricula', label: 'Fecha de matrícula', readOnly: true, required: false }, { key: 'estado', label: 'Estado', readOnly: true, required: false }, { key: 'fechaRetiro', label: 'Fecha de retiro', readOnly: true, required: false }, { key: 'motivoRetiro', label: 'Motivo del retiro', readOnly: true, required: false }] },
-  asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (2 a 10 letras o dígitos)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
+  asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'niveles', label: 'Niveles' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (2 a 10 letras o dígitos)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Año' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
 };
 
@@ -204,6 +204,13 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
             <div class="table-tools">
               <label class="table-search"><span>{{ etiquetaBusqueda() }}</span><input type="search" maxlength="100" [(ngModel)]="adminSearch" (keydown.enter)="buscarRegistros()" [placeholder]="placeholderBusqueda()" /></label>
               <div class="table-search-actions"><button type="button" class="primary-button" (click)="buscarRegistros()">Buscar</button>@if (adminSearch) { <button type="button" class="ghost-button" (click)="limpiarBusqueda()">Limpiar</button> }</div>
+            </div>
+          }
+          @if (isAdmin() && key === 'asignaturas') {
+            <div class="table-tools">
+              <label class="table-search"><span>Tipo</span><select [(ngModel)]="filtroAsigTipo" aria-label="Filtrar asignaturas por tipo"><option value="">Todos</option><option value="MEP">MEP</option><option value="TRONCAL">Troncal</option><option value="SUPERIOR">Superior</option><option value="MEDIO">Medio</option></select></label>
+              <label class="table-search"><span>Nivel</span><select [(ngModel)]="filtroAsigNivel" aria-label="Filtrar asignaturas por nivel"><option value="">Todos</option><option value="11">Undécimo (11)</option><option value="12">Duodécimo (12)</option></select></label>
+              <div class="table-search-actions"><button type="button" class="primary-button" (click)="filtrarAsignaturas()">Filtrar</button>@if (filtroAsigTipo || filtroAsigNivel) { <button type="button" class="ghost-button" (click)="limpiarFiltrosAsignaturas()">Limpiar filtros</button> }</div>
             </div>
           }
           @if (isAdmin() && key === 'matriculas') {
@@ -747,8 +754,15 @@ export class FuncionalidadVistaComponent {
       };
     }
 
+    protected filtroAsigTipo = '';
+    protected filtroAsigNivel = '';
+    protected filtrarAsignaturas(): void { this.paginaActual.set(1); this.cargarAsignaturas(1); }
+    protected limpiarFiltrosAsignaturas(): void { this.filtroAsigTipo = ''; this.filtroAsigNivel = ''; this.filtrarAsignaturas(); }
+
     private cargarAsignaturas(pagina = this.paginaActual(), actualizaPaginacion = true): void {
-      this.asignaturasApi.listar({ pagina, tamanoPagina: this.tamanoPagina }).subscribe({
+      // RD-035: filtros de tipo y nivel en la vista de asignaturas; RD-037: para las listas de asignaciones, hasta 100.
+      const filtros = this.key === 'asignaturas' ? { tipo: this.filtroAsigTipo || undefined, nivel: this.filtroAsigNivel ? Number(this.filtroAsigNivel) : undefined } : {};
+      this.asignaturasApi.listar({ ...filtros, pagina, tamanoPagina: actualizaPaginacion ? this.tamanoPagina : 100 }).subscribe({
         next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.asignaturasApiRows.set(response.elementos.map((item) => ({
           id: item.codigo,
           codigo: item.codigo,
@@ -759,7 +773,8 @@ export class FuncionalidadVistaComponent {
           descripcion: item.descripcion ?? '',
           imparteNivel11: item.imparteNivel11,
           imparteNivel12: item.imparteNivel12,
-          acciones: this.accionesCrud(),
+          niveles: [item.imparteNivel11 ? '11' : '', item.imparteNivel12 ? '12' : ''].filter(Boolean).join(' y '),
+          acciones: [{ label: 'Ver', code: 'view' }, ...this.accionesCrud()],
         }))); },
         error: (error) => { this.asignaturasApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaturas.'); },
       });
@@ -799,11 +814,20 @@ export class FuncionalidadVistaComponent {
         return;
       }
       if (action === 'view' || action === 'edit') {
-        this.editingId = registro.id;
-        this.readOnly = action === 'view';
-        this.editorTitle = this.readOnly ? 'Detalle de asignatura' : 'Editar asignatura';
-        this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(registro[field.key] ?? '')]));
-        this.editorOpen.set(true);
+        // RD-008: detalle y edición con los datos vigentes (GET); un 404 informa y actualiza el listado.
+        this.asignaturasApi.obtener(String(registro['codigo'])).subscribe({
+          next: (item) => {
+            const fila: Record<string, unknown> = { codigo: item.codigo, tipoAsignatura: this.tipoAsignaturaLabel(item.tipo), nombre: item.nombre, descripcion: item.descripcion ?? '', imparteNivel11: item.imparteNivel11, imparteNivel12: item.imparteNivel12 };
+            this.editingId = item.codigo;
+            this.readOnly = action === 'view';
+            this.validationAttempted = false;
+            this.apiError = '';
+            this.editorTitle = this.readOnly ? 'Detalle de asignatura' : 'Editar asignatura';
+            this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, String(fila[field.key] ?? '')]));
+            this.editorOpen.set(true);
+          },
+          error: (error) => this.notificarError(error, 'No se pudo consultar la asignatura.'),
+        });
       }
     }
 
