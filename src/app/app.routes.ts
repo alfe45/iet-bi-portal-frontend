@@ -15,6 +15,7 @@ import { GrupoDocenteVistaComponent } from './vistas/grupo-docente-vista.compone
 import { GruposProfesorVistaComponent } from './vistas/grupos-profesor-vista.component';
 import { RegistroAcademicoVistaComponent, registroAcademicoCanDeactivateGuard } from './vistas/registro-academico-vista.component';
 import { AusentismoLeccionesVistaComponent } from './vistas/ausentismo-lecciones-vista.component';
+import { GuiaNotasVistaComponent } from './vistas/guia-notas-vista.component';
 import { CompartirSeccionVistaComponent } from './vistas/compartir-seccion-vista.component';
 import { CasVistaComponent, casCanDeactivateGuard } from './vistas/cas-vista.component';
 import { HistorialEstudianteVistaComponent } from './vistas/historial-estudiante-vista.component';
@@ -56,6 +57,8 @@ export const routes: Routes = [
       { path: 'evaluaciones', redirectTo: 'registro-academico', pathMatch: 'full' },
       { path: 'ausentismo', component: AusentismoLeccionesVistaComponent, data: { roles: REGULAR } },
       { path: 'seccion-guia', component: SeccionGuiaVistaComponent, data: { roles: ['Profesor Guía'] } },
+      { path: 'guia/notas', component: GuiaNotasVistaComponent, data: { modo: 'notas', roles: ['Profesor Guía'] } },
+      { path: 'guia/ausentismo', component: GuiaNotasVistaComponent, data: { modo: 'ausentismo', roles: ['Profesor Guía'] } },
       { path: 'verificacion-monografias', component: VerificacionMonografiasVistaComponent, data: { roles: ['Profesor Guía'] } },
       { path: 'reportes', component: ReportesVistaComponent, data: { reportMode: 'subject', roles: REGULAR } },
       { path: 'reportes/bandas', component: ReportesBandasVistaComponent, data: { roles: ['Profesor Guía'] } },

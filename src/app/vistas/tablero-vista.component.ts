@@ -94,6 +94,8 @@ export class TableroVistaComponent {
     );
      if (this.isGuide()) links.push(
        { path: '/seccion-guia', label: 'Mi sección guía', description: 'Consultar la sección que asesoras.', icon: 'SG', featured: false },
+       { path: '/guia/notas', label: 'Notas de la sección', description: 'Notas por asignatura y su confirmación.', icon: 'NS', featured: false },
+       { path: '/guia/ausentismo', label: 'Ausentismo de la sección', description: 'Lecciones, ausencias y tardías por asignatura.', icon: 'AS', featured: false },
        { path: '/reportes/bandas', label: 'Reportes de Bandas', description: 'Consultar los reportes de tu sección guía.', icon: 'RB', featured: false },
        { path: '/verificacion-monografias', label: 'Verificar reportes de monografía', description: 'Revisar los reportes de tu sección guía.', icon: 'VM', featured: false },
      );

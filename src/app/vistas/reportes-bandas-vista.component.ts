@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, switchMap } from 'rxjs';
@@ -6,6 +6,8 @@ import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.serv
 import { DocumentoReporteBandas, ReporteBandasEstudianteComponent } from '../compartidos/componentes/reporte-bandas-estudiante.component';
 import { BandaAsignaturaGuiaApi, PeriodoGuiaApi, ProfesorGuiaApiService, ReporteBandasGuiaApi, SeccionGuiaApi } from '../nucleo/api/profesor-guia-api.service';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
+import { GuiaConsultaService } from '../nucleo/datos/guia-consulta.service';
+import { GuiaCriteriosComponent } from '../compartidos/componentes/guia-criterios.component';
 
 interface ProblemaReporteBandas {
   titulo: string;
@@ -15,19 +17,19 @@ interface ProblemaReporteBandas {
 
 @Component({
   selector: 'app-vista-reportes-bandas',
-  imports: [FormsModule, RouterLink, ReporteBandasEstudianteComponent],
+  imports: [GuiaCriteriosComponent, FormsModule, RouterLink, ReporteBandasEstudianteComponent],
   template: `
     <section class="bands-module">
        <header class="module-header no-print"><div><p class="eyebrow">Profesor Guía</p><h2>Reportes de Bandas</h2><p>Reporte general de notas de los estudiantes de su sección guía.</p></div><div class="module-actions"><a class="ghost-button" routerLink="/dashboard">← Volver</a><button class="ghost-button reactivate-button" type="button" [disabled]="reactivating() || !puedeReactivarBandasSeccion()" (click)="reactivarBandasSeccion()">Reactivar edición de la sección</button><button class="primary-button" type="button" [disabled]="!reports().length" (click)="printAll()">Imprimir todos los reportes</button></div></header>
+       <app-guia-criterios />
 
        <section class="context-panel no-print">
-         <div><small>Periodo actual</small><strong>{{ periodoEtiqueta() }}</strong></div>
+         <div><small>Periodo</small><strong>{{ periodoEtiqueta() }}</strong></div>
          <div><small>Sección guía</small><strong>{{ seccionActual()?.nombre || 'Sin sección' }} · Nivel {{ seccionActual()?.nivel ?? '-' }}</strong></div>
          <div><small>Profesor Guía</small><strong>{{ guideName() }}</strong></div>
-          <div><small>Estado de información</small>@if (loading()) {<strong>Cargando...</strong>} @else if (!reports().length) {<strong class="context-status status-pending">Sin información</strong>} @else if (incompleteStudents().length) {<strong class="context-status status-pending">Información incompleta</strong><small>Faltan notas en {{ incompleteStudents().length }} estudiante(s).</small><button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>} @else if (pendingConfirmationStudents().length) {<strong class="context-status status-warning">Completa, pendiente de confirmación</strong><small>{{ pendingConfirmationStudents().length }} estudiante(s) tienen notas completas, pero falta confirmar alguna.</small><button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>} @else {<strong class="context-status status-ready">Confirmada y completa</strong><small>Todos los estudiantes tienen sus notas confirmadas.</small>@if (problemasSeccion().length) {<button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>}}</div>
+          <div><small>Estado de información</small>@if (loading()) {<strong>Cargando...</strong>} @else if (!reports().length) {<strong class="context-status status-pending">Sin información</strong>} @else if (incompleteStudents().length) {<strong class="context-status status-pending">Información incompleta</strong><small>Faltan notas en {{ incompleteStudents().length }} estudiante(s).</small><button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>} @else if (pendingConfirmationStudents().length) {<strong class="context-status status-warning">Completa, pendiente de confirmación</strong><small>{{ pendingConfirmationStudents().length }} estudiante(s) tienen notas completas, pero falta confirmar: {{ asignaturasSinConfirmar() }}.</small><button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>} @else {<strong class="context-status status-ready">Confirmada y completa</strong><small>Todos los estudiantes tienen sus notas confirmadas.</small>@if (problemasSeccion().length) {<button type="button" class="status-link" (click)="abrirIncompletos()">Ver estudiantes</button>}}</div>
        </section>
 
-       @if (secciones().length > 1) {<section class="section-selector no-print"><label>Sección<select [value]="clave(seccionActual())" (change)="cambiarSeccion($any($event.target).value)">@for (section of secciones(); track clave(section)) {<option [value]="clave(section)">{{ section.nombre }}</option>}</select></label></section>}
        <section class="student-picker no-print">
         <label for="student-search">Buscar estudiante</label>
          <input id="student-search" type="search" [ngModel]="search()" (ngModelChange)="search.set($event); studentPage.set(0)" placeholder="Nombre o identificación" />
@@ -54,9 +56,9 @@ export class ReportesBandasVistaComponent {
   private readonly api = inject(ProfesorGuiaApiService);
   private readonly auth = inject(AutenticacionService);
   private readonly feedback = inject(FeedbackService);
-  private readonly periodo = signal<PeriodoGuiaApi | null>(null);
-  protected readonly secciones = signal<SeccionGuiaApi[]>([]);
-  private readonly seleccion = signal('');
+  // RD-054/RD-056: año, sección y semestre se eligen (servicio común del guía).
+  protected readonly guia = inject(GuiaConsultaService);
+  protected readonly secciones = computed(() => this.guia.secciones());
   private readonly reportsState = signal<ReporteBandasGuiaApi[]>([]);
   protected readonly search = signal('');
   protected readonly selectedId = signal('');
@@ -69,8 +71,8 @@ export class ReportesBandasVistaComponent {
 
   protected readonly reports = computed(() => this.reportsState());
   protected readonly guideName = computed(() => this.auth.currentDisplayName() || 'Profesor Guía');
-  protected readonly seccionActual = computed(() => this.secciones().find((section) => this.clave(section) === this.seleccion()) ?? this.secciones()[0]);
-  protected readonly periodoEtiqueta = computed(() => this.etiquetaPeriodo(this.periodo()));
+  protected readonly seccionActual = computed(() => this.guia.seccionActual());
+  protected readonly periodoEtiqueta = computed(() => this.guia.etiqueta());
   protected readonly filteredStudents = computed(() => { const term = this.search().trim().toLowerCase(); return this.reportsState().filter((item) => !term || item.nombreEstudiante.toLowerCase().includes(term) || item.cedulaEstudiante.toLowerCase().includes(term)); });
   protected readonly paginatedStudents = computed(() => { const start = this.studentPage() * this.pageSize; return this.filteredStudents().slice(start, start + this.pageSize); });
   protected readonly totalPages = computed(() => Math.max(1, Math.ceil(this.filteredStudents().length / this.pageSize)));
@@ -84,11 +86,11 @@ export class ReportesBandasVistaComponent {
       const notasPendientes = reports
         .map((report) => ({ report, asignaturas: report.asignaturas.filter((item) => item.nota === null) }))
         .filter(({ report, asignaturas }) => report.asignaturas.length === 0 || asignaturas.length > 0)
-        .map(({ report, asignaturas }) => ({ nombre: report.nombreEstudiante, detalle: report.asignaturas.length === 0 ? 'No tiene asignaturas para registrar notas.' : `Sin nota: ${asignaturas.map((item) => item.asignatura).join(', ')}` }));
+        .map(({ report, asignaturas }) => ({ nombre: report.nombreEstudiante, detalle: report.asignaturas.length === 0 ? 'No tiene asignaturas para registrar notas.' : `Sin nota: ${asignaturas.map((item) => `${item.asignatura} (${item.nombreProfesor})`).join(', ')}` }));
       const notasSinConfirmar = reports
        .map((report) => ({ report, asignaturas: report.asignaturas.filter((item) => item.nota !== null && !item.confirmada) }))
         .filter(({ asignaturas }) => asignaturas.length > 0)
-        .map(({ report, asignaturas }) => ({ nombre: report.nombreEstudiante, detalle: `Pendientes: ${asignaturas.map((item) => item.asignatura).join(', ')}` }));
+        .map(({ report, asignaturas }) => ({ nombre: report.nombreEstudiante, detalle: `Sin confirmar: ${asignaturas.map((item) => `${item.asignatura} (${item.nombreProfesor})`).join(', ')}` }));
       const monografiasCompletas = reports
         .filter((report) => Boolean(report.monografia?.observaciones?.trim()))
         .map((report) => ({ nombre: report.nombreEstudiante, detalle: report.monografia?.enviadoEn ? 'Reporte completo y confirmado.' : 'Reporte completo, pendiente de confirmación.' }));
@@ -99,19 +101,19 @@ export class ReportesBandasVistaComponent {
      return grupos;
    });
    protected readonly incompleteModalOpen = signal(false);
+   // PG09 FA4: asignaturas con notas registradas sin confirmar, con su profesor.
+   protected readonly asignaturasSinConfirmar = computed(() => [...new Set(this.reportsState().flatMap((report) => report.asignaturas.filter((item) => item.nota !== null && !item.confirmada).map((item) => `${item.asignatura} (${item.nombreProfesor})`)))].join(', '));
 
   constructor() {
-    this.api.obtenerPeriodoActual().pipe(
-      switchMap((periodo) => { this.periodo.set(periodo); return this.api.listarSecciones(periodo.anio); }),
-    ).subscribe({
-      next: (secciones) => {
-        this.secciones.set(secciones);
-        if (secciones[0]) this.cargar(secciones[0]);
-        else this.loading.set(false);
-      },
-      error: () => { this.feedback.error('No se pudo cargar la sección guía del profesor.'); this.loading.set(false); },
+    this.guia.iniciar();
+    effect(() => {
+      const seccion = this.guia.seccionActual();
+      this.guia.semestre();
+      untracked(() => { if (seccion) this.cargar(seccion); else { this.reiniciarVista(); this.loading.set(this.guia.cargando()); } });
     });
   }
+
+  private reiniciarVista(): void { this.cargar(null); }
 
   protected cambiarSeccion(key: string): void {
     const seccion = this.secciones().find((item) => this.clave(item) === key);
@@ -146,8 +148,8 @@ export class ReportesBandasVistaComponent {
    protected puedeReactivarBandasSeccion(): boolean { return this.reportsState().some((report) => report.asignaturas.some((item) => item.confirmada)); }
    protected async reactivarBandasSeccion(): Promise<void> {
      const section = this.seccionActual();
-     const period = this.periodo();
-     if (!section || !period?.semestreActual || !this.puedeReactivarBandasSeccion()) return;
+     const semestre = this.guia.semestre();
+     if (!section || !semestre || !this.puedeReactivarBandasSeccion()) return;
      const confirmado = await this.feedback.confirmar(
        `Se reactivará la edición de las notas de toda la sección ${section.nombre}. Los profesores responsables de cada asignatura podrán corregir sus notas y deberán confirmarlas nuevamente. El Profesor Guía no tendrá que volver a confirmar esas notas.`,
        'Reactivar edición de las notas',
@@ -155,7 +157,7 @@ export class ReportesBandasVistaComponent {
      );
      if (!confirmado) return;
      this.reactivating.set(true);
-     this.api.reactivarBandasSeccion({ anio: section.anio, nivel: section.nivel, numero: section.numero, semestre: period.semestreActual })
+     this.api.reactivarBandasSeccion({ anio: section.anio, nivel: section.nivel, numero: section.numero, semestre })
        .pipe(finalize(() => this.reactivating.set(false)))
        .subscribe({
          next: () => { this.feedback.exito('Edición reactivada. Los profesores responsables ya pueden corregir y confirmar nuevamente las notas de la sección.'); this.cargar(section); },
@@ -181,15 +183,14 @@ export class ReportesBandasVistaComponent {
     return { incompleto: 'Incompleto', completo: 'Completo · pendiente de confirmación', confirmado: 'Confirmado y completo' }[this.estadoReporte(report)];
   }
 
-  private cargar(seccion: SeccionGuiaApi): void {
-    const semestre = this.periodo()?.semestreActual;
-    this.seleccion.set(this.clave(seccion));
+  private cargar(seccion: SeccionGuiaApi | null): void {
+    const semestre = this.guia.semestre();
     this.reportsState.set([]);
     this.selectedId.set('');
     this.incompleteModalOpen.set(false);
     this.search.set('');
     this.studentPage.set(0);
-     if (!semestre) { this.feedback.error('No hay un semestre académico activo.'); this.loading.set(false); return; }
+     if (!seccion || !semestre) { this.loading.set(false); return; }
      this.loading.set(true);
     this.api.listarReportesBandas({ anio: seccion.anio, nivel: seccion.nivel, numero: seccion.numero, semestre }).subscribe({
       next: (reports) => { this.reportsState.set(reports); this.selectedId.set(reports[0]?.cedulaEstudiante ?? ''); this.loading.set(false); },
@@ -198,6 +199,8 @@ export class ReportesBandasVistaComponent {
   }
 
   private buildReport(report: ReporteBandasGuiaApi): DocumentoReporteBandas {
+    const repetidas = new Set(report.asignaturas.map((item) => item.codigoAsignatura).filter((codigo, i, todos) => todos.indexOf(codigo) !== i));
+    const nombre = (item: BandaAsignaturaGuiaApi) => repetidas.has(item.codigoAsignatura) ? `${item.asignatura} (${item.nombreProfesor})` : item.asignatura;
     const theory = report.asignaturas.find((item) => item.codigoAsignatura === 'TOK' || item.asignatura === 'Teoría del Conocimiento');
     const bands = report.asignaturas.filter((item) => ['SUPERIOR', 'MEDIO'].includes(item.tipoAsignatura));
     const numeric = report.asignaturas.filter((item) => item.tipoAsignatura === 'MEP');
@@ -208,10 +211,10 @@ export class ReportesBandasVistaComponent {
       nivel: `Nivel ${report.nivel}`,
       periodo: this.semesterLabel(report.semestre),
        anio: String(report.anio),
-       filas: bands.map((item) => ({ asignatura: item.asignatura, bandaMinima: item.notaMinima ?? '—', bandaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
+       filas: bands.map((item) => ({ asignatura: nombre(item), bandaMinima: item.notaMinima ?? '—', bandaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
       teoriaConocimiento: theory ? { bandaAlcanzada: theory.nota ?? '—', ...this.attendance(theory), observaciones: this.observations(theory) } : { bandaAlcanzada: '—', tardias: '0', injustificadas: '0', justificadas: '0', observaciones: 'Sin registrar' },
       reporteMonografia: { area: report.monografia?.area ?? '', coordinador: report.monografia?.nombreCoordinador ?? '', observaciones: report.monografia?.observaciones ?? 'Sin informe registrado' },
-      filasNumericas: numeric.map((item) => ({ asignatura: item.asignatura, notaMinima: item.notaMinima ?? '70', notaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
+      filasNumericas: numeric.map((item) => ({ asignatura: nombre(item), notaMinima: item.notaMinima ?? '70', notaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
     };
   }
 
