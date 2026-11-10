@@ -327,6 +327,7 @@ export class CasVistaComponent {
       if (fecha === undefined) { this.feedback.error('La fecha de la experiencia debe escribirse como DD-MM.'); return; }
       const fechaFin = this.fechaParaApi(actividad.fechas[1] ?? '', anio);
       if (fechaFin === undefined) { this.feedback.error('La fecha final de la experiencia debe escribirse como DD-MM.'); return; }
+      if (!fecha && fechaFin) { this.feedback.error('La fecha final de la experiencia necesita una fecha inicial.'); return; }
       if (fecha && fechaFin && fechaFin < fecha) { this.feedback.error('La fecha final de la experiencia no puede ser anterior a la inicial.'); return; }
       experiencias.push({
         descripcion,
