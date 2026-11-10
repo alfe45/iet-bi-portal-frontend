@@ -144,7 +144,7 @@ export class RegistroAcademicoVistaComponent {
      if (!group || this.registroBloqueado() || this.incompleteCount() > 0) return;
     const consulta = this.regularContext.consultaDe(group);
      if (!consulta) { this.submissionState.set('incomplete'); this.feedback.error('El grupo no tiene los parámetros requeridos por el backend.'); return; }
-     this.regularContext.enviarRegistro(consulta).subscribe({ next: () => this.submissionState.set('sent'), error: () => { this.submissionState.set('incomplete'); this.feedback.error(this.regularContext.error() || 'No se pudo enviar el registro al backend.'); } });
+     this.regularContext.enviarRegistro(consulta).subscribe({ next: () => this.submissionState.set('sent'), error: (error: unknown) => { this.submissionOpen.set(false); this.feedback.error((error as { error?: { mensaje?: string } })?.error?.mensaje ?? 'No se pudo confirmar el registro.'); } }); // RD-051: el error de la API, no 'registro incompleto'
   }
   protected previousStudent(): { id: string } | undefined { const list = this.students(); const index = list.findIndex((student) => student.id === this.expandedId()); return index > 0 ? list[index - 1] : undefined; }
    protected nextStudent(): { id: string } | undefined { const list = this.students(); const index = list.findIndex((student) => student.id === this.expandedId()); return index >= 0 ? list[index + 1] : undefined; }
