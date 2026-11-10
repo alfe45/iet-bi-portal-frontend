@@ -31,7 +31,7 @@ import { FeedbackService } from '../compartidos/servicios/feedback.service';
           </div>
         </div>
 
-         <div class="report-context"><strong>Periodo activo:</strong> {{ period }} <strong>Grupo:</strong> {{ subject }} · {{ section }} <strong>Estudiantes:</strong> {{ groupStudentCount() }}</div>
+         <div class="report-context"><strong>Periodo:</strong> {{ grupos.periodoActivo() }} <strong>Grupo:</strong> {{ grupos.grupoActual()?.asignatura ?? subject }} · {{ grupos.grupoActual()?.seccion ?? section }} <strong>Estudiantes:</strong> {{ groupStudentCount() }}</div>
       </section>
 
       @if (isProfessor()) {
@@ -94,7 +94,7 @@ import { FeedbackService } from '../compartidos/servicios/feedback.service';
 export class ReportesVistaComponent {
   private readonly auth = inject(AutenticacionService);
   private readonly route = inject(ActivatedRoute);
-  private readonly grupos = inject(GruposProfesorService);
+  protected readonly grupos = inject(GruposProfesorService);
   private readonly regularContext = inject(ProfesorRegularContextService);
   private readonly feedback = inject(FeedbackService);
   private readonly location = inject(Location);
@@ -139,7 +139,9 @@ export class ReportesVistaComponent {
        const evaluation = consulta && student ? this.regularContext.evaluacionDeGrupo(consulta, student.id) : { valor: '', observacion: '' };
        const attendance = consulta && student ? this.regularContext.asistenciaDeGrupo(consulta, student.id) : { tardias: 0, justificadas: 0, injustificadas: 0 };
        const subject = group?.asignatura ?? this.subject;
-       return { student: { name: student?.['nombre'] ?? '', section: group?.seccion ?? this.section, email: student?.['correo'] ?? '' }, absenteeism: { tardies: attendance.tardias, justifiedAbsences: attendance.justificadas, unjustifiedAbsences: attendance.injustificadas }, subjects: [{ subject, minimumValue: ['Estudios Sociales', 'Cívica', 'Civica'].includes(subject) ? '70' : '4', obtainedValue: evaluation.valor, observations: evaluation.observacion }], monographReport: undefined };
+       // RD-046: nota mínima de la API (no fija).
+       const minima = consulta && student ? this.regularContext.notasDe(consulta)?.find((item) => item.cedulaEstudiante === student.id)?.notaMinima ?? this.regularContext.notasDe(consulta)?.find((item) => item.notaMinima)?.notaMinima : null;
+       return { student: { name: student?.['nombre'] ?? '', section: group?.seccion ?? this.section, email: student?.['correo'] ?? '' }, absenteeism: { tardies: attendance.tardias, justifiedAbsences: attendance.justificadas, unjustifiedAbsences: attendance.injustificadas }, subjects: [{ subject, minimumValue: minima ?? '-', obtainedValue: evaluation.valor, observations: evaluation.observacion }], monographReport: undefined };
     });
     protected readonly professorReport = computed(() => this.academic());
     protected readonly guideReport = computed(() => this.academic());
