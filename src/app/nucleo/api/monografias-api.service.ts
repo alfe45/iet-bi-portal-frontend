@@ -44,6 +44,8 @@ export class MonografiasApiService {
     const params = Object.fromEntries(Object.entries(consulta).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]));
     return this.http.get<ResultadoPaginado<MonografiaApi>>(this.url, { params });
   }
+  // CU30: detalle (404 NF003/NF013).
+  obtener(cedulaEstudiante: string): Observable<MonografiaApi> { return this.http.get<MonografiaApi>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}`); }
   registrar(request: RegistrarMonografiaRequest): Observable<void> { return this.http.post<void>(this.url, request); }
   actualizar(cedulaEstudiante: string, cedulaCoordinador: string, codigoAsignatura: string): Observable<void> {
     return this.http.put<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}`, { cedulaCoordinador, codigoAsignatura });
