@@ -183,7 +183,7 @@ export class SidebarComponent {
      const common = [{ title: 'Principal', items: [{ label: 'Tablero', path: '/dashboard' }] }];
      const teacherWork = { title: 'Mi trabajo', items: [{ label: 'Mis grupos', path: '/grupos' }] };
      const academicLabel = this.registrationLabel();
-     const academicRecord = { title: academicLabel, items: [{ label: academicLabel, path: '/registro-academico' }] };
+     const academicRecord = { title: academicLabel, items: [{ label: academicLabel, path: '/registro-academico' }, { label: 'Ausentismo', path: '/ausentismo' }] };
      const communication = { title: 'Comunicación', items: [{ label: 'Compartir archivo', path: '/compartir' }] };
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
      const roles = this.auth.currentRoles();

@@ -88,6 +88,7 @@ export class TableroVistaComponent {
      );
     if (this.isRegular()) links.push(
       { path: '/registro-academico', label: this.registrationLabel(), description: 'Registrar el trabajo de tus estudiantes.', icon: 'RB', featured: true },
+      { path: '/ausentismo', label: 'Ausentismo', description: 'Registrar lecciones con ausentes y tardías.', icon: 'AU', featured: false },
       { path: '/grupos', label: 'Mis grupos', description: 'Abrir una asignatura y sección.', icon: 'GR', featured: false },
       { path: '/estudiantes', label: 'Mis estudiantes', description: 'Consultar estudiantes por grupo.', icon: 'ES', featured: false },
     );

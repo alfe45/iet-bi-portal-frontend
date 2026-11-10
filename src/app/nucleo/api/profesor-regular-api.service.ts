@@ -113,7 +113,7 @@ export interface ProfesorRegularAusentismoApi {
   justificadas: number;
   injustificadas: number;
   tardias: number;
-  porcentajeAusentismo: number;
+  porcentajeAusentismo: number | null;
 }
 
 export interface ProfesorRegularLeccionApi {
@@ -199,6 +199,15 @@ export interface ProfesorRegularCorreoEnvio {
   adjuntos: File[];
 }
 
+// CU11: la asignación y, opcionalmente, el semestre ('' o ausente = todo el curso lectivo).
+export interface ProfesorRegularConsultaAusentismo {
+  anio: number;
+  nivel: number;
+  numero: number;
+  codigoAsignatura: string;
+  semestre?: string;
+}
+
 export interface ProfesorRegularConsulta {
   anio: number;
   nivel: number;
@@ -249,8 +258,14 @@ export class ProfesorRegularApiService {
     return this.http.post<void>(`${this.url}/evaluaciones/confirmacion`, consulta);
   }
 
-  listarLecciones(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularLeccionesResponse> {
-    return this.http.get<ProfesorRegularLeccionesResponse>(`${this.url}/lecciones`, { params: this.consultaParams(consulta) });
+  // CU11: lecciones paginadas; sin semestre, las de todo el curso lectivo.
+  listarLecciones(consulta: ProfesorRegularConsultaAusentismo, pagina = 1, tamanoPagina = 10): Observable<ProfesorRegularLeccionesResponse> {
+    return this.http.get<ProfesorRegularLeccionesResponse>(`${this.url}/lecciones`, { params: this.params({ ...consulta, pagina, tamanoPagina }) });
+  }
+
+  // CU10: elimina la lección con sus ausencias.
+  eliminarLeccion(id: string | number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/lecciones/${encodeURIComponent(String(id))}`);
   }
 
   obtenerLeccion(id: string | number): Observable<ProfesorRegularLeccionDetalleApi> {
@@ -273,8 +288,8 @@ export class ProfesorRegularApiService {
     return this.http.delete<void>(`${this.url}/lecciones/${encodeURIComponent(String(leccionId))}/ausencias/${encodeURIComponent(cedula)}/justificacion`);
   }
 
-  obtenerAusentismo(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularAusentismoApi[]> {
-    return this.http.get<ProfesorRegularAusentismoApi[]>(`${this.url}/ausentismo`, { params: this.consultaParams(consulta) });
+  obtenerAusentismo(consulta: ProfesorRegularConsultaAusentismo): Observable<ProfesorRegularAusentismoApi[]> {
+    return this.http.get<ProfesorRegularAusentismoApi[]>(`${this.url}/ausentismo`, { params: this.params({ ...consulta }) });
   }
 
   // Multipart: cedulas y adjuntos se repiten una vez por valor; sin cedulas el backend envía a todos los estudiantes sin retiro.
@@ -295,9 +310,9 @@ export class ProfesorRegularApiService {
     return [consulta.anio, consulta.nivel, consulta.numero, consulta.codigoAsignatura, consulta.semestre, cedula].map((value) => encodeURIComponent(String(value))).join('/');
   }
 
-  private params(values: Record<string, string | number>): HttpParams {
+  private params(values: Record<string, string | number | undefined>): HttpParams {
     let params = new HttpParams();
-    for (const [key, value] of Object.entries(values)) params = params.set(key, String(value));
+    for (const [key, value] of Object.entries(values)) if (value !== undefined && value !== '') params = params.set(key, String(value));
     return params;
   }
 

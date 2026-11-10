@@ -18,3 +18,8 @@ export function fechaCostaRica(valor: string | null | undefined): string {
 export function hoyCostaRica(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_COSTA_RICA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 }
+
+/** Hora actual en Costa Rica como HH:mm (RD-050: la lección se registra en hora local, no en UTC). */
+export function horaCostaRica(): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: ZONA_COSTA_RICA, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+}

@@ -1,5 +1,5 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Observable, catchError, concatMap, finalize, forkJoin, from, map, of, shareReplay, throwError } from 'rxjs';
+import { Observable, catchError, finalize, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
 import { AutenticacionService } from '../autenticacion/autenticacion.service';
 import {
   ProfesorRegularApiService,
@@ -11,7 +11,6 @@ import {
   ProfesorRegularEvaluacionApi,
   ProfesorRegularEvaluacionNota,
   ProfesorRegularEstudianteApi,
-  ProfesorRegularLeccionCreateRequest,
   ProfesorRegularPeriodoApi,
 } from '../api/profesor-regular-api.service';
 import type { AusentismoVista, EvaluacionVista, RegistroVista } from '../modelos/datos-vista';
@@ -66,7 +65,6 @@ export class ProfesorRegularContextService {
   private readonly loadedAcademic = new Set<string>();
   private readonly academicLoads = new Map<string, Observable<void>>();
   private readonly enviados = signal<Set<string>>(new Set());
-  private ultimaLeccion = 0;
   // Incrementa al cambiar de cuenta: las respuestas de la sesión anterior se descartan.
   private generacion = 0;
   // Incrementa al cambiar de curso lectivo: se descartan las respuestas de la consulta anterior.
@@ -238,23 +236,15 @@ export class ProfesorRegularContextService {
     return request;
   }
 
-  guardarRegistro(group: GrupoRegularConsulta, cedula: string, valor: string, observacion: string, asistencia: AusentismoVista): Observable<void> {
+  /** CU05/CU06/CU08: guarda la nota y la observación. El ausentismo se registra por lecciones (vista Ausentismo, CU09-CU11). */
+  guardarRegistro(group: GrupoRegularConsulta, cedula: string, valor: string, observacion: string): Observable<void> {
     const nota = valor.trim();
-    if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
     const evaluation = !valor.trim() && !observacion.trim()
       ? this.eliminarEvaluacion(group, cedula)
       : this.api.actualizarEvaluaciones(group, [{ cedulaEstudiante: cedula, nota, observaciones: observacion.trim() || null }]);
-    const lesson = this.leccionParaCambio(group, cedula, asistencia);
-    return forkJoin({ evaluation, lesson }).pipe(map(() => {
+    return evaluation.pipe(map(() => {
       const key = this.clave(group);
       this.evaluacionesState.update((state) => ({ ...state, [key]: !valor.trim() && !observacion.trim() ? (state[key] ?? []).filter((item) => item.cedulaEstudiante !== cedula) : this.reemplazarEvaluacion(state[key] ?? [], { cedulaEstudiante: cedula, nota, observaciones: observacion.trim() }) }));
-      this.actualizarAusentismoVista(key, cedula, asistencia);
-    }));
-  }
-
-  guardarAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): Observable<void> {
-    return this.leccionParaCambio(group, cedula, asistencia).pipe(map(() => {
-      this.actualizarAusentismoVista(this.clave(group), cedula, asistencia);
     }));
   }
 
@@ -300,70 +290,12 @@ export class ProfesorRegularContextService {
     });
   }
 
-  private leccionParaCambio(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): Observable<unknown> {
-    const previous = this.asistenciaDeGrupo(group, cedula);
-    if (this.reduciriaAusentismo(group, cedula, asistencia)) return throwError(() => new Error('El backend registra ausentismo mediante lecciones y no permite reducir contadores desde esta vista.'));
-    const cambios = [
-      ...this.repetir(this.contador(asistencia.tardias) - previous.tardias).map(() => ({ justificada: false, tardia: true })),
-      ...this.repetir(this.contador(asistencia.injustificadas) - previous.injustificadas).map(() => ({ justificada: false, tardia: false })),
-      ...this.repetir(this.contador(asistencia.justificadas) - previous.justificadas).map(() => ({ justificada: true, tardia: false })),
-    ];
-    if (!cambios.length) return of(undefined);
-    return from(cambios).pipe(
-      concatMap((cambio) => {
-        const { fecha, hora } = this.fechaHoraLeccion();
-        const request: ProfesorRegularLeccionCreateRequest = {
-          anio: group.anio,
-          nivel: group.nivel,
-          numero: group.numero,
-          codigoAsignatura: group.codigoAsignatura,
-          fecha,
-          hora,
-          tema: 'Registro de ausentismo',
-          ausentes: cambio.tardia ? [] : [cedula],
-          tardias: cambio.tardia ? [cedula] : [],
-        };
-        return this.api.registrarLeccion(request).pipe(
-          concatMap(({ idLeccion }) => cambio.justificada
-            ? this.api.justificarAusencia(idLeccion, cedula, 'Justificación registrada desde el registro académico.')
-            : of(undefined)),
-        );
-      }),
-      map(() => undefined),
-    );
-  }
-
-  private reduciriaAusentismo(group: GrupoRegularConsulta, cedula: string, asistencia: AusentismoVista): boolean {
-    const previous = this.asistenciaDeGrupo(group, cedula);
-    return [asistencia.tardias, asistencia.justificadas, asistencia.injustificadas].some((value, index) => this.contador(value) < [previous.tardias, previous.justificadas, previous.injustificadas][index]);
-  }
-
-  private actualizarAusentismoVista(key: string, cedula: string, asistencia: AusentismoVista): void {
-    this.ausentismoState.update((state) => ({ ...state, [key]: this.reemplazarAusentismo(state[key] ?? [], { cedulaEstudiante: cedula, tardias: this.contador(asistencia.tardias), justificadas: this.contador(asistencia.justificadas), injustificadas: this.contador(asistencia.injustificadas) }) }));
-  }
-
   private reemplazarEvaluacion(items: ProfesorRegularEvaluacionApi[], value: ProfesorRegularEvaluacionNota): ProfesorRegularEvaluacionApi[] {
     const existing = items.find((item) => item.cedulaEstudiante === value.cedulaEstudiante);
     const replacement: ProfesorRegularEvaluacionApi = existing
       ? { ...existing, ...value }
       : { ...value, nombreEstudiante: '', estadoMatricula: '', notaMinima: null, aprobada: null };
     return existing ? items.map((item) => item.cedulaEstudiante === value.cedulaEstudiante ? replacement : item) : [...items, replacement];
-  }
-
-  private reemplazarAusentismo(items: ProfesorRegularAusentismoApi[], value: Pick<ProfesorRegularAusentismoApi, 'cedulaEstudiante' | 'tardias' | 'justificadas' | 'injustificadas'>): ProfesorRegularAusentismoApi[] {
-    const existing = items.find((item) => item.cedulaEstudiante === value.cedulaEstudiante);
-    const replacement: ProfesorRegularAusentismoApi = existing
-      ? { ...existing, ...value }
-      : { ...value, nombreEstudiante: '', estadoMatricula: '', codigoAsignatura: '', asignatura: '', nombreProfesor: '', lecciones: 0, ausencias: value.justificadas + value.injustificadas, porcentajeAusentismo: 0 };
-    return existing ? items.map((item) => item.cedulaEstudiante === value.cedulaEstudiante ? replacement : item) : [...items, replacement];
-  }
-
-  private contador(value: number): number { return Math.max(0, Math.trunc(Number(value) || 0)); }
-  private repetir(cantidad: number): undefined[] { return Array.from({ length: Math.max(0, Math.trunc(cantidad)) }); }
-  private fechaHoraLeccion(): { fecha: string; hora: string } {
-    this.ultimaLeccion = Math.max(Date.now(), this.ultimaLeccion + 60_000);
-    const timestamp = new Date(this.ultimaLeccion);
-    return { fecha: timestamp.toISOString().slice(0, 10), hora: `${timestamp.toISOString().slice(11, 16)}:00` };
   }
 
   private clave(group: GrupoRegularConsulta): string { return `${group.anio}-${group.nivel}-${group.numero}-${group.codigoAsignatura}-${group.semestre}`; }
