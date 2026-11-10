@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { map } from 'rxjs';
 import { EstudiantesApiService } from '../nucleo/api/estudiantes-api.service';
 import { ProfesoresApiService } from '../nucleo/api/profesores-api.service';
 import { AsignaturasApiService } from '../nucleo/api/asignaturas-api.service';
@@ -61,9 +62,10 @@ export class AsignacionesMonografiaVistaComponent {
    protected draft: Partial<MonografiaRow> = {};
 
   constructor() {
-    this.estudiantesApi.listar().subscribe({ next: (items) => this.studentRows.set(items.map((item) => ({ id: item.cedula, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los estudiantes.') });
-    this.profesoresApi.listar().subscribe({ next: (items) => this.teacherRows.set(items.map((item) => ({ id: item.cedula, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los profesores.') });
-    this.asignaturasApi.listar().subscribe({ next: (response) => this.subjectRows.set(response.elementos.filter((item) => item.tipo === 'SUPERIOR' || item.tipo === 'MEDIO').map((item) => ({ id: item.codigo, codigo: item.codigo, nombre: item.nombre }))), error: () => this.feedback.error('No se pudieron cargar las asignaturas.') });
+    // RD-037: las listas del formulario cargan hasta 100 registros (antes solo la primera página de 20).
+    this.estudiantesApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (items) => this.studentRows.set(items.map((item) => ({ id: item.cedula, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los estudiantes.') });
+    this.profesoresApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (items) => this.teacherRows.set(items.map((item) => ({ id: item.cedula, cedula: item.cedula, nombre: [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' ') }))), error: () => this.feedback.error('No se pudieron cargar los profesores.') });
+    this.asignaturasApi.listar({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => this.subjectRows.set(response.elementos.filter((item) => item.tipo === 'SUPERIOR' || item.tipo === 'MEDIO').map((item) => ({ id: item.codigo, codigo: item.codigo, nombre: item.nombre }))), error: () => this.feedback.error('No se pudieron cargar las asignaturas.') });
     this.cargarMonografias();
   }
 

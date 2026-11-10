@@ -637,7 +637,8 @@ export class FuncionalidadVistaComponent {
 
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
       this.apiError = '';
-           this.profesoresApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
+           // RD-037: para las listas de otras vistas (actualizaPaginacion = false) se cargan hasta 100 profesores.
+           this.profesoresApi.listarPaginado(busqueda, pagina, actualizaPaginacion ? this.tamanoPagina : 100).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
     }
 
     private estudianteRow(item: EstudianteApi): Record<string, unknown> {
@@ -706,7 +707,7 @@ export class FuncionalidadVistaComponent {
       private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
          // RD-025: en la vista de secciones se aplican los filtros de año y nivel.
          const filtros = this.key === 'secciones' ? { anio: this.filtroAnio ? Number(this.filtroAnio) : undefined, nivel: this.filtroNivel ? Number(this.filtroNivel) : undefined } : {};
-         this.seccionesApi.listarPaginado({ ...filtros, pagina, tamanoPagina: this.tamanoPagina }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => this.seccionRow(section))); }, error: (error) => { this.seccionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
+         this.seccionesApi.listarPaginado({ ...filtros, pagina, tamanoPagina: actualizaPaginacion ? this.tamanoPagina : 100 }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => this.seccionRow(section))); }, error: (error) => { this.seccionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
     }
 
      private notificarError(error: unknown, fallback: string): void {
