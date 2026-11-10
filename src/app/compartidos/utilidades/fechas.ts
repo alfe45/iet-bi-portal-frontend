@@ -13,3 +13,8 @@ export function fechaCostaRica(valor: string | null | undefined): string {
   if (Number.isNaN(fecha.getTime())) return valor;
   return new Intl.DateTimeFormat('es-CR', { timeZone: ZONA_COSTA_RICA, day: '2-digit', month: '2-digit', year: 'numeric' }).format(fecha);
 }
+
+/** "Hoy" en hora de Costa Rica como aaaa-MM-dd (para comparar con fechas de la API). */
+export function hoyCostaRica(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_COSTA_RICA, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}

@@ -37,6 +37,54 @@ export interface ProfesorRegularEstudianteApi {
   motivoRetiro: string | null;
 }
 
+// CU04: ficha del estudiante (datos personales y matrícula en la sección).
+export interface ProfesorRegularFichaApi {
+  cedula: string;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  numeroCelular: string | null;
+  email: string | null;
+  fechaNacimiento: string | null;
+  anio: number;
+  seccion: string;
+  fechaMatricula: string | null;
+  estado: string;
+  fechaRetiro: string | null;
+  motivoRetiro: string | null;
+}
+
+// CU01: asignación con el plazo de notas abierto y su aviso (RN-76).
+export interface ProfesorRegularAvisoApi {
+  anio: number;
+  nivel: number;
+  numero: number;
+  seccion: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  semestre: string;
+  fechaCierre: string;
+  diasParaCierre: number;
+  estudiantes: number;
+  sinNota: number;
+  confirmada: boolean;
+  aviso: string;
+}
+
+// CU07: estado de las notas de la asignación en el semestre.
+export interface ProfesorRegularEstadoNotasApi {
+  anio: number;
+  seccion: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  tipoAsignatura: string;
+  semestre: string;
+  fechaCierre: string;
+  confirmadoEn: string | null;
+  estudiantes: number;
+  sinNota: number;
+}
+
 export interface ProfesorRegularEvaluacionApi {
   cedulaEstudiante: string;
   nombreEstudiante: string;
@@ -126,7 +174,7 @@ export interface ProfesorRegularLeccionesResponse {
 }
 
 export interface ProfesorRegularEvaluacionesResponse {
-  estado: Record<string, unknown>;
+  estado: ProfesorRegularEstadoNotasApi;
   notas: ProfesorRegularEvaluacionApi[];
 }
 
@@ -177,12 +225,12 @@ export class ProfesorRegularApiService {
     return this.http.get<unknown>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes`).pipe(map((response) => this.coleccion<ProfesorRegularEstudianteApi>(response)));
   }
 
-  obtenerEstudiante(anio: number, nivel: number, numero: number, cedula: string): Observable<ProfesorRegularEstudianteApi> {
-    return this.http.get<ProfesorRegularEstudianteApi>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes/${encodeURIComponent(cedula)}`);
+  obtenerEstudiante(anio: number, nivel: number, numero: number, cedula: string): Observable<ProfesorRegularFichaApi> {
+    return this.http.get<ProfesorRegularFichaApi>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes/${encodeURIComponent(cedula)}`);
   }
 
-  obtenerAvisos(): Observable<unknown[]> {
-    return this.http.get<unknown>(`${this.url}/pantalla-principal`).pipe(map((response) => this.coleccion<unknown>(response)));
+  obtenerAvisos(): Observable<ProfesorRegularAvisoApi[]> {
+    return this.http.get<unknown>(`${this.url}/pantalla-principal`).pipe(map((response) => this.coleccion<ProfesorRegularAvisoApi>(response)));
   }
 
   listarEvaluaciones(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularEvaluacionesResponse> {

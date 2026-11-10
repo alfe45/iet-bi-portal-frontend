@@ -12,7 +12,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
           <caption class="visually-hidden">Tabla de resultados</caption>
           <thead><tr>@for (column of columns(); track column.key) { <th scope="col">{{ column.label }}</th> }</tr></thead>
           <tbody>
-            @if (!rows().length) { <tr><td class="empty-cell" [attr.colspan]="columns().length">No se encontraron registros.</td></tr> }
+            @if (!rows().length) { <tr><td class="empty-cell" [attr.colspan]="columns().length">{{ emptyMessage() }}</td></tr> }
             @for (row of rows(); track row['id'] ?? $index) {
               <tr>@for (column of columns(); track column.key) { <td>
                 @switch (column.type ?? 'text') {
@@ -46,6 +46,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
 export class DataTableComponent {
   columns = input.required<TableColumn[]>();
   rows = input.required<Array<Record<string, unknown>>>();
+  emptyMessage = input('No se encontraron registros.');
   actionSelected = output<{ action: string; row: Record<string, unknown> }>();
 
   protected asStringArray(value: unknown): string[] { return Array.isArray(value) ? value.map(String) : []; }
