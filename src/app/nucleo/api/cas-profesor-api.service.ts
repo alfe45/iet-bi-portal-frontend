@@ -87,6 +87,11 @@ export class CasProfesorApiService {
     return this.http.put<void>(`${this.url}/${anio}/${encodeURIComponent(semestre)}/${encodeURIComponent(cedula)}`, request);
   }
 
+  // CU04: elimina el informe CAS del estudiante en el semestre.
+  eliminar(anio: number, semestre: string, cedula: string): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${anio}/${encodeURIComponent(semestre)}/${encodeURIComponent(cedula)}`);
+  }
+
   progresoGeneral(consulta: ConsultaProgresoCasApi): Observable<ProgresoCasApi[]> {
     let params = new HttpParams().set('anio', consulta.anio).set('semestre', consulta.semestre);
     if (consulta.nivel !== undefined) params = params.set('nivel', consulta.nivel);
