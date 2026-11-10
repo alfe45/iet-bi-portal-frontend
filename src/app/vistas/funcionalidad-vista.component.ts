@@ -18,6 +18,8 @@ import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } fro
 import { map } from 'rxjs/operators';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 import { fechaCostaRica } from '../compartidos/utilidades/fechas';
+import { ProfesorRegularApiService, ProfesorRegularFichaApi } from '../nucleo/api/profesor-regular-api.service';
+import { etiquetaEstadoMatricula } from '../nucleo/datos/profesor-regular-context.service';
 
 interface CampoFormulario {
   key: string;
@@ -198,7 +200,18 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
         }
 
         <section class="surface">
-          @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo activo: {{ grupos.periodoActivo() }}</span></div> }
+          @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo: {{ grupos.periodoActivo() }}</span></div> }
+          @if (fichaEstudiante(); as ficha) {
+            <div class="modal-backdrop" role="presentation" (click)="fichaEstudiante.set(null)">
+              <section class="surface editor student-file" role="dialog" aria-modal="true" aria-labelledby="student-file-title" (click)="$event.stopPropagation()">
+                <div class="modal-header"><div><p class="eyebrow">Ficha del estudiante</p><h3 id="student-file-title">{{ ficha.nombre }} {{ ficha.primerApellido }} {{ ficha.segundoApellido ?? '' }}</h3></div><button type="button" class="ghost-button" aria-label="Cerrar ficha" (click)="fichaEstudiante.set(null)">Cerrar</button></div>
+                <h4>Datos personales</h4>
+                <dl class="file-grid"><div><dt>Cédula</dt><dd>{{ ficha.cedula }}</dd></div><div><dt>Nombre</dt><dd>{{ ficha.nombre }}</dd></div><div><dt>Primer apellido</dt><dd>{{ ficha.primerApellido }}</dd></div><div><dt>Segundo apellido</dt><dd>{{ ficha.segundoApellido || '-' }}</dd></div><div><dt>Número de celular</dt><dd>{{ ficha.numeroCelular || '-' }}</dd></div><div><dt>Correo electrónico</dt><dd>{{ ficha.email || '-' }}</dd></div><div><dt>Fecha de nacimiento</dt><dd>{{ fechaFicha(ficha.fechaNacimiento) }}</dd></div></dl>
+                <h4>Matrícula</h4>
+                <dl class="file-grid"><div><dt>Curso lectivo</dt><dd>{{ ficha.anio }}</dd></div><div><dt>Sección</dt><dd>{{ ficha.seccion }}</dd></div><div><dt>Fecha de matrícula</dt><dd>{{ fechaFicha(ficha.fechaMatricula) }}</dd></div><div><dt>Estado</dt><dd>{{ estadoMatriculaTexto(ficha.estado) }}</dd></div>@if (ficha.estado === 'RETIRADA') {<div><dt>Fecha de retiro</dt><dd>{{ fechaFicha(ficha.fechaRetiro) }}</dd></div><div><dt>Motivo del retiro</dt><dd>{{ ficha.motivoRetiro || '-' }}</dd></div>}</dl>
+              </section>
+            </div>
+          }
           <div class="section-heading"><div><h3>{{ pageTitle() }}</h3><p>{{ isTeacher() ? 'Información relacionada con tus asignaciones del periodo actual.' : 'Use las acciones para consultar o modificar registros.' }}</p></div></div>
           @if (busquedaDisponible()) {
             <div class="table-tools">
@@ -240,7 +253,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
             </div>
           }
            @if (apiError && !editorOpen()) { <p class="api-error" role="alert">{{ apiError }}</p> }
-           <app-data-table [columns]="columns()" [rows]="rows()" (actionSelected)="accion($event)" />
+           <app-data-table [columns]="columns()" [rows]="rows()" [emptyMessage]="mensajeTablaVacia()" (actionSelected)="accion($event)" />
            @if (paginacionVisible()) {
              <nav class="pagination-bar" aria-label="Paginación de registros"><span>Mostrando {{ rangoInicio() }}-{{ rangoFin() }} de {{ totalRegistros() }}</span><div class="pagination-actions"><button type="button" class="ghost-button" [disabled]="paginaActual() === 1" (click)="cambiarPagina(paginaActual() - 1)">Anterior</button><span>Página {{ paginaActual() }} de {{ totalPaginas() }}</span><button type="button" class="ghost-button" [disabled]="paginaActual() >= totalPaginas()" (click)="cambiarPagina(paginaActual() + 1)">Siguiente</button></div></nav>
            }
@@ -273,7 +286,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
         @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: 1 / -1; } }
          @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field, .professor-email-field, .professor-password-field { grid-column: span 1; } }
        .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #1b6f60;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
-         @media (max-width: 700px) { .modal-backdrop{align-items:start}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid,.roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.wizard-steps{gap:.25rem}.wizard-step-copy{display:none}.wizard-step{flex:0 0 auto}.wizard-connector{min-width:.5rem}.promotion-summary{grid-template-columns:1fr} }
+         @media (max-width: 700px) { .modal-backdrop{align-items:start}.student-file{width:min(100%,640px);padding:1rem 1.25rem!important;max-height:calc(100vh - 2rem);overflow:auto}.student-file .modal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.student-file h4{margin:1rem 0 .4rem;color:#1e3a5f;font-size:1rem}.file-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem 1rem;margin:0}.file-grid dt{color:#667085;font-size:.75rem;font-weight:700}.file-grid dd{margin:.1rem 0 0;color:#1e3a5f}@media (max-width:600px){.file-grid{grid-template-columns:1fr}}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid,.roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.wizard-steps{gap:.25rem}.wizard-step-copy{display:none}.wizard-step{flex:0 0 auto}.wizard-connector{min-width:.5rem}.promotion-summary{grid-template-columns:1fr} }
   `,
 })
 // Administra los formularios y tablas de las funcionalidades seleccionadas.
@@ -505,6 +518,7 @@ export class FuncionalidadVistaComponent {
      if (this.isAdmin() && this.key === 'asignaciones') { this.accionAsignacion(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'periodos') { this.accionCursoLectivo(event.action, registro); return; }
     if (this.isAdmin() && this.key === 'secciones') { this.accionSeccion(event.action, registro); return; }
+    if (this.isTeacher() && this.key === 'estudiantes' && event.action === 'view') { this.verFichaEstudiante(registro); return; }
        if (event.action === 'delete' && this.isAdmin()) {
          if (await this.feedback.confirmar(`¿Eliminar ${registro['nombre'] ?? this.config.singular}?`, 'Eliminar registro', 'Eliminar')) this.feedback.error('Esta operación no está disponible para este catálogo.');
       return;
@@ -1153,7 +1167,7 @@ export class FuncionalidadVistaComponent {
     if (!this.isTeacher()) return this.config.columns;
     if (this.key === 'asignaturas') return [{ key: 'nombre', label: 'Asignatura' }, { key: 'escala', label: 'Escala' }, { key: 'secciones', label: 'Secciones' }];
     if (this.key === 'secciones') return [{ key: 'nombre', label: 'Sección' }, { key: 'nivel', label: 'Nivel' }, { key: 'asignaturas', label: 'Asignaturas' }, { key: 'estudiantes', label: 'Estudiantes' }];
-    if (this.key === 'estudiantes') return [{ key: 'nombre', label: 'Estudiante' }, { key: 'cedula', label: 'Identificación' }];
+    if (this.key === 'estudiantes') return [{ key: 'nombre', label: 'Estudiante' }, { key: 'cedula', label: 'Identificación' }, { key: 'estadoMatricula', label: 'Estado de la matrícula' }];
     return this.config.columns;
   }
 
@@ -1173,7 +1187,8 @@ export class FuncionalidadVistaComponent {
       const selected = this.grupos.grupos().find((group) => group.id === this.selectedGroupId());
       const sections = new Set(selected ? [selected.seccion] : assignments.map((item) => item['seccion']));
         const students = selected?.estudiantes ?? this.grupos.estudiantesDeSeccion([...sections][0] ?? '');
-       return students.map((item) => ({ ...item, acciones: [{ label: 'Ver', code: 'view' }] }));
+       // RD-048: estado de la matrícula en el listado.
+       return students.map((item) => ({ ...item, estadoMatricula: etiquetaEstadoMatricula(item['estado']), acciones: [{ label: 'Ver', code: 'view' }] }));
       }
     return [];
   }
@@ -1451,5 +1466,24 @@ export class FuncionalidadVistaComponent {
      return value.split('-').at(-1) ?? value;
    }
 
+   // RD-045: ficha del estudiante con los datos vigentes de la API (personales y de la matrícula en la sección).
+   private readonly profesorRegularApi = inject(ProfesorRegularApiService);
+   protected readonly fichaEstudiante = signal<ProfesorRegularFichaApi | null>(null);
+   private verFichaEstudiante(registro: RegistroVista): void {
+     const group = this.grupos.grupos().find((item) => item.id === this.selectedGroupId()) ?? this.grupos.grupoActual();
+     if (!group?.anio || group.nivel === undefined || group.numero === undefined) return;
+     this.profesorRegularApi.obtenerEstudiante(group.anio, group.nivel, group.numero, String(registro['cedula'])).subscribe({
+       next: (ficha) => this.fichaEstudiante.set(ficha),
+       error: (error) => this.notificarError(error, 'No se pudo consultar la ficha del estudiante.'),
+     });
+   }
+   protected fechaFicha(value: string | null): string { return value ? fechaCostaRica(value) : '-'; }
+   protected estadoMatriculaTexto(value: string): string { return etiquetaEstadoMatricula(value); }
+   // RD-043/RD-048: mensaje de la tabla vacía (error de carga, sin periodo o grupo sin estudiantes).
+   protected mensajeTablaVacia(): string {
+     if (!this.isTeacher()) return 'No se encontraron registros.';
+     if (!this.grupos.grupos().length) return this.grupos.mensajeSinGrupos();
+     return this.key === 'estudiantes' ? 'Este grupo no tiene estudiantes matriculados.' : 'No se encontraron registros.';
+   }
    protected cambiarGrupo(id: string): void { this.selectedGroupId.set(id); this.grupos.seleccionar(id); }
 }
