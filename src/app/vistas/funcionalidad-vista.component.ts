@@ -132,7 +132,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
                         <select [name]="field.key" [(ngModel)]="draft[field.key]" (ngModelChange)="cambioCursoLectivo($event)" [attr.aria-label]="field.label" [disabled]="readOnly || !!editingId" [required]="field.required ?? true"><option value="">Seleccione un curso lectivo</option>@for (course of cursosDisponiblesMatricula(); track course.idCursoLectivo) { <option [value]="course.yearCiclo">{{ cursoLectivoLabel(course) }}</option> }</select>
                      } @else if (key === 'matriculas' && field.key === 'cedulaEstudiante') {
                        @if (editingId) {
-                         <div class="selected-student"><strong>{{ estudianteSeleccionadoMatricula() }}</strong><span>{{ draft[field.key] }}</span><small>El estudiante no se puede cambiar al editar una matrícula.</small></div>
+                         <div class="selected-student"><strong>{{ estudianteSeleccionadoMatricula() }}</strong><span>{{ draft[field.key] }}</span>@if (!readOnly) {<small>El estudiante no se puede cambiar al editar una matrícula.</small>}</div>
                        } @else {
                           <div class="student-picker"><div class="student-search"><span class="search-label">Buscar estudiante</span><input type="search" name="buscarEstudiante" [(ngModel)]="studentSearch" (ngModelChange)="buscarEstudiantesMatricula($event)" placeholder="Nombre completo o número de cédula" autocomplete="off" [readonly]="readOnly" /><small>{{ estudiantesDisponiblesMatricula().length }} estudiantes disponibles</small></div><div class="student-results" role="listbox" aria-label="Resultados de estudiantes">@for (student of estudiantesResultadosMatricula(); track student.cedula) { <button type="button" class="student-result" [class.selected]="draft[field.key] === student.cedula" (click)="seleccionarEstudianteMatricula(student)"><span class="student-avatar">{{ inicialesEstudiante(student) }}</span><span class="student-result-copy"><strong>{{ nombreCompletoEstudiante(student) }}</strong><small>{{ student.cedula }}{{ student.email ? ' · ' + student.email : '' }}{{ edadEstudiante(student) ? ' · Edad actual: ' + edadEstudiante(student) + ' años' : '' }}</small></span><span class="student-check" aria-hidden="true">{{ draft[field.key] === student.cedula ? 'Seleccionado' : 'Elegir' }}</span></button>} @empty { <p class="student-empty">No encontramos estudiantes con esa búsqueda.</p> }</div>@if (draft[field.key]) { <p class="student-selection">Estudiante seleccionado: <strong>{{ estudianteSeleccionadoMatricula() }}</strong><small>{{ estudianteSeleccionadoCorreo() }}{{ estudianteSeleccionadoEdad() ? ' · Edad actual: ' + estudianteSeleccionadoEdad() + ' años' : '' }}</small></p> }</div>
         }
@@ -321,6 +321,8 @@ export class FuncionalidadVistaComponent {
      protected apiError = '';
      protected adminSearch = '';
      protected readonly paginaActual = signal(1);
+      // DV-002: la última carga del listado falló.
+      protected readonly errorListado = signal(false);
       protected readonly totalRegistros = signal(0);
       protected readonly tamanoPagina = 10;
       protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
@@ -392,6 +394,7 @@ export class FuncionalidadVistaComponent {
 
      private cargarPaginaActual(): void {
        const pagina = this.paginaActual();
+       this.errorListado.set(false);
        if (this.key === 'profesores') this.cargarProfesores(this.adminSearch, pagina);
        if (this.key === 'estudiantes') this.cargarEstudiantes(this.adminSearch, pagina);
        if (this.key === 'periodos') this.cargarCursosAdministracion(pagina);
@@ -402,6 +405,7 @@ export class FuncionalidadVistaComponent {
      }
 
      private actualizarPaginacion<T>(response: { pagina: number; total: number; elementos: T[] }): void {
+       this.errorListado.set(false);
        this.totalRegistros.set(response.total);
        if (response.pagina !== this.paginaActual()) this.paginaActual.set(response.pagina);
        const lastPage = Math.max(1, Math.ceil(response.total / this.tamanoPagina));
@@ -531,6 +535,8 @@ export class FuncionalidadVistaComponent {
   }
 
   protected guardar(): void {
+      // DV-004: el mensaje de validación anterior no queda visible si ahora los datos son válidos.
+      this.apiError = '';
       if (this.isAdmin() && (this.key === 'asignaturas' || this.key === 'asignaciones')) {
        const validation = this.validarCatalogoAdministrativo();
         if (validation) { this.validationAttempted = true; this.apiError = validation; return; }
@@ -662,7 +668,7 @@ export class FuncionalidadVistaComponent {
          private cargarProfesores(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true): void {
       this.apiError = '';
            // RD-037: para las listas de otras vistas (actualizaPaginacion = false) se cargan hasta 100 profesores.
-           this.profesoresApi.listarPaginado(busqueda, pagina, actualizaPaginacion ? this.tamanoPagina : 100).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
+           this.profesoresApi.listarPaginado(busqueda, pagina, actualizaPaginacion ? this.tamanoPagina : 100).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.profesoresApiRows.set(response.elementos.map((item) => this.profesorRow(item))); }, error: (error) => { this.profesoresApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los profesores.'); } });
     }
 
     private estudianteRow(item: EstudianteApi): Record<string, unknown> {
@@ -672,14 +678,14 @@ export class FuncionalidadVistaComponent {
 
     private cargarEstudiantes(busqueda = '', pagina = this.paginaActual()): void {
       this.apiError = '';
-         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => this.estudianteRow(item))); }, error: (error) => { this.estudiantesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes.'); } });
+         this.estudiantesApi.listarPaginado(busqueda, pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.estudiantesApiRows.set(response.elementos.map((item) => this.estudianteRow(item))); }, error: (error) => { this.estudiantesApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los estudiantes.'); } });
     }
 
     /** RD-031/RD-029: estado con texto, fechas dd/mm/aaaa y acciones de retiro según el estado. */
     private matriculaRow(item: MatriculaApi): Record<string, unknown> {
       const estados: Record<string, string> = { PROGRAMADA: 'Programada', ACTIVA: 'Activa', FINALIZADA: 'Finalizada', RETIRADA: 'Retirada' };
       const retiro = item.fechaRetiro ? [{ label: 'Corregir retiro', code: 'retire' }, { label: 'Anular retiro', code: 'unretire' }] : [{ label: 'Registrar retiro', code: 'retire' }];
-      return { id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: estados[item.estado] ?? item.estado, fechaMatricula: fechaCostaRica(item.fechaMatricula), fechaRetiro: item.fechaRetiro ? fechaCostaRica(item.fechaRetiro) : '—', motivoRetiro: item.motivoRetiro ?? '—', nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, ...retiro, ...(item.nivel === 11 ? [{ label: 'Subir sección', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
+      return { id: `${item.anio}-${item.cedulaEstudiante}`, estudiante: item.nombreEstudiante, cedulaEstudiante: item.cedulaEstudiante, yearCiclo: item.anio, seccion: item.seccion, estado: estados[item.estado] ?? item.estado, fechaMatricula: fechaCostaRica(item.fechaMatricula), fechaRetiro: item.fechaRetiro ? fechaCostaRica(item.fechaRetiro) : '—', motivoRetiro: item.motivoRetiro ?? '—', fechaRetiroIso: item.fechaRetiro ?? '', motivoRetiroActual: item.motivoRetiro ?? '', nivel: item.nivel, numeroSeccion: item.numero, acciones: [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, ...retiro, ...(item.nivel === 11 ? [{ label: 'Subir sección', code: 'promote' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
     }
 
     protected filtroMatAnio = '';
@@ -693,16 +699,16 @@ export class FuncionalidadVistaComponent {
       this.apiError = '';
         this.estudiantesApi.listarPaginado('', 1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (students) => {
          this.estudiantesMatricula.set(students);
-           this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina, anio: this.filtroMatAnio ? Number(this.filtroMatAnio) : undefined, nivel: this.filtroMatNivel ? Number(this.filtroMatNivel) : undefined, numero: this.filtroMatNumero ? Number(this.filtroMatNumero) : undefined, estado: this.filtroMatEstado || undefined }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => this.matriculaRow(item))); }, error: (error) => this.notificarError(error, 'No se pudieron consultar las matrículas.') });
-          }, error: (error) => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los estudiantes para las matrículas.'); } });
+           this.matriculasApi.listar({ busqueda, pagina, tamanoPagina: this.tamanoPagina, anio: this.filtroMatAnio ? Number(this.filtroMatAnio) : undefined, nivel: this.filtroMatNivel ? Number(this.filtroMatNivel) : undefined, numero: this.filtroMatNumero ? Number(this.filtroMatNumero) : undefined, estado: this.filtroMatEstado || undefined }).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.matriculasApiRows.set(response.elementos.map((item) => this.matriculaRow(item))); }, error: (error) => { this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar las matrículas.'); } });
+          }, error: (error) => { this.estudiantesMatricula.set([]); this.matriculasApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los estudiantes para las matrículas.'); } });
    }
 
    private cargarSecciones(): void {
-         this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).pipe(map((response) => response.elementos)).subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: (error) => { this.seccionesMatricula.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
+         this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).pipe(map((response) => response.elementos)).subscribe({ next: (sections) => this.seccionesMatricula.set(sections), error: (error) => { this.seccionesMatricula.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
    }
 
    private cargarCursosLectivos(): void {
-         this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: (error) => { this.cursosLectivosMatricula.set([]); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
+         this.cursosLectivosApi.listarPaginado(1, 100).pipe(map((response) => response.elementos)).subscribe({ next: (courses) => this.cursosLectivosMatricula.set(courses), error: (error) => { this.cursosLectivosMatricula.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
    }
 
     /** RD-023: estado con texto, fechas de cada semestre (dd/mm/aaaa) y semestre en curso. */
@@ -713,7 +719,7 @@ export class FuncionalidadVistaComponent {
     }
 
     private cargarCursosAdministracion(pagina = this.paginaActual()): void {
-         this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => this.cursoLectivoRow(course))); }, error: (error) => { this.cursosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
+         this.cursosLectivosApi.listarPaginado(pagina, this.tamanoPagina).subscribe({ next: (response) => { this.actualizarPaginacion(response); this.cursosApiRows.set(response.elementos.map((course) => this.cursoLectivoRow(course))); }, error: (error) => { this.cursosApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los cursos lectivos.'); } });
     }
 
     protected filtroAnio = '';
@@ -731,7 +737,7 @@ export class FuncionalidadVistaComponent {
       private cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
          // RD-025: en la vista de secciones se aplican los filtros de año y nivel.
          const filtros = this.key === 'secciones' ? { anio: this.filtroAnio ? Number(this.filtroAnio) : undefined, nivel: this.filtroNivel ? Number(this.filtroNivel) : undefined } : {};
-         this.seccionesApi.listarPaginado({ ...filtros, pagina, tamanoPagina: actualizaPaginacion ? this.tamanoPagina : 100 }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => this.seccionRow(section))); }, error: (error) => { this.seccionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
+         this.seccionesApi.listarPaginado({ ...filtros, pagina, tamanoPagina: actualizaPaginacion ? this.tamanoPagina : 100 }).subscribe({ next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.seccionesApiRows.set(response.elementos.map((section) => this.seccionRow(section))); }, error: (error) => { this.seccionesApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar las secciones.'); } });
     }
 
      private notificarError(error: unknown, fallback: string): void {
@@ -762,7 +768,7 @@ export class FuncionalidadVistaComponent {
     private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
       this.usuariosApi.listar(busqueda, pagina, tamanoPagina).subscribe({
         next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))); },
-        error: (error) => { this.usuariosApiRows.set([]); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
+        error: (error) => { this.usuariosApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
       });
     }
 
@@ -801,7 +807,7 @@ export class FuncionalidadVistaComponent {
           niveles: [item.imparteNivel11 ? '11' : '', item.imparteNivel12 ? '12' : ''].filter(Boolean).join(' y '),
           acciones: [{ label: 'Ver', code: 'view' }, ...this.accionesCrud()],
         }))); },
-        error: (error) => { this.asignaturasApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaturas.'); },
+        error: (error) => { this.asignaturasApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar las asignaturas.'); },
       });
     }
 
@@ -839,7 +845,7 @@ export class FuncionalidadVistaComponent {
            yearCiclo: item.anio,
           acciones: this.accionesCrud(),
          }))); },
-        error: (error) => { this.asignacionesApiRows.set([]); this.notificarError(error, 'No se pudieron consultar las asignaciones.'); },
+        error: (error) => { this.asignacionesApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar las asignaciones.'); },
       });
     }
 
@@ -1221,12 +1227,16 @@ export class FuncionalidadVistaComponent {
          });
          return;
        }
-      if (action === 'retire' && await this.feedback.confirmar('¿Registrar el retiro de esta matrícula?', 'Registrar retiro', 'Continuar')) {
-        const fecha = await this.feedback.solicitarTexto('Indique la fecha de retiro con formato AAAA-MM-DD.', new Date().toISOString().slice(0, 10), 'Fecha de retiro');
+      // DV-006 (CU18 FA 6): al corregir un retiro se muestra que es una corrección y se precargan la fecha y el motivo actuales.
+      const fechaRetiroActual = String(registro['fechaRetiroIso'] ?? '');
+      const corrigiendo = Boolean(fechaRetiroActual);
+      const tituloRetiro = corrigiendo ? 'Corregir retiro' : 'Registrar retiro';
+      if (action === 'retire' && await this.feedback.confirmar(corrigiendo ? `¿Corregir el retiro de esta matrícula? Retiro actual: ${fechaCostaRica(fechaRetiroActual)}.` : '¿Registrar el retiro de esta matrícula?', tituloRetiro, 'Continuar')) {
+        const fecha = await this.feedback.solicitarTexto('Indique la fecha de retiro con formato AAAA-MM-DD.', corrigiendo ? fechaRetiroActual : new Date().toISOString().slice(0, 10), 'Fecha de retiro');
         if (!fecha) return;
-        const motivo = await this.feedback.solicitarTexto('Indique el motivo del retiro si corresponde.', '', 'Motivo del retiro');
+        const motivo = await this.feedback.solicitarTexto('Indique el motivo del retiro si corresponde.', corrigiendo ? String(registro['motivoRetiroActual'] ?? '') : '', 'Motivo del retiro');
         if (motivo === null) return;
-        this.matriculasApi.retirar(anio, cedula, fecha, motivo || undefined).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue registrado.'); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo registrar el retiro.') });
+        this.matriculasApi.retirar(anio, cedula, fecha, motivo || undefined).subscribe({ next: () => { this.feedback.exito(corrigiendo ? 'El retiro de la matrícula fue corregido.' : 'El retiro de la matrícula fue registrado.'); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, corrigiendo ? 'No se pudo corregir el retiro.' : 'No se pudo registrar el retiro.') });
         return;
       }
       if (action === 'unretire' && await this.feedback.confirmar('¿Anular el retiro de esta matrícula?', 'Anular retiro', 'Anular')) this.matriculasApi.quitarRetiro(anio, cedula).subscribe({ next: () => { this.feedback.exito('El retiro de la matrícula fue anulado.'); this.cargarMatriculas(this.adminSearch); }, error: (error) => this.notificarError(error, 'No se pudo anular el retiro.') });
@@ -1346,7 +1356,8 @@ export class FuncionalidadVistaComponent {
      if (!String(this.draft['numeroSeccion'] ?? '').trim()) return "El campo 'Número de sección' es obligatorio y no puede estar vacío.";
       if (!Number.isInteger(Number(this.draft['yearCiclo'])) || Number(this.draft['yearCiclo']) <= 0) return "El campo 'Curso lectivo' debe ser válido.";
      if (![11, 12].includes(Number(this.draft['nivel']))) return "El campo 'Nivel' debe ser 11 o 12.";
-     if (!Number.isInteger(Number(this.draft['numeroSeccion'])) || Number(this.draft['numeroSeccion']) <= 0) return "El campo 'Número de sección' debe ser mayor que cero.";
+     // DV-004 (CU13): el número de sección va de 1 a 99, igual que la regla del sistema.
+     if (!Number.isInteger(Number(this.draft['numeroSeccion'])) || Number(this.draft['numeroSeccion']) < 1 || Number(this.draft['numeroSeccion']) > 99) return "El campo 'Número de sección' debe ser un número entre 1 y 99.";
      return null;
    }
 
@@ -1481,6 +1492,8 @@ export class FuncionalidadVistaComponent {
    protected estadoMatriculaTexto(value: string): string { return etiquetaEstadoMatricula(value); }
    // RD-043/RD-048: mensaje de la tabla vacía (error de carga, sin periodo o grupo sin estudiantes).
    protected mensajeTablaVacia(): string {
+     // DV-002: si la consulta falló, la tabla no dice "No se encontraron registros" (parecería que no hay datos).
+     if (this.errorListado()) return 'No se pudieron cargar los registros. Intente de nuevo más tarde.';
      if (!this.isTeacher()) return 'No se encontraron registros.';
      if (!this.grupos.grupos().length) return this.grupos.mensajeSinGrupos();
      return this.key === 'estudiantes' ? 'Este grupo no tiene estudiantes matriculados.' : 'No se encontraron registros.';

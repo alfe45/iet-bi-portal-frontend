@@ -15,7 +15,7 @@ import { FeedbackService } from '../compartidos/servicios/feedback.service';
 
       @if(loading()){<p role="status">Cargando monografías...</p>}
       <section class="filters" aria-label="Criterios de búsqueda"><label>Año de inicio<select [ngModel]="filtroAnio()" (ngModelChange)="filtroAnio.set($event); filtrar()" aria-label="Filtrar por año de inicio"><option [ngValue]="null">Todos</option>@for (anio of aniosInicio(); track anio) {<option [ngValue]="anio">{{ anio }}</option>}</select></label><label>Estado<select [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event); filtrar()" aria-label="Filtrar por estado"><option [ngValue]="null">Todos</option><option value="CAPACITACION">Capacitación</option><option value="INVESTIGACION">Investigación</option><option value="TERMINADA">Terminada</option></select></label>@if (filtroAnio() || filtroEstado()) {<button type="button" class="ghost-button" (click)="limpiarFiltros()">Limpiar filtros</button>}</section>
-       @if(!loading() && monographs().length === 0){<p class="empty">{{ filtroAnio() || filtroEstado() ? 'No coordina monografías que cumplan los criterios.' : 'No hay monografías asignadas.' }}</p>}
+       @if(!loading() && monographs().length === 0){<p class="empty">{{ errorListado() ? 'No se pudieron cargar las monografías. Intente de nuevo más tarde.' : filtroAnio() || filtroEstado() ? 'No coordina monografías que cumplan los criterios.' : 'No hay monografías asignadas.' }}</p>}
 
       @if(monographs().length > 0){<section class="student-selector" aria-label="Monografías asignadas">
         <strong>Monografías asignadas</strong>
@@ -88,6 +88,8 @@ export class MonografiasVista implements OnInit {
    });
    protected readonly reporteConfirmado = computed(() => Boolean(this.confirmedReport()));
   protected readonly loading = signal(false);
+  // DV-002: la última carga del listado falló (no se muestra como "no hay monografías").
+  protected readonly errorListado = signal(false);
   protected readonly loadingDetail = signal(false);
   protected readonly saving = signal(false);
   protected readonly reportModal = signal<'status' | 'observations' | 'confirm-send' | null>(null);
@@ -120,13 +122,14 @@ export class MonografiasVista implements OnInit {
        periodo: this.periodosApi.obtenerActual().pipe(catchError(() => of(null))),
     }).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: ({ monografias, periodo }) => {
+        this.errorListado.set(false);
         this.monographs.set(monografias);
         this.currentPeriod.set(periodo);
         this.todas.set(monografias);
         if (periodo) { this.reporteAnio.set(periodo.anio); this.reporteSemestre.set(periodo.semestreActual ?? 'I_SEMESTRE'); }
         if (monografias[0]) this.seleccionar(monografias[0]);
       },
-       error: (error: unknown) => this.feedback.error(this.mensajeError(error, 'No se pudieron cargar las monografías.')),
+       error: (error: unknown) => { this.errorListado.set(true); this.feedback.error(this.mensajeError(error, 'No se pudieron cargar las monografías.')); },
     });
   }
 
@@ -153,11 +156,12 @@ export class MonografiasVista implements OnInit {
     this.loading.set(true);
     this.api.listar({ anioInicio: this.filtroAnio(), estado: this.filtroEstado() }).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (monografias) => {
+        this.errorListado.set(false);
         this.monographs.set(monografias);
         const actual = monografias.find((item) => item.cedulaEstudiante === this.selectedId());
         if (!actual) { this.selectedId.set(''); this.detail.set(null); if (monografias[0]) this.seleccionar(monografias[0]); }
       },
-      error: (error: unknown) => this.feedback.error(this.mensajeError(error, 'No se pudieron consultar las monografías.')),
+      error: (error: unknown) => { this.errorListado.set(true); this.monographs.set([]); this.feedback.error(this.mensajeError(error, 'No se pudieron consultar las monografías.')); },
     });
   }
 
