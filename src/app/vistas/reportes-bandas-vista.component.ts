@@ -211,11 +211,17 @@ export class ReportesBandasVistaComponent {
       nivel: `Nivel ${report.nivel}`,
       periodo: this.semesterLabel(report.semestre),
        anio: String(report.anio),
-       filas: bands.map((item) => ({ asignatura: nombre(item), bandaMinima: item.notaMinima ?? '—', bandaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
-      teoriaConocimiento: theory ? { bandaAlcanzada: theory.nota ?? '—', ...this.attendance(theory), observaciones: this.observations(theory) } : { bandaAlcanzada: '—', tardias: '0', injustificadas: '0', justificadas: '0', observaciones: 'Sin registrar' },
+       filas: bands.map((item) => ({ asignatura: nombre(item), bandaMinima: item.notaMinima ?? '—', bandaAlcanzada: this.notaReporte(item), ...this.attendance(item), observaciones: this.observations(item) })),
+      teoriaConocimiento: theory ? { bandaAlcanzada: this.notaReporte(theory), ...this.attendance(theory), observaciones: this.observations(theory) } : { bandaAlcanzada: '—', tardias: '0', injustificadas: '0', justificadas: '0', observaciones: 'Sin registrar' },
       reporteMonografia: { area: report.monografia?.area ?? '', coordinador: report.monografia?.nombreCoordinador ?? '', observaciones: report.monografia?.observaciones ?? 'Sin informe registrado' },
-      filasNumericas: numeric.map((item) => ({ asignatura: nombre(item), notaMinima: item.notaMinima ?? '70', notaAlcanzada: item.nota ?? '—', ...this.attendance(item), observaciones: this.observations(item) })),
+      filasNumericas: numeric.map((item) => ({ asignatura: nombre(item), notaMinima: item.notaMinima ?? '70', notaAlcanzada: this.notaReporte(item), ...this.attendance(item), observaciones: this.observations(item) })),
     };
+  }
+
+  // DV-013 (PG08 FA 5, PG09 FA 4): la nota registrada que el profesor aún no confirmó se marca en el reporte.
+  private notaReporte(item: BandaAsignaturaGuiaApi): string {
+    if (item.nota === null) return '—';
+    return item.confirmada ? item.nota : `${item.nota} (sin confirmar)`;
   }
 
   private attendance(item: BandaAsignaturaGuiaApi): { tardias: string; injustificadas: string; justificadas: string } {
