@@ -3,6 +3,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { autenticacionInterceptor } from './nucleo/autenticacion/autenticacion.interceptor';
+import { errorSistemaInterceptor } from './nucleo/errores/error-sistema.interceptor';
 import { GlobalErrorHandler } from './nucleo/errores/global-error.handler';
 
 export const appConfig: ApplicationConfig = {
@@ -10,6 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideBrowserGlobalErrorListeners(),
     { provide: ErrorHandler, useClass: GlobalErrorHandler },
     provideRouter(routes),
-    provideHttpClient(withInterceptors([autenticacionInterceptor]))
+    provideHttpClient(withInterceptors([autenticacionInterceptor, errorSistemaInterceptor]))
   ]
 };

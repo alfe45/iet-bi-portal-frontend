@@ -27,6 +27,19 @@ export class GruposProfesorService {
   readonly esProfesorRegular = computed(() => this.auth.hasRole('Profesor regular'));
 
   readonly periodoActivo = computed(() => this.regularContext.periodoEtiqueta());
+  // RD-043: curso lectivo consultado, años elegibles y estado de la carga (para no confundir un error con "sin grupos").
+  readonly anioConsulta = computed(() => this.regularContext.anioConsulta());
+  readonly aniosDisponibles = computed(() => this.regularContext.aniosDisponibles());
+  readonly cargando = computed(() => this.regularContext.cargando());
+  readonly errorGrupos = computed(() => this.regularContext.errorGrupos());
+  readonly sinPeriodo = computed(() => this.regularContext.sinPeriodo());
+  /** Texto cuando no hay grupos: el error, la falta de periodo en curso (RD-004) o que no hay asignaciones en el año. */
+  readonly mensajeSinGrupos = computed(() => {
+    if (this.errorGrupos()) return this.errorGrupos();
+    if (this.cargando()) return 'Cargando grupos…';
+    if (!this.anioConsulta()) return this.sinPeriodo() ? 'No hay un periodo académico en curso. Puede elegir un curso lectivo para consultar sus grupos de otro año.' : 'No hay grupos para mostrar.';
+    return `No tienes grupos asignados en el curso lectivo ${this.anioConsulta()}.`;
+  });
   readonly profesor = computed(() => this.regularContext.profesor());
   readonly grupos = computed<GrupoTrabajo[]>(() => {
     return this.regularContext.asignaciones().map((item) => ({
@@ -40,10 +53,10 @@ export class GruposProfesorService {
       nivel: item.nivel,
       numero: item.numero,
       codigoAsignatura: item.codigoAsignatura,
-      semestre: item.semestre,
+      semestre: this.regularContext.semestreConsulta(),
     }));
   });
-  readonly asignaciones = computed<RegistroVista[]>(() => this.regularContext.asignaciones().map((item) => ({ id: item.id, anio: String(item.anio), nivel: String(item.nivel), numero: String(item.numero), profesor: item.nombreProfesor, cedulaProfesor: item.cedulaProfesor, codigo: item.codigoAsignatura, asignatura: item.asignatura, seccion: item.seccion, periodo: item.periodo, semestre: item.semestre, estado: 'Activa' })));
+  readonly asignaciones = computed<RegistroVista[]>(() => this.regularContext.asignaciones().map((item) => ({ id: item.id, anio: String(item.anio), nivel: String(item.nivel), numero: String(item.numero), profesor: item.nombreProfesor, cedulaProfesor: item.cedulaProfesor, codigo: item.codigoAsignatura, asignatura: item.asignatura, seccion: item.seccion, periodo: item.periodo, semestre: this.regularContext.semestreConsulta(), estado: 'Activa' })));
   readonly grupoActual = computed(() => {
     const groups = this.grupos();
     const pending = this.pendingSelection();
@@ -55,6 +68,8 @@ export class GruposProfesorService {
   constructor() {
     if (this.auth.hasRole('Profesor regular')) this.regularContext.iniciar();
   }
+
+  cambiarAnio(anio: number | string): void { this.selectedKey.set(''); this.regularContext.cambiarAnio(Number(anio)); }
 
   seleccionar(grupo: GrupoTrabajo | string | undefined): void {
     const key = typeof grupo === 'string' ? grupo : grupo?.id;

@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { fechaCostaRica } from '../compartidos/utilidades/fechas';
 import { forkJoin } from 'rxjs';
 import { EstudianteApi, EstudiantesApiService } from '../nucleo/api/estudiantes-api.service';
 import { MatriculaApi, MatriculasApiService } from '../nucleo/api/matriculas-api.service';
@@ -37,6 +38,7 @@ import { FeedbackService } from '../compartidos/servicios/feedback.service';
 })
 export class HistorialEstudianteVistaComponent {
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly estudiantesApi = inject(EstudiantesApiService);
   private readonly matriculasApi = inject(MatriculasApiService);
   private readonly feedback = inject(FeedbackService);
@@ -47,11 +49,16 @@ export class HistorialEstudianteVistaComponent {
     const cedula = this.route.snapshot.paramMap.get('cedula') ?? '';
     forkJoin({ student: this.estudiantesApi.obtener(cedula), history: this.matriculasApi.listar({ cedulaEstudiante: cedula, tamanoPagina: 100 }) }).subscribe({
       next: ({ student, history }) => { this.student.set(student); this.matriculas.set(history.elementos); },
-      error: () => this.feedback.error('No se pudo consultar el historial del estudiante.'),
+      // RD-019: se muestra el motivo de la API (p. ej. 'El estudiante no existe.', NF003); si ya no existe,
+      // se vuelve al listado de estudiantes, que se carga actualizado.
+      error: (error: { status?: number; error?: { mensaje?: string } }) => {
+        this.feedback.error(error.error?.mensaje ?? 'No se pudo consultar el historial del estudiante.');
+        if (error.status === 404) void this.router.navigate(['/estudiantes']);
+      },
     });
   }
 
   protected fullName(item: EstudianteApi): string { return [item.nombre, item.primerApellido, item.segundoApellido].filter(Boolean).join(' '); }
   protected initials(item: EstudianteApi): string { return [item.nombre, item.primerApellido].map((part) => part.charAt(0)).join('').toUpperCase(); }
-  protected dateLabel(value: string | null | undefined): string { if (!value) return 'No registrado'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat('es-CR', { dateStyle: 'medium' }).format(date); }
+  protected dateLabel(value: string | null | undefined): string { return value ? fechaCostaRica(value) : 'No registrado'; }
 }

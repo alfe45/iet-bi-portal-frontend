@@ -37,6 +37,54 @@ export interface ProfesorRegularEstudianteApi {
   motivoRetiro: string | null;
 }
 
+// CU04: ficha del estudiante (datos personales y matrícula en la sección).
+export interface ProfesorRegularFichaApi {
+  cedula: string;
+  nombre: string;
+  primerApellido: string;
+  segundoApellido: string | null;
+  numeroCelular: string | null;
+  email: string | null;
+  fechaNacimiento: string | null;
+  anio: number;
+  seccion: string;
+  fechaMatricula: string | null;
+  estado: string;
+  fechaRetiro: string | null;
+  motivoRetiro: string | null;
+}
+
+// CU01: asignación con el plazo de notas abierto y su aviso (RN-76).
+export interface ProfesorRegularAvisoApi {
+  anio: number;
+  nivel: number;
+  numero: number;
+  seccion: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  semestre: string;
+  fechaCierre: string;
+  diasParaCierre: number;
+  estudiantes: number;
+  sinNota: number;
+  confirmada: boolean;
+  aviso: string;
+}
+
+// CU07: estado de las notas de la asignación en el semestre.
+export interface ProfesorRegularEstadoNotasApi {
+  anio: number;
+  seccion: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  tipoAsignatura: string;
+  semestre: string;
+  fechaCierre: string;
+  confirmadoEn: string | null;
+  estudiantes: number;
+  sinNota: number;
+}
+
 export interface ProfesorRegularEvaluacionApi {
   cedulaEstudiante: string;
   nombreEstudiante: string;
@@ -65,7 +113,7 @@ export interface ProfesorRegularAusentismoApi {
   justificadas: number;
   injustificadas: number;
   tardias: number;
-  porcentajeAusentismo: number;
+  porcentajeAusentismo: number | null;
 }
 
 export interface ProfesorRegularLeccionApi {
@@ -126,7 +174,7 @@ export interface ProfesorRegularLeccionesResponse {
 }
 
 export interface ProfesorRegularEvaluacionesResponse {
-  estado: Record<string, unknown>;
+  estado: ProfesorRegularEstadoNotasApi;
   notas: ProfesorRegularEvaluacionApi[];
 }
 
@@ -149,6 +197,15 @@ export interface ProfesorRegularCorreoEnvio {
   mensaje: string;
   cedulas: string[];
   adjuntos: File[];
+}
+
+// CU11: la asignación y, opcionalmente, el semestre ('' o ausente = todo el curso lectivo).
+export interface ProfesorRegularConsultaAusentismo {
+  anio: number;
+  nivel: number;
+  numero: number;
+  codigoAsignatura: string;
+  semestre?: string;
 }
 
 export interface ProfesorRegularConsulta {
@@ -177,12 +234,12 @@ export class ProfesorRegularApiService {
     return this.http.get<unknown>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes`).pipe(map((response) => this.coleccion<ProfesorRegularEstudianteApi>(response)));
   }
 
-  obtenerEstudiante(anio: number, nivel: number, numero: number, cedula: string): Observable<ProfesorRegularEstudianteApi> {
-    return this.http.get<ProfesorRegularEstudianteApi>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes/${encodeURIComponent(cedula)}`);
+  obtenerEstudiante(anio: number, nivel: number, numero: number, cedula: string): Observable<ProfesorRegularFichaApi> {
+    return this.http.get<ProfesorRegularFichaApi>(`${this.url}/secciones/${anio}/${nivel}/${numero}/estudiantes/${encodeURIComponent(cedula)}`);
   }
 
-  obtenerAvisos(): Observable<unknown[]> {
-    return this.http.get<unknown>(`${this.url}/pantalla-principal`).pipe(map((response) => this.coleccion<unknown>(response)));
+  obtenerAvisos(): Observable<ProfesorRegularAvisoApi[]> {
+    return this.http.get<unknown>(`${this.url}/pantalla-principal`).pipe(map((response) => this.coleccion<ProfesorRegularAvisoApi>(response)));
   }
 
   listarEvaluaciones(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularEvaluacionesResponse> {
@@ -201,8 +258,14 @@ export class ProfesorRegularApiService {
     return this.http.post<void>(`${this.url}/evaluaciones/confirmacion`, consulta);
   }
 
-  listarLecciones(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularLeccionesResponse> {
-    return this.http.get<ProfesorRegularLeccionesResponse>(`${this.url}/lecciones`, { params: this.consultaParams(consulta) });
+  // CU11: lecciones paginadas; sin semestre, las de todo el curso lectivo.
+  listarLecciones(consulta: ProfesorRegularConsultaAusentismo, pagina = 1, tamanoPagina = 10): Observable<ProfesorRegularLeccionesResponse> {
+    return this.http.get<ProfesorRegularLeccionesResponse>(`${this.url}/lecciones`, { params: this.params({ ...consulta, pagina, tamanoPagina }) });
+  }
+
+  // CU10: elimina la lección con sus ausencias.
+  eliminarLeccion(id: string | number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/lecciones/${encodeURIComponent(String(id))}`);
   }
 
   obtenerLeccion(id: string | number): Observable<ProfesorRegularLeccionDetalleApi> {
@@ -225,8 +288,8 @@ export class ProfesorRegularApiService {
     return this.http.delete<void>(`${this.url}/lecciones/${encodeURIComponent(String(leccionId))}/ausencias/${encodeURIComponent(cedula)}/justificacion`);
   }
 
-  obtenerAusentismo(consulta: ProfesorRegularConsulta): Observable<ProfesorRegularAusentismoApi[]> {
-    return this.http.get<ProfesorRegularAusentismoApi[]>(`${this.url}/ausentismo`, { params: this.consultaParams(consulta) });
+  obtenerAusentismo(consulta: ProfesorRegularConsultaAusentismo): Observable<ProfesorRegularAusentismoApi[]> {
+    return this.http.get<ProfesorRegularAusentismoApi[]>(`${this.url}/ausentismo`, { params: this.params({ ...consulta }) });
   }
 
   // Multipart: cedulas y adjuntos se repiten una vez por valor; sin cedulas el backend envía a todos los estudiantes sin retiro.
@@ -247,9 +310,9 @@ export class ProfesorRegularApiService {
     return [consulta.anio, consulta.nivel, consulta.numero, consulta.codigoAsignatura, consulta.semestre, cedula].map((value) => encodeURIComponent(String(value))).join('/');
   }
 
-  private params(values: Record<string, string | number>): HttpParams {
+  private params(values: Record<string, string | number | undefined>): HttpParams {
     let params = new HttpParams();
-    for (const [key, value] of Object.entries(values)) params = params.set(key, String(value));
+    for (const [key, value] of Object.entries(values)) if (value !== undefined && value !== '') params = params.set(key, String(value));
     return params;
   }
 

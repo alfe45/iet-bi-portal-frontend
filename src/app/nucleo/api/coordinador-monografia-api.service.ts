@@ -46,8 +46,31 @@ export class CoordinadorMonografiaApiService {
   private readonly http = inject(HttpClient);
   private readonly url = `${environment.apiUrl}/profesor/monografias`;
 
-  listar(): Observable<MonografiaApi[]> {
-    return this.http.get<MonografiaApi[]>(this.url, { params: new HttpParams() });
+  // CU01: filtros opcionales por año de inicio y estado.
+  listar(filtros: { anioInicio?: number | null; estado?: string | null } = {}): Observable<MonografiaApi[]> {
+    let params = new HttpParams();
+    if (filtros.anioInicio) params = params.set('anioInicio', filtros.anioInicio);
+    if (filtros.estado) params = params.set('estado', filtros.estado);
+    return this.http.get<MonografiaApi[]>(this.url, { params });
+  }
+
+  // CU03: registra un seguimiento (fecha opcional: hoy).
+  registrarSeguimiento(cedulaEstudiante: string, fecha: string, observacion: string): Observable<{ idSeguimiento: number }> {
+    return this.http.post<{ idSeguimiento: number }>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/seguimientos`, { fecha, observacion });
+  }
+
+  // CU04: corrige o elimina un seguimiento.
+  modificarSeguimiento(idSeguimiento: number, fecha: string, observacion: string): Observable<void> {
+    return this.http.put<void>(`${this.url}/seguimientos/${idSeguimiento}`, { fecha, observacion });
+  }
+
+  eliminarSeguimiento(idSeguimiento: number): Observable<void> {
+    return this.http.delete<void>(`${this.url}/seguimientos/${idSeguimiento}`);
+  }
+
+  // CU05 FA7: retira el reporte (borrador) del semestre.
+  retirarReporte(cedulaEstudiante: string, anio: number, semestre: string): Observable<void> {
+    return this.http.delete<void>(`${this.url}/${encodeURIComponent(cedulaEstudiante)}/reportes/${anio}/${encodeURIComponent(semestre)}`);
   }
 
   obtener(cedulaEstudiante: string): Observable<DetalleMonografiaApi> {

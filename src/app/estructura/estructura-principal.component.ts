@@ -74,6 +74,7 @@ export class EstructuraPrincipalComponent {
     const parts = this.currentUrl().split('?')[0].split('/').filter(Boolean);
     if (!parts.length || parts[0] === 'dashboard') return ['Inicio'];
      const labels: Record<string, string> = { usuarios: 'Usuarios', profesores: 'Profesores', estudiantes: 'Estudiantes', periodos: 'Cursos lectivos', secciones: 'Secciones', grupos: 'Mis grupos', 'registro-academico': 'Registro de bandas', compartir: 'Compartir', matriculas: 'Matrículas', asignaturas: 'Asignaturas', asignaciones: 'Asignación académica', monografias: 'Monografías', grupo: 'Grupo', reportes: 'Reportes', evaluaciones: 'Evaluaciones', ausentismo: 'Ausentismo', 'seccion-guia': 'Mi sección guía', perfil: 'Perfil' };
+     if (parts[0] === 'guia') return ['Inicio', parts[1] === 'ausentismo' ? 'Ausentismo de la sección' : 'Notas de la sección'];
      if (parts[0] === 'estudiantes' && parts[2] === 'historial') return ['Inicio', 'Estudiantes', 'Historial académico'];
     if (parts[0] === 'reportes' && parts[1]) {
      const reportLabels: Record<string, string> = { asignatura: 'Reporte de asignatura', monografia: 'Reporte de monografía' };

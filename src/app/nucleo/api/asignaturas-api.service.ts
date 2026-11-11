@@ -39,6 +39,8 @@ export class AsignaturasApiService {
     for (const [key, value] of Object.entries(consulta)) if (value !== undefined) params.set(key, String(value));
     return this.http.get<ResultadoPaginado<AsignaturaApi>>(this.url, { params: Object.fromEntries(params.entries()) });
   }
+  // CU22: detalle (404 NF007 si ya no existe).
+  obtener(codigo: string): Observable<AsignaturaApi> { return this.http.get<AsignaturaApi>(`${this.url}/${encodeURIComponent(codigo)}`); }
   registrar(request: AsignaturaRequest): Observable<{ codigo: string }> { return this.http.post<{ codigo: string }>(this.url, request); }
   actualizar(codigo: string, request: Omit<AsignaturaRequest, 'codigo'>): Observable<void> { return this.http.put<void>(`${this.url}/${encodeURIComponent(codigo)}`, request); }
   borrar(codigo: string): Observable<void> { return this.http.delete<void>(`${this.url}/${encodeURIComponent(codigo)}`); }

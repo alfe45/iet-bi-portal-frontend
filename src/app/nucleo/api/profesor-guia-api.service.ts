@@ -105,6 +105,38 @@ export interface ReporteBandasGuiaApi {
   monografia: MonografiaReporteGuiaApi | null;
 }
 
+// Guía CU03/CU04: nota de un estudiante en una asignación de la sección (RN-77).
+export interface NotaSeccionGuiaApi {
+  cedulaEstudiante: string;
+  nombreEstudiante: string;
+  estadoMatricula: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  tipoAsignatura: string;
+  nombreProfesor: string;
+  confirmada: boolean;
+  nota: string | null;
+  notaMinima: string | null;
+  aprobada: boolean | null;
+  observaciones: string | null;
+}
+
+// Guía CU05: ausentismo de un estudiante en una asignación de la sección (RN-71).
+export interface AusentismoSeccionGuiaApi {
+  cedulaEstudiante: string;
+  nombreEstudiante: string;
+  estadoMatricula: string;
+  codigoAsignatura: string;
+  asignatura: string;
+  nombreProfesor: string;
+  lecciones: number;
+  ausencias: number;
+  justificadas: number;
+  injustificadas: number;
+  tardias: number;
+  porcentajeAusentismo: number | null;
+}
+
 export interface ConsultaSeccionGuia {
   anio: number;
   nivel: number;
@@ -132,6 +164,16 @@ export class ProfesorGuiaApiService {
 
   listarEstudiantes(consulta: ConsultaSeccionGuia): Observable<EstudianteGuiaApi[]> {
     return this.http.get<EstudianteGuiaApi[]>(`${environment.apiUrl}/profesor/secciones/${consulta.anio}/${consulta.nivel}/${consulta.numero}/estudiantes`);
+  }
+
+  // CU03/CU04: notas de la sección en el semestre, por estudiante y asignación.
+  listarNotas(consulta: ConsultaSemestreGuia): Observable<NotaSeccionGuiaApi[]> {
+    return this.http.get<NotaSeccionGuiaApi[]>(`${this.url}/notas`, { params: this.params(consulta) });
+  }
+
+  // CU05: ausentismo de la sección en el semestre, por estudiante y asignación.
+  listarAusentismo(consulta: ConsultaSemestreGuia): Observable<AusentismoSeccionGuiaApi[]> {
+    return this.http.get<AusentismoSeccionGuiaApi[]>(`${this.url}/ausentismo`, { params: this.params(consulta) });
   }
 
   listarMonografias(consulta: ConsultaSeccionGuia): Observable<MonografiaSeguimientoGuiaApi[]> {

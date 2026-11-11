@@ -32,7 +32,7 @@ function configurarDependencias(api: Partial<ProfesorGuiaApiService>) {
     providers: [
       provideRouter([]),
       { provide: ProfesorGuiaApiService, useValue: api },
-      { provide: AutenticacionService, useValue: { currentDisplayName: () => 'Profesor Guía' } },
+      { provide: AutenticacionService, useValue: { currentDisplayName: () => 'Profesor Guía', currentUsername: () => 'guia@ietbi.com', hasRole: () => true } },
       { provide: FeedbackService, useValue: feedback },
     ],
   });

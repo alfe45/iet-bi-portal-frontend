@@ -41,6 +41,8 @@ export class SeccionesApiService {
     for (const [key, value] of Object.entries(consulta)) if (value !== undefined) params.set(key, String(value));
     return this.http.get<ResultadoPaginado<SeccionApi>>(this.url, { params: Object.fromEntries(params.entries()) }).pipe(map((response) => ({ ...response, elementos: response.elementos.map((item) => ({ ...item, idSeccion: `${item.anio}-${item.nivel}-${item.numero}`, yearCiclo: item.anio, seccion: item.nombre })) })));
   }
+  // CU14: detalle (404 NF006 si ya no existe).
+  obtener(anio: number, nivel: number, numero: number): Observable<SeccionApi> { return this.http.get<SeccionApi>(`${this.url}/${anio}/${nivel}/${numero}`).pipe(map((item) => ({ ...item, idSeccion: `${item.anio}-${item.nivel}-${item.numero}`, yearCiclo: item.anio, seccion: item.nombre }))); }
   listar(): Observable<SeccionApi[]> { return this.listarPaginado().pipe(map((response) => response.elementos)); }
   registrar(request: SeccionRequest): Observable<{ anio: number; nombre: string }> { return this.http.post<{ anio: number; nombre: string }>(this.url, request); }
   borrar(anio: number, nivel: number, numero: number): Observable<void> { return this.http.delete<void>(`${this.url}/${anio}/${nivel}/${numero}`); }

@@ -4,6 +4,9 @@ import { GruposProfesorService } from '../nucleo/datos/grupos-profesor.service';
 import { RouterLink } from '@angular/router';
 import { PeriodoActualService } from '../nucleo/datos/periodo-actual.service';
 import type { RegistroVista } from '../nucleo/modelos/datos-vista';
+import { ProfesorRegularContextService, etiquetaSemestre } from '../nucleo/datos/profesor-regular-context.service';
+import type { ProfesorRegularAvisoApi } from '../nucleo/api/profesor-regular-api.service';
+import { fechaCostaRica } from '../compartidos/utilidades/fechas';
 
 @Component({
   selector: 'app-vista-tablero',
@@ -25,8 +28,12 @@ import type { RegistroVista } from '../nucleo/modelos/datos-vista';
           @for (item of quickLinks(); track item.path) { <a class="quick-card" [routerLink]="item.path"><span class="quick-card__icon" aria-hidden="true">{{ item.icon }}</span><span class="quick-card__copy"><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span><span class="quick-card__arrow" aria-hidden="true">→</span></a> }
         </div></section>}
 
-        @if (isRegular()) {<section class="surface assignments" aria-labelledby="assignments-title"><div class="section-heading"><div><p class="eyebrow">Periodo activo</p><h3 id="assignments-title">Mis grupos actuales</h3></div><span class="period-chip">{{ period() }}</span></div><div class="assignment-list">
-          @for (assignment of assignments(); track assignment.id) { <div class="assignment-row"><div><strong>{{ assignment['asignatura'] }}</strong><span>{{ assignment['seccion'] }} · {{ studentsFor(assignment['seccion']) }} estudiantes</span></div><a class="ghost-button" [routerLink]="['/grupo']" [queryParams]="groupParams(assignment)">Abrir grupo</a></div> } @empty { <p class="empty-state">No hay asignaciones activas para este periodo.</p> }
+        @if (isRegular()) {<section class="surface assignments" aria-labelledby="deadlines-title"><div class="section-heading"><div><p class="eyebrow">Pantalla principal</p><h3 id="deadlines-title">Plazos de notas</h3></div></div><div class="assignment-list">
+          @for (aviso of avisos(); track aviso.anio + '-' + aviso.seccion + '-' + aviso.codigoAsignatura + '-' + aviso.semestre) { <div class="assignment-row deadline-row" [class.deadline-row--priority]="aviso.aviso === 'PRIORIDAD'" [class.deadline-row--info]="aviso.aviso === 'INFORMATIVO'"><div><strong>{{ aviso.asignatura }} · {{ aviso.seccion }}</strong><span>{{ semestre(aviso.semestre) }} {{ aviso.anio }} · Cierre: {{ fecha(aviso.fechaCierre) }} ({{ diasTexto(aviso.diasParaCierre) }})</span><span>{{ aviso.sinNota === 0 ? 'Todos los estudiantes tienen nota' : aviso.sinNota + ' de ' + aviso.estudiantes + ' estudiantes sin nota' }} · {{ aviso.confirmada ? 'Notas confirmadas al Profesor Guía' : 'Notas sin confirmar' }}</span></div><div class="deadline-actions">@if (aviso.aviso !== 'NINGUNO') {<span class="deadline-badge">{{ textoAviso(aviso) }}</span>}<a class="ghost-button" [routerLink]="['/registro-academico']" [queryParams]="{ asignatura: aviso.asignatura, seccion: aviso.seccion, periodo: period() }">Trabajar evaluaciones</a></div></div> } @empty { <p class="empty-state" [class.error-text]="errorAvisos()">{{ errorAvisos() || 'No tienes asignaciones con el plazo de notas abierto.' }}</p> }
+        </div></section>}
+
+        @if (isRegular()) {<section class="surface assignments" aria-labelledby="assignments-title"><div class="section-heading"><div><p class="eyebrow">Mis asignaciones</p><h3 id="assignments-title">Mis grupos</h3></div><span class="period-chip">{{ period() }}</span></div><div class="assignment-list">
+          @for (assignment of assignments(); track assignment.id) { <div class="assignment-row"><div><strong>{{ assignment['asignatura'] }}</strong><span>{{ assignment['seccion'] }} · {{ studentsFor(assignment['seccion']) }} estudiantes</span></div><a class="ghost-button" [routerLink]="['/grupo']" [queryParams]="groupParams(assignment)">Abrir grupo</a></div> } @empty { <p class="empty-state" [class.error-text]="grupos.errorGrupos()">{{ grupos.mensajeSinGrupos() }}</p> }
         </div></section>}
       }
       <section class="surface account-summary" aria-labelledby="account-title"><div><p class="eyebrow">Cuenta</p><h3 id="account-title">{{ teacherName() }}</h3><p>{{ username() }} · {{ email() }}</p></div><span class="account-avatar" aria-hidden="true">{{ initials() }}</span></section>
@@ -48,6 +55,7 @@ import type { RegistroVista } from '../nucleo/modelos/datos-vista';
      .quick-card__copy { min-width: 0; }.quick-card strong,.quick-card small { display:block; }.quick-card strong { font-size: 1rem; }.quick-card small { margin-top: .35rem; color: #667085; font-size: .82rem; line-height: 1.35; }
       .quick-card__arrow { color: #1f66b3; font-size: 1.35rem; font-weight: 700; }
      .assignments { padding: 1rem 1.15rem; }.assignment-list { display: grid; border-top: 1px solid #e6edf3; }.assignment-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid #e6edf3; }.assignment-row strong,.assignment-row span { display: block; }.assignment-row span { margin-top: .18rem; color: #667085; font-size: .85rem; }.assignment-row .ghost-button { min-height: 34px; padding: .35rem .7rem; font-size: .78rem; }.empty-state { padding: 1rem 0; color: #667085; }
+     .deadline-row { padding-left: .7rem; border-left: 4px solid transparent; }.deadline-row--info { border-left-color: #f0b429; }.deadline-row--priority { border-left-color: #b42318; }.deadline-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: flex-end; }.deadline-badge { padding: .3rem .6rem; border-radius: 999px; font-size: .76rem; font-weight: 800; white-space: nowrap; background: #fff7e0; color: #8a5a00; }.deadline-row--priority .deadline-badge { background: #fff1f0; color: #b42318; }.error-text { color: #b42318 !important; }
      .account-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.15rem; }.account-summary h3 { color: #1e3a5f; font-size: 1rem; }.account-summary p:last-child { margin-top: .2rem; color: #667085; font-size: .82rem; }.account-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #eaf3f8; color: #2f6b9a; font-weight: 800; }
       @media (max-width: 1000px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 700px) { .teacher-summary { align-items: flex-start; flex-direction: column; }.summary-counts { justify-content: flex-start; }.summary-counts span + span { padding-left: .65rem; }.quick-grid { grid-template-columns: 1fr; }.assignment-row { align-items: flex-start; flex-direction: column; }.assignment-row .ghost-button { align-self: stretch; } }
@@ -56,7 +64,15 @@ import type { RegistroVista } from '../nucleo/modelos/datos-vista';
 // Presenta el resumen principal del portal.
 export class TableroVistaComponent {
    private readonly auth = inject(AutenticacionService);
-   private readonly grupos = inject(GruposProfesorService);
+   protected readonly grupos = inject(GruposProfesorService);
+   private readonly regularContext = inject(ProfesorRegularContextService);
+   // RD-042: plazos de notas y avisos de la pantalla principal (RN-76); primero los de prioridad.
+   protected readonly avisos = computed(() => [...this.regularContext.avisos()].sort((a, b) => a.diasParaCierre - b.diasParaCierre));
+   protected readonly errorAvisos = computed(() => this.regularContext.errorAvisos());
+   protected semestre(value: string): string { return etiquetaSemestre(value); }
+   protected fecha(value: string): string { return fechaCostaRica(value); }
+   protected diasTexto(dias: number): string { return dias === 0 ? 'cierra hoy' : dias === 1 ? 'falta 1 día' : `faltan ${dias} días`; }
+   protected textoAviso(aviso: ProfesorRegularAvisoApi): string { return aviso.aviso === 'PRIORIDAD' ? 'Prioridad: cierre en 15 días o menos' : 'Aviso: cierre en 30 días o menos'; }
    private readonly periodoActualService = inject(PeriodoActualService);
   protected readonly quickLinks = computed(() => {
      // Accesos acumulables: cada rol aporta sus propias vistas; una cuenta multirrol ve la suma.
@@ -72,11 +88,14 @@ export class TableroVistaComponent {
      );
     if (this.isRegular()) links.push(
       { path: '/registro-academico', label: this.registrationLabel(), description: 'Registrar el trabajo de tus estudiantes.', icon: 'RB', featured: true },
+      { path: '/ausentismo', label: 'Ausentismo', description: 'Registrar lecciones con ausentes y tardías.', icon: 'AU', featured: false },
       { path: '/grupos', label: 'Mis grupos', description: 'Abrir una asignatura y sección.', icon: 'GR', featured: false },
       { path: '/estudiantes', label: 'Mis estudiantes', description: 'Consultar estudiantes por grupo.', icon: 'ES', featured: false },
     );
      if (this.isGuide()) links.push(
        { path: '/seccion-guia', label: 'Mi sección guía', description: 'Consultar la sección que asesoras.', icon: 'SG', featured: false },
+       { path: '/guia/notas', label: 'Notas de la sección', description: 'Notas por asignatura y su confirmación.', icon: 'NS', featured: false },
+       { path: '/guia/ausentismo', label: 'Ausentismo de la sección', description: 'Lecciones, ausencias y tardías por asignatura.', icon: 'AS', featured: false },
        { path: '/reportes/bandas', label: 'Reportes de Bandas', description: 'Consultar los reportes de tu sección guía.', icon: 'RB', featured: false },
        { path: '/verificacion-monografias', label: 'Verificar reportes de monografía', description: 'Revisar los reportes de tu sección guía.', icon: 'VM', featured: false },
      );

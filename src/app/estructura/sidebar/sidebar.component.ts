@@ -183,15 +183,15 @@ export class SidebarComponent {
      const common = [{ title: 'Principal', items: [{ label: 'Tablero', path: '/dashboard' }] }];
      const teacherWork = { title: 'Mi trabajo', items: [{ label: 'Mis grupos', path: '/grupos' }] };
      const academicLabel = this.registrationLabel();
-     const academicRecord = { title: academicLabel, items: [{ label: academicLabel, path: '/registro-academico' }] };
+     const academicRecord = { title: academicLabel, items: [{ label: academicLabel, path: '/registro-academico' }, { label: 'Ausentismo', path: '/ausentismo' }] };
      const communication = { title: 'Comunicación', items: [{ label: 'Compartir archivo', path: '/compartir' }] };
      const account = { title: 'Cuenta', items: [{ label: 'Perfil', path: '/perfil' }] };
      const roles = this.auth.currentRoles();
       if (!roles.length) return [];
       const menu = [...common];
-      if (roles.includes('Administrador')) menu.push({ title: 'Administración', items: [{ label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Coordinación CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] });
+      if (roles.includes('Administrador')) menu.push({ title: 'Administración', items: [{ label: 'Profesores', path: '/profesores' }, { label: 'Estudiantes', path: '/estudiantes' }, { label: 'Cursos lectivos', path: '/periodos' }, { label: 'Secciones', path: '/secciones' }, { label: 'Matrículas', path: '/matriculas' }, { label: 'Asignaturas', path: '/asignaturas' }, { label: 'Asignación profesores', path: '/asignaciones' }, { label: 'Asignación de guías', path: '/asignaciones-guias' }, { label: 'Asignación profesores CAS', path: '/asignaciones-cas' }, { label: 'Asignación coordinador de monografía', path: '/asignaciones-monografia' }] });
       if (roles.includes('Profesor regular')) menu.push(teacherWork, academicRecord, communication);
-     if (roles.includes('Profesor Guía')) menu.push({ title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }] });
+     if (roles.includes('Profesor Guía')) menu.push({ title: 'Sección guía', items: [{ label: 'Mi sección guía', path: '/seccion-guia' }, { label: 'Notas de la sección', path: '/guia/notas' }, { label: 'Ausentismo de la sección', path: '/guia/ausentismo' }, { label: 'Reportes de Bandas', path: '/reportes/bandas' }, { label: 'Verificar reportes de monografía', path: '/verificacion-monografias' }] });
      if (roles.includes('Profesor Coordinador de Monografía')) menu.push({ title: 'Monografías', items: [{ label: 'Mis estudiantes de monografía', path: '/monografias' }] });
       if (roles.includes('Profesor CAS')) menu.push({ title: 'CAS', items: [{ label: 'Seguimiento CAS', path: '/cas' }] });
       if (roles.includes('Profesor Coordinador de CAS')) menu.push({ title: 'Coordinación CAS', items: [{ label: 'Coordinación CAS', path: '/coordinacion-cas' }] });
