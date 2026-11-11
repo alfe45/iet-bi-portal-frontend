@@ -114,6 +114,8 @@ export class RegistroAcademicoVistaComponent {
      const group = this.currentGroup();
      const consulta = group ? this.regularContext.consultaDe(group) : null;
      if (!id || !group || !consulta || this.savingBeforeExit()) return;
+     // DV-010: con el valor vacío no se guarda al salir (eliminar la nota requiere su confirmación).
+     if (!this.draftValue.trim()) { this.feedback.error(`Indique la ${this.valueLabel().toLowerCase()} o use «Eliminar nota».`); return; }
      this.savingBeforeExit.set(true);
      this.regularContext.guardarRegistro(consulta, id, this.draftValue, this.draftObservation).subscribe({
        next: () => { this.savingBeforeExit.set(false); this.cerrarAvisoSalida(true); },
@@ -196,6 +198,12 @@ export class RegistroAcademicoVistaComponent {
       if (!id || !group || this.registroBloqueado()) return;
       const consulta = this.regularContext.consultaDe(group);
        if (!consulta) { this.feedback.error('El grupo no tiene los parámetros requeridos por el backend.'); return; }
+      // DV-010 (CU06 FA 2): un valor vacío no borra la nota sin preguntar; si ya tenía nota se pide la misma confirmación de «Eliminar nota».
+      if (!this.draftValue.trim()) {
+        if (this.tieneNota(id)) void this.eliminarNota();
+        else this.feedback.error(`Indique la ${this.valueLabel().toLowerCase()} antes de guardar.`);
+        return;
+      }
       this.regularContext.guardarRegistro(consulta, id, this.draftValue, this.draftObservation).subscribe({
            next: () => { this.nextAfterSave.set(next); this.savedStudentName.set(this.selectedStudentName()); this.saveConfirmationOpen.set(true); this.regularContext.recargarAcademico(consulta).subscribe({ error: () => undefined }); },
            error: (error: unknown) => this.feedback.error(error instanceof Error ? error.message : (error as { error?: { mensaje?: string } })?.error?.mensaje ?? (this.regularContext.error() || 'No se pudieron guardar los cambios en el backend.')),
