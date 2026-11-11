@@ -12,7 +12,6 @@ import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucl
 import { MatriculaApi, MatriculasApiService, RegistrarMatriculaRequest, SeccionSubidaApi } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
 import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '../nucleo/api/cursos-lectivos-api.service';
-import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
 import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucleo/api/asignaturas-api.service';
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
 import { map } from 'rxjs/operators';
@@ -301,7 +300,6 @@ export class FuncionalidadVistaComponent {
     private readonly matriculasApi = inject(MatriculasApiService);
     private readonly seccionesApi = inject(SeccionesApiService);
      private readonly cursosLectivosApi = inject(CursosLectivosApiService);
-     private readonly usuariosApi = inject(UsuariosApiService);
      private readonly asignaturasApi = inject(AsignaturasApiService);
      private readonly asignacionesApi = inject(AsignacionesApiService);
      private readonly feedback = inject(FeedbackService);
@@ -317,7 +315,6 @@ export class FuncionalidadVistaComponent {
     private readonly cursosLectivosMatricula = signal<CursoLectivoApi[]>([]);
     private readonly cursosApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly seccionesApiRows = signal<Array<Record<string, unknown>>>([]);
-     private readonly usuariosApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignaturasApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignacionesApiRows = signal<Array<Record<string, unknown>>>([]);
      protected apiError = '';
@@ -344,7 +341,6 @@ export class FuncionalidadVistaComponent {
     });
     protected readonly statCards = computed(() => [
       { label: 'Registros', value: this.cantidadRegistros(), tone: 'primary' as const },
-      ...(this.key === 'profesores' ? [{ label: 'Usuarios sin perfil', value: String(this.usuariosSinPerfil()), tone: 'success' as const }] : []),
     ]);
    protected readonly editorOpen = signal(false);
   protected readOnly = false;
@@ -372,7 +368,6 @@ export class FuncionalidadVistaComponent {
      protected placeholderBusqueda(): string { return this.key === 'matriculas' ? 'Nombre o cédula del estudiante' : 'Correo, nombre o cédula'; }
 
       protected cantidadRegistros(): string { return this.paginacionAdministrativa() ? String(this.totalRegistros()) : String(this.rows().length); }
-      protected usuariosSinPerfil(): number { return this.usuariosApiRows().filter((user) => user['activo'] === true && !user['cedulaProfesor']).length; }
      protected paginacionAdministrativa(): boolean { return this.isAdmin() && ['profesores', 'estudiantes', 'periodos', 'secciones', 'matriculas', 'asignaturas', 'asignaciones'].includes(this.key); }
      protected paginacionVisible(): boolean { return this.paginacionAdministrativa() && this.totalRegistros() > this.tamanoPagina; }
      protected rangoInicio(): number { return this.totalRegistros() ? (this.paginaActual() - 1) * this.tamanoPagina + 1 : 0; }
@@ -484,7 +479,7 @@ export class FuncionalidadVistaComponent {
     }
 
     constructor() {
-       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }
+       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); }
       if (this.isAdmin() && this.key === 'estudiantes') this.cargarEstudiantes();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarMatriculas();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarSecciones();
@@ -767,26 +762,6 @@ export class FuncionalidadVistaComponent {
        else if (this.key === 'asignaciones') this.cargarAsignaciones();
      }
 
-    private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
-      this.usuariosApi.listar(busqueda, pagina, tamanoPagina).subscribe({
-        next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))); },
-        error: (error) => { this.usuariosApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
-      });
-    }
-
-    private usuarioRow(item: UsuarioAdminApi): Record<string, unknown> {
-      return {
-        id: item.id,
-        correo: item.email,
-        roles: item.roles.map((role) => ROLES_FRONTEND[role] ?? role).join('|'),
-        rolesBackend: item.roles.join('|'),
-        estado: item.activo ? 'Activo' : 'Inactivo',
-        activo: item.activo,
-        cedulaProfesor: item.cedulaProfesor ?? '',
-        nombreProfesor: item.nombreProfesor ?? '',
-      };
-    }
-
     protected filtroAsigTipo = '';
     protected filtroAsigNivel = '';
     protected filtrarAsignaturas(): void { this.paginaActual.set(1); this.cargarAsignaturas(1); }
@@ -952,7 +927,7 @@ export class FuncionalidadVistaComponent {
     const validation = this.validarProfesorDraft();
     if (validation) { this.apiError = validation; return; }
     const request = this.profesorRequest();
-    const terminar = (mensaje: string) => { this.feedback.exito(mensaje); this.cerrarEditor(); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); };
+    const terminar = (mensaje: string) => { this.feedback.exito(mensaje); this.cerrarEditor(); this.cargarProfesores(); };
       if (this.editingId) {
         // RD-010: datos y cuenta van en una sola petición; la API los aplica en una transacción (si algo falla, no se guarda nada).
         const cedula = String(this.draft['cedulaOriginal'] ?? this.draft['cedula']);
@@ -1388,7 +1363,7 @@ export class FuncionalidadVistaComponent {
     protected confirmarEliminacionProfesor(): void {
       const target = this.professorDeleteTarget();
       if (!target) return;
-      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.feedback.exito('El profesor fue eliminado.'); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => { this.professorDeleteTarget.set(null); this.notificarError(error, 'No se pudo eliminar el profesor.'); } });
+      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.feedback.exito('El profesor fue eliminado.'); this.cargarProfesores(); }, error: (error) => { this.professorDeleteTarget.set(null); this.notificarError(error, 'No se pudo eliminar el profesor.'); } });
     }
 
     protected confirmarPromocion(): void {
