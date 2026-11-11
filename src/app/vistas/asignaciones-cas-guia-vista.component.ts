@@ -77,12 +77,12 @@ interface AssignmentDraft {
       @if (editorOpen()) {
         <div class="modal-backdrop" role="presentation">
           <form class="editor-modal" (ngSubmit)="guardar()" novalidate>
-             <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Coordinación CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3><p class="required-legend">* Campos obligatorios</p></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
+             <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Asignación de profesor CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3><p class="required-legend">* Campos obligatorios</p></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
              <div class="form-grid">
                  <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of profesoresElegibles(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select>@if (isGuide && !profesoresElegibles().length) {<small class="hint">No hay profesores con el rol Profesor Guía disponibles para este curso lectivo.</small>}</label>
                 @if (isGuide && draft.seccion) { <p class="current-guide"><strong>Guía actual:</strong> {{ guiaActual() }}</p> }
                 @if (isGuide) { <label>Responsabilidad<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor Guía">Profesor Guía</option></select></label> }
-                 <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of seccionesDisponibles(); track section.idSeccion) {<option [value]="sectionKey(section)">{{ section.anio }} · {{ section.nombre }}</option>}</select></label>
+                 <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" (ngModelChange)="cambiarSeccion()" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of seccionesDisponibles(); track section.idSeccion) {<option [value]="sectionKey(section)">{{ section.anio }} · {{ section.nombre }}</option>}</select></label>
             </div>
             <div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrar()">Cancelar</button><button type="submit" class="primary-button">Guardar asignación</button></div>
           </form>
@@ -148,6 +148,13 @@ export class AsignacionesCasGuiaVistaComponent {
   protected nuevoParaSeccion(item: AssignmentRow): void {
     this.nuevo();
     this.draft.seccion = `${item.anio}-${item.nivel}-${item.numero}`;
+    // DV-005: el profesor sugerido se recalcula con la sección de la fila (antes quedaba el de la primera sección
+    // disponible y se ofrecía aunque ya fuera guía de otra sección del periodo).
+    this.draft.cedula = '';
+    this.draft.profesor = '';
+    const teacher = this.profesoresElegibles()[0];
+    this.draft.cedula = teacher?.cedula ?? '';
+    this.draft.profesor = teacher?.nombre ?? '';
   }
 
   protected editar(item: AssignmentRow): void {
@@ -179,6 +186,16 @@ export class AsignacionesCasGuiaVistaComponent {
   protected guiaActual(): string {
     const section = this.sections().find((item) => this.sectionKey(item) === this.draft.seccion);
     return section?.nombreGuia ?? 'Sin asignar';
+  }
+
+  // DV-005: al cambiar la sección, si el profesor elegido ya no es elegible para ella se quita la selección.
+  protected cambiarSeccion(): void {
+    if (!this.isGuide || !this.draft.cedula) return;
+    const cedula = this.draft.cedula;
+    this.draft.cedula = '';
+    const elegible = this.profesoresElegibles().some((teacher) => teacher.cedula === cedula);
+    this.draft.cedula = elegible ? cedula : '';
+    if (!elegible) this.draft.profesor = '';
   }
 
   protected seleccionarProfesor(cedula: string): void { this.draft.cedula = cedula; this.draft.profesor = this.teachers().find((teacher) => teacher.cedula === cedula)?.nombre ?? ''; }
