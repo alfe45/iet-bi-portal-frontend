@@ -233,6 +233,14 @@ export class AusentismoLeccionesVistaComponent {
     if (!consulta || !this.draftFecha || !this.draftHora || this.guardando()) return;
     const ausentes = Object.entries(this.marcas()).filter(([, valor]) => valor === 'A').map(([cedula]) => cedula);
     const tardias = Object.entries(this.marcas()).filter(([, valor]) => valor === 'T').map(([cedula]) => cedula);
+    // DV-011 (CU09 FA 5, CU10 FA 3): se informa qué estudiante marcado no estaba matriculado en la fecha de la lección.
+    const fueraDeFecha = this.estudiantesEditor().find((estudiante) => {
+      if (!ausentes.includes(String(estudiante['cedula'])) && !tardias.includes(String(estudiante['cedula']))) return false;
+      const matricula = String(estudiante['fechaMatricula'] ?? '');
+      const retiro = String(estudiante['fechaRetiro'] ?? '');
+      return (matricula !== '' && matricula > this.draftFecha) || (retiro !== '' && retiro < this.draftFecha);
+    });
+    if (fueraDeFecha) { this.feedback.error(`${fueraDeFecha['nombre']} no estaba matriculado en la sección el ${this.fecha(this.draftFecha)}. Quítelo de la lista o corrija la fecha.`); return; }
     const datos = { fecha: this.draftFecha, hora: `${this.draftHora.slice(0, 5)}:00`, tema: this.draftTema.trim(), ausentes, tardias };
     const id = this.editandoId();
     this.guardando.set(true);
