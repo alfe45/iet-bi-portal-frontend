@@ -59,6 +59,7 @@ export class GuiaConsultaService {
     if (this.iniciado || !this.auth.hasRole('Profesor Guía')) return;
     this.iniciado = true;
     const generacion = this.generacion;
+    this.error.set('');
     this.cargando.set(true);
     this.api.obtenerPeriodoActual().subscribe({
       next: (periodo) => {
@@ -71,7 +72,11 @@ export class GuiaConsultaService {
         if (generacion !== this.generacion) return;
         this.cargando.set(false);
         if (error?.status === 404) this.sinPeriodo.set(true);
-        else this.error.set('No se pudo consultar el periodo académico. Intente de nuevo más tarde.');
+        else {
+          this.error.set('No se pudo consultar el periodo académico. Intente de nuevo más tarde.');
+          // Error inesperado: la próxima vista que llame a iniciar() vuelve a intentarlo (no queda trabado hasta recargar).
+          this.iniciado = false;
+        }
       },
     });
   }

@@ -1,5 +1,6 @@
 import { Injectable, computed, effect, inject, signal, untracked } from '@angular/core';
-import { Observable, catchError, finalize, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
+import { NavigationEnd, Router } from '@angular/router';
+import { Observable, catchError, filter, finalize, forkJoin, map, of, shareReplay, throwError } from 'rxjs';
 import { AutenticacionService } from '../autenticacion/autenticacion.service';
 import {
   ProfesorRegularApiService,
@@ -76,6 +77,8 @@ export class ProfesorRegularContextService {
       this.auth.currentUsername();
       untracked(() => this.reiniciarSesion());
     });
+    // DV-012: al entrar a otra vista se reintenta la carga si la anterior falló (iniciar() no hace nada si ya cargó).
+    inject(Router).events?.pipe(filter((evento) => evento instanceof NavigationEnd)).subscribe(() => this.iniciar());
   }
 
   readonly cargando = signal(false);
@@ -127,7 +130,7 @@ export class ProfesorRegularContextService {
         this.cargando.set(false);
         // RD-004: sin periodo en curso no es un error del sistema; se informa y se permite elegir otro curso lectivo.
         if (error?.status === 404) this.sinPeriodo.set(true);
-        else this.errorGrupos.set('No se pudo consultar el periodo académico. Intente de nuevo más tarde.');
+        else { this.errorGrupos.set('No se pudo consultar el periodo académico. Intente de nuevo más tarde.'); this.reintentarLuego(); }
       },
     });
   }
@@ -145,7 +148,7 @@ export class ProfesorRegularContextService {
     this.errorGrupos.set('');
     this.api.listarAsignaciones(anio).subscribe({
       next: (asignaciones) => { if (vigente()) this.cargarEstudiantes(asignaciones, vigente); },
-      error: () => { if (vigente()) { this.errorGrupos.set('No se pudieron cargar las asignaciones del curso lectivo.'); this.cargando.set(false); } },
+      error: () => { if (vigente()) { this.errorGrupos.set('No se pudieron cargar las asignaciones del curso lectivo. Intente de nuevo más tarde.'); this.cargando.set(false); this.reintentarLuego(); } },
     });
   }
 
@@ -157,9 +160,12 @@ export class ProfesorRegularContextService {
     this.errorAvisos.set('');
     this.api.obtenerAvisos().subscribe({
       next: (avisos) => { if (generacion === this.generacion) this.avisos.set(avisos); },
-      error: () => { if (generacion === this.generacion) this.errorAvisos.set('No se pudieron cargar los plazos de notas.'); },
+      error: () => { if (generacion === this.generacion) { this.errorAvisos.set('No se pudieron cargar los plazos de notas. Intente de nuevo más tarde.'); this.reintentarLuego(); } },
     });
   }
+
+  /** Tras un error inesperado, la próxima vista que llame a iniciar() vuelve a cargar (no queda trabado hasta recargar). */
+  private reintentarLuego(): void { this.iniciado = false; }
 
   private reiniciarSesion(): void {
     this.generacion++;
@@ -286,7 +292,7 @@ export class ProfesorRegularContextService {
     if (!unique.length) { publicar({}); return; }
     forkJoin(unique.map((assignment) => this.api.listarEstudiantes(assignment.anio, assignment.nivel, assignment.numero).pipe(map((students) => ({ key: this.seccionKey(assignment), students: students.map(adaptarEstudianteRegular) }))))).subscribe({
       next: (sections) => { if (vigente()) publicar(Object.fromEntries(sections.map((section) => [section.key, section.students]))); },
-      error: () => { if (vigente()) { this.errorGrupos.set('No se pudieron cargar los estudiantes de las secciones asignadas.'); this.cargando.set(false); } },
+      error: () => { if (vigente()) { this.errorGrupos.set('No se pudieron cargar los estudiantes de las secciones asignadas. Intente de nuevo más tarde.'); this.cargando.set(false); this.reintentarLuego(); } },
     });
   }
 
