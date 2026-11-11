@@ -4,6 +4,7 @@ import { Location } from '@angular/common';
 import { AutenticacionService } from '../nucleo/autenticacion/autenticacion.service';
 import { fechaCostaRica } from '../compartidos/utilidades/fechas';
 import { environment } from '../../env/environment';
+import { claseInsigniaRol } from '../compartidos/utilidades/roles';
 
 /** Respuesta de GET /api/perfil (UsuarioAdmin del backend). */
 interface MiPerfilApi {
@@ -36,7 +37,7 @@ interface MiPerfilApi {
           @if (nombre()) { <div><dt>Nombre</dt><dd>{{ nombre() }}</dd></div> }
           <div><dt>Correo electrónico</dt><dd>{{ correo() }}</dd></div>
           @if (perfil()?.cedulaProfesor) { <div><dt>Cédula</dt><dd>{{ perfil()?.cedulaProfesor }}</dd></div> }
-          <div><dt>Roles</dt><dd class="roles">@for (rol of roles(); track rol) { <span class="role-badge">{{ rol }}</span> }</dd></div>
+          <div><dt>Roles</dt><dd class="roles">@for (rol of roles(); track rol) { <span [class]="claseRol(rol)">{{ rol }}</span> }</dd></div>
           @if (perfil(); as datos) {
             <div><dt>Estado de la cuenta</dt><dd>{{ datos.activo ? 'Activa' : 'Inactiva' }}</dd></div>
             <div><dt>Último inicio de sesión</dt><dd>{{ datos.ultimoLogin ? fecha(datos.ultimoLogin) : 'Sin registro' }}</dd></div>
@@ -59,7 +60,6 @@ interface MiPerfilApi {
     .profile-data dt { color: #667085; font-size: 0.82rem; font-weight: 700; }
     .profile-data dd { margin: 0; color: #1e3a5f; overflow-wrap: anywhere; }
     .roles { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-    .role-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; background: #e8f1f7; color: #1e5578; font-size: 0.76rem; font-weight: 700; white-space: nowrap; }
     .error-text { margin: 0.5rem 0 0; color: #b42318; }
     @media (max-width: 600px) { .profile-data dl > div { grid-template-columns: 1fr; gap: 0.2rem; } }
   `,
@@ -95,4 +95,5 @@ export class PerfilVistaComponent {
 
   protected fecha(valor: string): string { return fechaCostaRica(valor); }
   protected back(): void { this.location.back(); }
+  protected claseRol(rol: string): string { return claseInsigniaRol(rol); }
 }

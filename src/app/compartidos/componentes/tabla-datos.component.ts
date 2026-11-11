@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { claseInsigniaRol } from '../utilidades/roles';
 import { Component, input, output } from '@angular/core';
 import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../nucleo/modelos/modelos-prototipo';
 
@@ -20,7 +21,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
                   @case ('badge-periodo') { <span class="badge" [class]="badgePeriodoClass(row[column.key])">{{ etiquetaEstadoPeriodo(row[column.key]) }}</span> }
                     @case ('actions') { <div class="action-list">@for (action of asActionArray(row[column.key]); track action.label) { <button type="button" class="btn btn-sm table-action" [class.btn-outline-danger]="action.tone === 'danger'" [class.btn-outline-primary]="action.tone !== 'danger'" (click)="actionSelected.emit({ action: action.code ?? action.label, row })">{{ action.label }}</button> }</div> }
                   @case ('avatar') { <div class="avatar-cell"><div class="avatar-dot">{{ getInitials(row[column.key]) }}</div><div><strong>{{ getAvatarTitle(row[column.key]) }}</strong><small>{{ getAvatarSubtitle(row[column.key]) }}</small></div></div> }
-                  @case ('badges') { <div class="badge-list">@for (item of asListaInsignias(row[column.key]); track item) { <span class="badge badge--role">{{ item }}</span> } @empty { — }</div> }
+                  @case ('badges') { <div class="badge-list">@for (item of asListaInsignias(row[column.key]); track item) { <span [class]="claseRol(item)">{{ item }}</span> } @empty { — }</div> }
                   @case ('list') { <div class="list-cell">@for (item of asStringArray(row[column.key]); track item) { <span>{{ item }}</span> }</div> }
                   @default { {{ row[column.key] }} }
                 }
@@ -36,7 +37,6 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     .badge { display:inline-flex;padding:.26rem .5rem;border-radius:3px;background:rgba(64,153,255,.1);color:#287edc;font-size:.66rem;font-weight:600}.badge--success{background:rgba(46,216,182,.13);color:#168d76}.badge--danger{background:rgba(255,83,112,.12);color:#d63854}.badge--warning{background:rgba(255,182,77,.14);color:#9e6b06}.badge--info{background:rgba(64,153,255,.1);color:#287edc}.badge--neutral{background:rgba(137,150,164,.12);color:#5b6b79}
     .action-list, .list-cell { display: flex; flex-wrap: wrap; gap: 0.45rem; }
     .badge-list { display: flex; flex-wrap: wrap; gap: 0.3rem; white-space: normal; }
-    .badge--role { background: #e8f1f7; color: #1e5578; border-radius: 999px; white-space: normal; max-width: 100%; line-height: 1.25; }
      .table-action{padding:.22rem .48rem;border-radius:3px;font-size:.66rem}
     .avatar-cell { display: flex; align-items: center; gap: 0.8rem; }
     .avatar-dot { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: #eaf3f8; color: #1e3a5f; font-weight: 700; }
@@ -54,6 +54,7 @@ export class DataTableComponent {
 
   protected asStringArray(value: unknown): string[] { return Array.isArray(value) ? value.map(String) : []; }
   // Insignias (p. ej., roles): acepta un arreglo o un texto separado por '|'.
+  protected claseRol(rol: string): string { return claseInsigniaRol(rol); }
   protected asListaInsignias(value: unknown): string[] { return Array.isArray(value) ? value.map(String) : String(value ?? '').split('|').map((item) => item.trim()).filter(Boolean); }
   protected asActionArray(value: unknown): TableAction[] {
     if (!Array.isArray(value)) return [];
