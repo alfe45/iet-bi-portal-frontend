@@ -36,7 +36,6 @@ import { fechaCostaRica } from '../compartidos/utilidades/fechas';
           @for (assignment of assignments(); track assignment.id) { <div class="assignment-row"><div><strong>{{ assignment['asignatura'] }}</strong><span>{{ assignment['seccion'] }} · {{ studentsFor(assignment['seccion']) }} estudiantes</span></div><a class="ghost-button" [routerLink]="['/grupo']" [queryParams]="groupParams(assignment)">Abrir grupo</a></div> } @empty { <p class="empty-state" [class.error-text]="grupos.errorGrupos()">{{ grupos.mensajeSinGrupos() }}</p> }
         </div></section>}
       }
-      <section class="surface account-summary" aria-labelledby="account-title"><div><p class="eyebrow">Cuenta</p><h3 id="account-title">{{ teacherName() }}</h3><p>{{ username() }} · {{ email() }}</p></div><span class="account-avatar" aria-hidden="true">{{ initials() }}</span></section>
     </section>
   `,
   styles: `
@@ -56,7 +55,6 @@ import { fechaCostaRica } from '../compartidos/utilidades/fechas';
       .quick-card__arrow { color: #1f66b3; font-size: 1.35rem; font-weight: 700; }
      .assignments { padding: 1rem 1.15rem; }.assignment-list { display: grid; border-top: 1px solid #e6edf3; }.assignment-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .75rem 0; border-bottom: 1px solid #e6edf3; }.assignment-row strong,.assignment-row span { display: block; }.assignment-row span { margin-top: .18rem; color: #667085; font-size: .85rem; }.assignment-row .ghost-button { min-height: 34px; padding: .35rem .7rem; font-size: .78rem; }.empty-state { padding: 1rem 0; color: #667085; }
      .deadline-row { padding-left: .7rem; border-left: 4px solid transparent; }.deadline-row--info { border-left-color: #f0b429; }.deadline-row--priority { border-left-color: #b42318; }.deadline-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; justify-content: flex-end; }.deadline-badge { padding: .3rem .6rem; border-radius: 999px; font-size: .76rem; font-weight: 800; white-space: nowrap; background: #fff7e0; color: #8a5a00; }.deadline-row--priority .deadline-badge { background: #fff1f0; color: #b42318; }.error-text { color: #b42318 !important; }
-     .account-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1.15rem; }.account-summary h3 { color: #1e3a5f; font-size: 1rem; }.account-summary p:last-child { margin-top: .2rem; color: #667085; font-size: .82rem; }.account-avatar { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: #eaf3f8; color: #2f6b9a; font-weight: 800; }
       @media (max-width: 1000px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
       @media (max-width: 700px) { .teacher-summary { align-items: flex-start; flex-direction: column; }.summary-counts { justify-content: flex-start; }.summary-counts span + span { padding-left: .65rem; }.quick-grid { grid-template-columns: 1fr; }.assignment-row { align-items: flex-start; flex-direction: column; }.assignment-row .ghost-button { align-self: stretch; } }
   `,
@@ -114,9 +112,6 @@ export class TableroVistaComponent {
        if (this.auth.hasRole('Administrador')) return 'Administracion general';
       return this.auth.currentUsername() || 'Profesor';
    });
-   protected readonly username = computed(() => this.auth.currentUsername() || 'usuario.demostracion');
-   protected readonly email = computed(() => this.auth.currentUsername() || '-');
-  protected readonly initials = computed(() => this.teacherName().split(' ').map((part) => part[0]).slice(0, 2).join(''));
    protected readonly period = computed(() => {
       if (this.grupos.esProfesorRegular()) return this.grupos.periodoActivo();
       const current = this.periodoActualService.periodo();
