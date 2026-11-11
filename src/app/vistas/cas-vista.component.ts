@@ -66,6 +66,14 @@ const OUTCOMES = [
   'Reconocer y considerar el aspecto ético de las decisiones y las acciones.',
 ];
 
+const DICCIONARIO_FECHAS_CAS = {
+  formatoVista: 'DD-MM',
+  formatoApi: 'AAAA-MM-DD',
+  separador: '-',
+  longitudDia: 2,
+  longitudMes: 2,
+} as const;
+
 @Component({
   selector: 'app-vista-cas',
   imports: [CommonModule, FormsModule],
@@ -81,7 +89,7 @@ const OUTCOMES = [
         </tbody></table></div></section>
       <section class="cas-layout" style="grid-template-columns:minmax(0,1fr)">
          <section *ngIf="selected() as student" class="panel editor-panel"><div class="table-heading"><div class="student-heading"><div><p class="eyebrow">{{ student.estudiante }} · {{ student.seccion }}</p><h3>Registro de actividades</h3></div><div class="student-actions" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap"><button type="button" class="observations-button" (click)="abrirObservaciones(student)">Observaciones</button><button *ngIf="isCoordinator()" type="button" class="observations-button" style="background:#1b6f60;border-color:#145445" [disabled]="!selected()" (click)="printReport()">Generar reporte CAS</button><button *ngIf="!isCoordinator() && student.tieneInforme" type="button" class="observations-button" style="background:#b42318;border-color:#912018" [disabled]="guardando()" (click)="eliminarInforme(student)">Eliminar informe</button></div></div><div class="cas-filters"><label>Sección<select [ngModel]="selectedSection()" (ngModelChange)="cambiarSeccion($event)"><option *ngIf="!assignedSection()" value="Todas">Todas</option><option *ngFor="let section of sections()" [value]="section">{{ section }}</option></select></label><label>Estudiante<select [ngModel]="selectedId()" (ngModelChange)="seleccionarEstudiante($event)"><option *ngFor="let option of pickerStudents()" [value]="option.id">{{ option.estudiante }}</option></select></label></div></div>
-           <div class="table-scroll"><table class="cas-entry-table"><thead><tr><th>#</th><th>Proyecto / experiencia</th><th>Fecha</th><th colspan="3">CAS</th><th *ngFor="let number of outcomeNumbers" class="number-heading"><button type="button" (click)="openOutcome(number - 1)">{{ number }}</button></th><th>Carpeta</th><th>Reflexión</th><th>Pruebas</th><th *ngIf="!isCoordinator()"></th></tr></thead><tbody><tr *ngFor="let activity of activityRows(student); let index = index"><td>{{ index + 1 }}</td><td><input [(ngModel)]="activity.proyecto" [disabled]="isCoordinator()" placeholder="Nombre de la experiencia" /></td><td><input [(ngModel)]="activity.fechas[0]" [disabled]="isCoordinator()" placeholder="DD-MM" /><input [(ngModel)]="activity.fechas[1]" [disabled]="isCoordinator()" title="Fecha final (opcional)" placeholder="DD-MM (fin)" /></td><td><button type="button" class="flag-button" [class.active]="activity.creatividad" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'creatividad')">C</button></td><td><button type="button" class="flag-button" [class.active]="activity.actividad" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'actividad')">A</button></td><td><button type="button" class="flag-button" [class.active]="activity.servicio" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'servicio')">S</button></td><td *ngFor="let resultIndex of outcomeNumbers"><input class="outcome-checkbox" type="checkbox" [checked]="activity.resultados[resultIndex - 1]" [disabled]="isCoordinator()" (change)="setOutcome(activity, resultIndex - 1, $any($event.target).checked)" /></td><td><button type="button" class="doc-button" [class.active]="activity.carpeta" [disabled]="isCoordinator()" (click)="activity.carpeta = !activity.carpeta">✓</button></td><td><button type="button" class="doc-button" [class.active]="activity.reflexion" [disabled]="isCoordinator()" (click)="activity.reflexion = !activity.reflexion">✓</button></td><td><button type="button" class="doc-button" [class.active]="activity.pruebas" [disabled]="isCoordinator()" (click)="activity.pruebas = !activity.pruebas">✓</button></td><td *ngIf="!isCoordinator()"><button type="button" class="remove-button" [disabled]="student.actividades.length === 1" (click)="removeActivity(student, index)">×</button></td></tr></tbody></table></div><div class="add-row-actions"><button *ngIf="!isCoordinator()" type="button" class="secondary-button" [disabled]="student.actividades.length >= 13" (click)="addActivity(student)">Agregar fila</button></div><div class="cas-milestones"><label><input type="checkbox" [(ngModel)]="student.perfil" [disabled]="isCoordinator()" /> Perfil</label><label><input type="checkbox" [(ngModel)]="student.entrevistaI" [disabled]="isCoordinator()" /> I Entrevista</label><label><input type="checkbox" [(ngModel)]="student.entrevistaII" [disabled]="isCoordinator()" /> II Entrevista</label><label><input type="checkbox" [(ngModel)]="student.entrevistaIII" [disabled]="isCoordinator()" /> III Entrevista Final</label></div><div class="table-actions table-actions-bottom"><button *ngIf="!isCoordinator()" type="button" class="primary-button" [disabled]="guardando()" (click)="save(student)">Guardar cambios</button></div>
+           <div class="table-scroll"><table class="cas-entry-table"><thead><tr><th>#</th><th>Proyecto / experiencia</th><th>Fecha</th><th colspan="3">CAS</th><th *ngFor="let number of outcomeNumbers" class="number-heading"><button type="button" (click)="openOutcome(number - 1)">{{ number }}</button></th><th>Carpeta</th><th>Reflexión</th><th>Pruebas</th><th *ngIf="!isCoordinator()"></th></tr></thead><tbody><tr *ngFor="let activity of activityRows(student); let index = index"><td>{{ index + 1 }}</td><td><input [(ngModel)]="activity.proyecto" [disabled]="isCoordinator()" placeholder="Nombre de la experiencia" /></td><td><input [ngModel]="activity.fechas[0]" (ngModelChange)="actualizarFechaCas(activity, $event, 0)" [disabled]="isCoordinator()" placeholder="DD-MM" maxlength="5" inputmode="numeric" /><input [ngModel]="activity.fechas[1]" (ngModelChange)="actualizarFechaCas(activity, $event, 1)" [disabled]="isCoordinator()" title="Fecha final (opcional)" placeholder="DD-MM (fin)" maxlength="5" inputmode="numeric" /></td><td><button type="button" class="flag-button" [class.active]="activity.creatividad" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'creatividad')">C</button></td><td><button type="button" class="flag-button" [class.active]="activity.actividad" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'actividad')">A</button></td><td><button type="button" class="flag-button" [class.active]="activity.servicio" [disabled]="isCoordinator()" (click)="toggleFlag(activity, 'servicio')">S</button></td><td *ngFor="let resultIndex of outcomeNumbers"><input class="outcome-checkbox" type="checkbox" [checked]="activity.resultados[resultIndex - 1]" [disabled]="isCoordinator()" (change)="setOutcome(activity, resultIndex - 1, $any($event.target).checked)" /></td><td><button type="button" class="doc-button" [class.active]="activity.carpeta" [disabled]="isCoordinator()" (click)="activity.carpeta = !activity.carpeta">✓</button></td><td><button type="button" class="doc-button" [class.active]="activity.reflexion" [disabled]="isCoordinator()" (click)="activity.reflexion = !activity.reflexion">✓</button></td><td><button type="button" class="doc-button" [class.active]="activity.pruebas" [disabled]="isCoordinator()" (click)="activity.pruebas = !activity.pruebas">✓</button></td><td *ngIf="!isCoordinator()"><button type="button" class="remove-button" [disabled]="student.actividades.length === 1" (click)="removeActivity(student, index)">×</button></td></tr></tbody></table></div><div class="add-row-actions"><button *ngIf="!isCoordinator()" type="button" class="secondary-button" [disabled]="student.actividades.length >= 13" (click)="addActivity(student)">Agregar fila</button></div><div class="cas-milestones"><label><input type="checkbox" [(ngModel)]="student.perfil" [disabled]="isCoordinator()" /> Perfil</label><label><input type="checkbox" [(ngModel)]="student.entrevistaI" [disabled]="isCoordinator()" /> I Entrevista</label><label><input type="checkbox" [(ngModel)]="student.entrevistaII" [disabled]="isCoordinator()" /> II Entrevista</label><label><input type="checkbox" [(ngModel)]="student.entrevistaIII" [disabled]="isCoordinator()" /> III Entrevista Final</label></div><div class="table-actions table-actions-bottom"><button *ngIf="!isCoordinator()" type="button" class="primary-button" [disabled]="guardando()" (click)="save(student)">Guardar cambios</button></div>
          </section>
       </section>
       <p *ngIf="!selected() && !isCoordinator()" class="panel">{{ mensajeVacio() }}</p>
@@ -483,24 +491,32 @@ export class CasVistaComponent {
     };
   }
 
-  // DD-MM (o AAAA-MM-DD) del formulario → fecha ISO del periodo. undefined = formato inválido.
+  // Convierte el formato definido en DICCIONARIO_FECHAS_CAS a la fecha ISO del API.
   private fechaParaApi(valor: string, anio: number): string | null | undefined {
     const texto = valor.trim();
     if (!texto) return null;
-    if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) return texto;
-    const match = /^(\d{1,2})-(\d{1,2})$/.exec(texto);
+    const formatoApi = new RegExp(`^\\d{4}\\${DICCIONARIO_FECHAS_CAS.separador}\\d{${DICCIONARIO_FECHAS_CAS.longitudMes}}\\${DICCIONARIO_FECHAS_CAS.separador}\\d{${DICCIONARIO_FECHAS_CAS.longitudDia}}$`);
+    if (formatoApi.test(texto)) return texto;
+    const match = new RegExp(`^(\\d{1,${DICCIONARIO_FECHAS_CAS.longitudDia}})\\${DICCIONARIO_FECHAS_CAS.separador}(\\d{1,${DICCIONARIO_FECHAS_CAS.longitudMes}})$`).exec(texto);
     if (!match) return undefined;
     const dia = Number(match[1]);
     const mes = Number(match[2]);
     const fecha = new Date(Date.UTC(anio, mes - 1, dia));
     if (fecha.getUTCFullYear() !== anio || fecha.getUTCMonth() !== mes - 1 || fecha.getUTCDate() !== dia) return undefined;
-    return `${anio}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    return `${anio}${DICCIONARIO_FECHAS_CAS.separador}${String(mes).padStart(DICCIONARIO_FECHAS_CAS.longitudMes, '0')}${DICCIONARIO_FECHAS_CAS.separador}${String(dia).padStart(DICCIONARIO_FECHAS_CAS.longitudDia, '0')}`;
+  }
+
+  protected actualizarFechaCas(activity: CasActivityView, valor: string, indice = 0): void {
+    const digitos = valor.replace(/\D/g, '').slice(0, DICCIONARIO_FECHAS_CAS.longitudDia + DICCIONARIO_FECHAS_CAS.longitudMes);
+    activity.fechas[indice] = digitos.length > DICCIONARIO_FECHAS_CAS.longitudDia
+      ? `${digitos.slice(0, DICCIONARIO_FECHAS_CAS.longitudDia)}${DICCIONARIO_FECHAS_CAS.separador}${digitos.slice(DICCIONARIO_FECHAS_CAS.longitudDia)}`
+      : digitos;
   }
 
   private fechaParaMostrar(iso: string | null): string {
     if (!iso) return '';
-    const [, mes, dia] = iso.split('-');
-    return `${dia}-${mes}`;
+    const [, mes, dia] = iso.slice(0, 10).split(DICCIONARIO_FECHAS_CAS.separador);
+    return dia && mes ? `${dia.padStart(DICCIONARIO_FECHAS_CAS.longitudDia, '0')}${DICCIONARIO_FECHAS_CAS.separador}${mes.padStart(DICCIONARIO_FECHAS_CAS.longitudMes, '0')}` : '';
   }
 
   private etiquetaPeriodo(periodo: PeriodoActualApi): string {
