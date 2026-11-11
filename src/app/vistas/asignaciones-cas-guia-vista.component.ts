@@ -79,7 +79,7 @@ interface AssignmentDraft {
           <form class="editor-modal" (ngSubmit)="guardar()" novalidate>
              <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Asignación de profesor CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3><p class="required-legend">* Campos obligatorios</p></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
              <div class="form-grid">
-                 <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of profesoresElegibles(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select>@if (isGuide && !profesoresElegibles().length) {<small class="hint">No hay profesores con el rol Profesor Guía disponibles para este curso lectivo.</small>}</label>
+                 <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of profesoresElegibles(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select>@if (!profesoresElegibles().length) {<small class="hint">{{ isGuide ? 'No hay profesores con el rol Profesor Guía disponibles para este curso lectivo.' : 'No hay profesores con los roles Profesor regular y Profesor CAS disponibles.' }}</small>}</label>
                 @if (isGuide && draft.seccion) { <p class="current-guide"><strong>Guía actual:</strong> {{ guiaActual() }}</p> }
                 @if (isGuide) { <label>Responsabilidad<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor Guía">Profesor Guía</option></select></label> }
                  <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" (ngModelChange)="cambiarSeccion()" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of seccionesDisponibles(); track section.idSeccion) {<option [value]="sectionKey(section)">{{ section.anio }} · {{ section.nombre }}</option>}</select></label>
@@ -125,7 +125,7 @@ export class AsignacionesCasGuiaVistaComponent {
 
   constructor() {
     this.cargarProfesores();
-    if (this.isGuide) this.cursosApi.listarPaginado(1, 100).subscribe({ next: (response) => this.estadosPeriodo.set(Object.fromEntries(response.elementos.map((curso) => [curso.anio, curso.estado]))) });
+    this.cursosApi.listarPaginado(1, 100).subscribe({ next: (response) => this.estadosPeriodo.set(Object.fromEntries(response.elementos.map((curso) => [curso.anio, curso.estado]))) });
     this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => {
       this.apiSections.set(response.elementos);
       if (this.isGuide) this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos));
@@ -169,17 +169,21 @@ export class AsignacionesCasGuiaVistaComponent {
 
   /**
    * RD-027: profesores que se pueden elegir. Como guía: con cuenta activa y rol Profesor Guía, y que no guíen otra
-   * sección del mismo año (en un periodo finalizado, digitalización, no se exige el rol: RN-37). Para CAS: activos.
+   * sección del mismo año (en un periodo finalizado, digitalización, no se exige el rol: RN-37). Para CAS: con cuenta
+   * activa y los roles Profesor regular y Profesor CAS (AD002, AD007); en un periodo finalizado no se exigen.
    */
   protected profesoresElegibles(): ProfesorAsignable[] {
     const activos = this.teachers().filter((teacher) => teacher.activo);
-    if (!this.isGuide) return activos;
     const [anio] = String(this.draft.seccion ?? '').split('-').map(Number);
     const finalizado = this.estadosPeriodo()[anio] === 'FINALIZADO';
+    const actual = this.teachers().find((teacher) => teacher.cedula === this.draft.cedula);
+    if (!this.isGuide) {
+      const elegiblesCas = finalizado ? this.teachers() : activos.filter((teacher) => teacher.roles?.includes('PROFESOR_CAS') && teacher.roles?.includes('PROFESOR_REGULAR'));
+      return actual && !elegiblesCas.includes(actual) ? [actual, ...elegiblesCas] : elegiblesCas;
+    }
     const ocupados = new Set(this.sections().filter((section) => section.anio === anio && section.cedulaGuia && this.sectionKey(section) !== this.draft.seccion).map((section) => section.cedulaGuia));
     const elegibles = (finalizado ? this.teachers() : activos.filter((teacher) => teacher.roles?.includes('GUIA'))).filter((teacher) => !ocupados.has(teacher.cedula));
     // El guía actual siempre aparece, para que el formulario lo muestre seleccionado.
-    const actual = this.teachers().find((teacher) => teacher.cedula === this.draft.cedula);
     return actual && !elegibles.includes(actual) ? [actual, ...elegibles] : elegibles;
   }
 
@@ -190,7 +194,7 @@ export class AsignacionesCasGuiaVistaComponent {
 
   // DV-005: al cambiar la sección, si el profesor elegido ya no es elegible para ella se quita la selección.
   protected cambiarSeccion(): void {
-    if (!this.isGuide || !this.draft.cedula) return;
+    if (!this.draft.cedula) return;
     const cedula = this.draft.cedula;
     this.draft.cedula = '';
     const elegible = this.profesoresElegibles().some((teacher) => teacher.cedula === cedula);

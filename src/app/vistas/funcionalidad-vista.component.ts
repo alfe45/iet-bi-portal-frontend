@@ -12,10 +12,11 @@ import { EstudiantesApiService, EstudianteApi, EstudianteRequest } from '../nucl
 import { MatriculaApi, MatriculasApiService, RegistrarMatriculaRequest, SeccionSubidaApi } from '../nucleo/api/matriculas-api.service';
 import { SeccionesApiService, SeccionApi, SeccionRequest } from '../nucleo/api/secciones-api.service';
 import { CursosLectivosApiService, CursoLectivoApi, CursoLectivoRequest } from '../nucleo/api/cursos-lectivos-api.service';
-import { UsuariosApiService, UsuarioAdminApi } from '../nucleo/api/usuarios-api.service';
 import { AsignaturasApiService, AsignaturaApi, AsignaturaRequest } from '../nucleo/api/asignaturas-api.service';
 import { AsignacionesApiService, AsignacionApi, RegistrarAsignacionRequest } from '../nucleo/api/asignaciones-api.service';
 import { map } from 'rxjs/operators';
+import { concat } from 'rxjs';
+import { UsuariosApiService } from '../nucleo/api/usuarios-api.service';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
 import { fechaCostaRica } from '../compartidos/utilidades/fechas';
 import { ProfesorRegularApiService, ProfesorRegularFichaApi } from '../nucleo/api/profesor-regular-api.service';
@@ -33,6 +34,8 @@ interface CampoFormulario {
 interface ConfiguracionCrud {
   title: string;
   singular: string;
+  // Texto del botón y del título al crear, si no es «Registrar <singular>» (CU17: «Matricular estudiante»).
+  accionNueva?: string;
   subtitle: string;
   columns: ColumnaTabla[];
   fields: CampoFormulario[];
@@ -47,6 +50,14 @@ interface PromotionTarget {
   numeroSeccion: number;
   cantidadEstudiantes?: number;
   guia?: string | null;
+}
+
+// CU34: roles de coordinación de un profesor con cuenta (se otorgan y quitan con los endpoints de roles del usuario).
+interface CoordinacionTarget {
+  nombre: string;
+  usuarioId: string;
+  monografiaActual: boolean;
+  casActual: boolean;
 }
 
 interface ProfessorDeleteTarget {
@@ -67,11 +78,11 @@ const DESCRIPCIONES_ROL: Record<string, string> = {
   'Profesor Coordinador de CAS': 'Supervisión general y reportes del programa CAS.',
 };
 const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = {
-  profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso. Cada profesor se registra con su cuenta; los administradores son profesores con el rol Administrador, salvo el primer administrador de la instalación.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'rolesTexto', label: 'Roles' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
+  profesores: { title: 'Profesores', singular: 'profesor', subtitle: 'Administre el personal docente y sus cuentas de acceso. Cada profesor se registra con su cuenta; los administradores son profesores con el rol Administrador, salvo el primer administrador de la instalación.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'cuenta', label: 'Cuenta' }, { key: 'roles', label: 'Roles', type: 'badges' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'modoCuenta', label: 'Cuenta de acceso', type: 'select' }, { key: 'usuarioId', label: 'Usuario existente', type: 'select' }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'password', label: 'Contraseña', type: 'password' }, { key: 'roles', label: 'Roles', options: ROLES_USUARIO }, { key: 'estado', label: 'Estado de la cuenta', type: 'select', options: ESTADOS }] },
   estudiantes: { title: 'Estudiantes', singular: 'estudiante', subtitle: 'Consulte y administre los estudiantes registrados.', columns: [{ key: 'nombreCompleto', label: 'Nombre' }, { key: 'cedula', label: 'Cédula' }, { key: 'correo', label: 'Correo' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento' }], fields: [{ key: 'nombre', label: 'Nombre' }, { key: 'primerApellido', label: 'Primer apellido' }, { key: 'segundoApellido', label: 'Segundo apellido', required: false }, { key: 'cedula', label: 'Cédula' }, { key: 'numeroCelular', label: 'Número celular', required: false }, { key: 'correo', label: 'Correo', type: 'email' }, { key: 'fechaNacimiento', label: 'Fecha de nacimiento', type: 'date' }, { key: 'fechaRegistro', label: 'Fecha de registro', readOnly: true, required: false }] },
   periodos: { title: 'Cursos lectivos', singular: 'curso lectivo', subtitle: 'Configure los cursos lectivos y sus semestres.', columns: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estado', label: 'Estado', type: 'badge-periodo' }, { key: 'semestreI', label: 'I semestre' }, { key: 'semestreII', label: 'II semestre' }], fields: [{ key: 'yearCiclo', label: 'Año' }, { key: 'estadoTexto', label: 'Estado', readOnly: true, required: false }, { key: 'semestreActual', label: 'Semestre en curso', readOnly: true, required: false }, { key: 'fechaInicioI', label: 'Inicio del I semestre', type: 'date' }, { key: 'fechaFinI', label: 'Fin del I semestre', type: 'date' }, { key: 'fechaInicioII', label: 'Inicio del II semestre', type: 'date' }, { key: 'fechaFinII', label: 'Fin del II semestre', type: 'date' }] },
   secciones: { title: 'Secciones', singular: 'sección', subtitle: 'Administre las secciones de cada curso lectivo.', columns: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'guia', label: 'Profesor guía' }, { key: 'cantidadEstudiantes', label: 'Estudiantes' }], fields: [{ key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'guia', label: 'Profesor guía', readOnly: true, required: false }, { key: 'cantidadEstudiantes', label: 'Cantidad de estudiantes', readOnly: true, required: false }] },
-  matriculas: { title: 'Matrículas', singular: 'matrícula', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'fechaMatricula', label: 'Fecha de matrícula' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'fechaMatriculaIso', label: 'Fecha de matrícula (opcional; por defecto, hoy)', type: 'date', required: false }, { key: 'fechaMatricula', label: 'Fecha de matrícula', readOnly: true, required: false }, { key: 'estado', label: 'Estado', readOnly: true, required: false }, { key: 'fechaRetiro', label: 'Fecha de retiro', readOnly: true, required: false }, { key: 'motivoRetiro', label: 'Motivo del retiro', readOnly: true, required: false }] },
+  matriculas: { title: 'Matrículas', singular: 'matrícula', accionNueva: 'Matricular estudiante', subtitle: 'Administre las matrículas de estudiantes en secciones.', columns: [{ key: 'estudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }, { key: 'fechaMatricula', label: 'Fecha de matrícula' }, { key: 'estado', label: 'Estado', type: 'badge' }], fields: [{ key: 'cedulaEstudiante', label: 'Estudiante' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'nivel', label: 'Nivel' }, { key: 'numeroSeccion', label: 'Número de sección' }, { key: 'fechaMatriculaIso', label: 'Fecha de matrícula (opcional; por defecto, hoy)', type: 'date', required: false }, { key: 'fechaMatricula', label: 'Fecha de matrícula', readOnly: true, required: false }, { key: 'estado', label: 'Estado', readOnly: true, required: false }, { key: 'fechaRetiro', label: 'Fecha de retiro', readOnly: true, required: false }, { key: 'motivoRetiro', label: 'Motivo del retiro', readOnly: true, required: false }] },
   asignaturas: { title: 'Asignaturas', singular: 'asignatura', subtitle: 'Administre código, tipo, descripción y niveles donde se imparte cada asignatura.', columns: [{ key: 'codigo', label: 'Código' }, { key: 'tipoAsignatura', label: 'Tipo' }, { key: 'escala', label: 'Escala' }, { key: 'nombre', label: 'Nombre' }, { key: 'niveles', label: 'Niveles' }, { key: 'descripcion', label: 'Descripción' }], fields: [{ key: 'codigo', label: 'Código (2 a 10 letras o dígitos)' }, { key: 'tipoAsignatura', label: 'Tipo de asignatura', type: 'select', options: ['MEP', 'Troncal', 'Superior', 'Medio'] }, { key: 'nombre', label: 'Nombre' }, { key: 'descripcion', label: 'Descripción', required: false }, { key: 'imparteNivel11', label: 'Imparte en nivel 11', type: 'select', options: ['Sí', 'No'] }, { key: 'imparteNivel12', label: 'Imparte en nivel 12', type: 'select', options: ['Sí', 'No'] }] },
   asignaciones: { title: 'Asignación profesores', singular: 'asignación de profesor', subtitle: 'Administre las asignaciones de profesores por asignatura y sección.', columns: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigoAsignatura', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Año' }, { key: 'seccion', label: 'Sección' }], fields: [{ key: 'profesor', label: 'Profesor' }, { key: 'codigo', label: 'Código / asignatura' }, { key: 'yearCiclo', label: 'Curso lectivo' }, { key: 'seccion', label: 'Sección' }] },
 };
@@ -84,7 +95,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
       <section class="surface">
         <div class="section-heading">
           <div><p class="eyebrow">{{ isTeacher() ? 'Mi trabajo' : 'Gestión' }}</p><h2>{{ pageTitle() }}</h2><p>{{ pageSubtitle() }}</p></div>
-            @if (isAdmin()) { <button type="button" class="primary-button" (click)="abrirNuevo()">Registrar {{ config.singular }}</button> }
+            @if (isAdmin()) { <button type="button" class="primary-button" (click)="abrirNuevo()">{{ config.accionNueva ?? 'Registrar ' + config.singular }}</button> }
         </div>
       </section>
 
@@ -199,6 +210,19 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
           </div>
         }
 
+        @if (coordinacionTarget(); as target) {
+          <div class="modal-backdrop" role="presentation" (click)="cancelarCoordinacion()">
+            <section class="promotion-modal coordination-modal" role="dialog" aria-modal="true" aria-labelledby="coordination-title" (click)="$event.stopPropagation()">
+              <div class="promotion-copy"><p class="modal-kicker">Roles de coordinación</p><h3 id="coordination-title">Coordinación de {{ target.nombre }}</h3><p>Marque los roles de coordinación que debe tener el profesor y guarde.</p></div>
+              <div class="coordination-options">
+                <label class="role-card role-monograph" [class.selected]="coordinacionMonografia"><input type="checkbox" aria-label="Coordinador de Monografía" [(ngModel)]="coordinacionMonografia" [disabled]="guardandoCoordinacion()" /><span class="role-card-mark">{{ coordinacionMonografia ? '✓' : '' }}</span><span class="role-card-copy"><strong>Coordinador de Monografía</strong><small>{{ descripcionRol('Profesor Coordinador de Monografía') }}</small></span></label>
+                <label class="role-card role-cas" [class.selected]="coordinacionCas"><input type="checkbox" aria-label="Coordinador CAS" [(ngModel)]="coordinacionCas" [disabled]="guardandoCoordinacion()" /><span class="role-card-mark">{{ coordinacionCas ? '✓' : '' }}</span><span class="role-card-copy"><strong>Coordinador CAS</strong><small>{{ descripcionRol('Profesor Coordinador de CAS') }}</small></span></label>
+              </div>
+              <div class="modal-actions"><button type="button" class="ghost-button" (click)="cancelarCoordinacion()" [disabled]="guardandoCoordinacion()">Cancelar</button><button type="button" class="primary-button" (click)="guardarCoordinacion()" [disabled]="guardandoCoordinacion()">Guardar</button></div>
+            </section>
+          </div>
+        }
+
         <section class="surface">
           @if (isTeacher() && key === 'estudiantes') { <div class="group-filter"><label>Grupo<select [ngModel]="selectedGroupId()" (ngModelChange)="cambiarGrupo($event)">@for (group of grupos.grupos(); track group.id) {<option [value]="group.id">{{ grupos.etiqueta(group) }}</option>}</select></label><span>Periodo: {{ grupos.periodoActivo() }}</span></div> }
           @if (fichaEstudiante(); as ficha) {
@@ -285,7 +309,7 @@ const CONFIGURACIONES: Record<FuncionalidadAdministrativa, ConfiguracionCrud> = 
          .password-input { display: grid; gap: .4rem; }.password-visibility { display: flex; align-items: center; gap: .4rem; color: #475467; font-size: .8rem; font-weight: 600; }.password-visibility input { width: auto; min-height: 0; padding: 0; }.roles-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;padding:.2rem 0 0}.role-card{position:relative;display:grid;grid-template-columns:1.75rem minmax(0,1fr);align-items:center;gap:.65rem;min-height:4.4rem;padding:.75rem .8rem;border:1px solid #dbe5ef;border-left:4px solid #b9c9d6;border-radius:11px;background:#fff;color:#25364a;cursor:pointer;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease}.role-card:hover{border-color:#8fb5cc;background:#f8fcff;transform:translateY(-1px)}.role-card input{position:absolute;width:1px;height:1px;opacity:0}.role-card-mark{display:grid;place-items:center;width:1.55rem;height:1.55rem;border:1.5px solid #b9c9d6;border-radius:50%;color:transparent;font-size:.78rem;font-weight:900}.role-card-copy{display:grid;gap:.18rem}.role-card-copy strong{font-size:.76rem;color:#1e3a5f}.role-card-copy small{color:#667085;font-size:.66rem;font-weight:500;line-height:1.35}.role-card.selected{border-color:#67a9c7;background:#f0f8fc;box-shadow:0 5px 16px rgba(47,107,154,.1)}.role-card.selected .role-card-mark{border-color:#2f6b9a;background:#2f6b9a;color:#fff}.role-card.role-cas{border-left-color:#1e7a68}.role-card.role-cas.selected{border-color:#78b9ab;background:#f0faf6}.role-card.role-cas.selected .role-card-mark{border-color:#1e7a68;background:#1e7a68}.role-card.role-guide{border-left-color:#c58b31}.role-card.role-guide.selected{border-color:#dfb66c;background:#fffaf0}.role-card.role-guide.selected .role-card-mark{border-color:#b87918;background:#b87918}.role-card.role-monograph{border-left-color:#8064a2}.role-card.role-monograph.selected{border-color:#b39acb;background:#faf7fd}.role-card.role-monograph.selected .role-card-mark{border-color:#8064a2;background:#8064a2}.role-card.role-admin{border-left-color:#c95b68}.role-card.role-admin.selected{border-color:#dd929b;background:#fff7f8}.role-card.role-admin.selected .role-card-mark{border-color:#b94352;background:#b94352}.role-empty-state{grid-column:1 / -1;display:flex;align-items:flex-start;gap:.75rem;padding:1rem;border:1px dashed #b9d3e5;border-radius:11px;background:#f7fbfd;color:#475467}.role-empty-icon{display:grid;place-items:center;width:1.7rem;height:1.7rem;border-radius:50%;background:#dceef7;color:#1e5a78;font-weight:900}.role-empty-state strong{color:#1e3a5f;font-size:.8rem}.role-empty-state p{margin:.2rem 0 0;font-size:.72rem;line-height:1.45}
         @media (max-width: 900px) { .editor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .student-field, .course-field, .registration-field { grid-column: 1 / -1; } }
          @media (max-width: 700px) { .editor-grid { grid-template-columns: 1fr; } .student-field, .course-field, .registration-field, .professor-email-field, .professor-password-field { grid-column: span 1; } }
-       .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #1b6f60;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
+       .promotion-modal{width:min(100%,500px);padding:1.7rem;border:1px solid #cfe0e6;border-top:5px solid #1b6f60;border-radius:16px;background:#fff;box-shadow:0 24px 70px rgba(18,32,49,.28)}.promotion-icon{display:grid;place-items:center;width:3rem;height:3rem;margin-bottom:1rem;border-radius:12px;color:#13775f;background:#e7f5ef;font-size:1.7rem;font-weight:800}.promotion-copy h3{margin:0;color:#29344a;font-size:1.25rem}.promotion-copy p:last-child{margin:.45rem 0 0;color:#667085;line-height:1.5}.promotion-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.7rem;margin:1.35rem 0 1rem}.promotion-summary div{padding:.75rem;border:1px solid #e1ebef;border-radius:9px;background:#f8fbfc}.promotion-summary dt{color:#667085;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}.promotion-summary dd{margin:.25rem 0 0;color:#1e3a5f;font-size:.82rem;font-weight:700;overflow-wrap:anywhere}.promotion-warning{margin:0;padding:.75rem .85rem;border-left:3px solid #f0a33a;border-radius:6px;color:#7a4b08;background:#fff8eb;font-size:.78rem}.modal-actions{display:flex;justify-content:flex-end;gap:.65rem;margin-top:1.35rem}.coordination-modal{border-top-color:#2f6b9a}.coordination-options{display:grid;gap:.6rem;margin-top:1.1rem}.coordination-options .role-card input{position:absolute;opacity:0;pointer-events:none}@keyframes modal-fade-in{from{opacity:0}to{opacity:1}}
          @media (max-width: 700px) { .modal-backdrop{align-items:start}.student-file{width:min(100%,640px);padding:1rem 1.25rem!important;max-height:calc(100vh - 2rem);overflow:auto}.student-file .modal-header{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem}.student-file h4{margin:1rem 0 .4rem;color:#1e3a5f;font-size:1rem}.file-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem 1rem;margin:0}.file-grid dt{color:#667085;font-size:.75rem;font-weight:700}.file-grid dd{margin:.1rem 0 0;color:#1e3a5f}@media (max-width:600px){.file-grid{grid-template-columns:1fr}}.user-editor .editor-grid,.editor-grid { grid-template-columns:1fr; } .student-field, .course-field, .registration-field { grid-column: span 1; } .user-editor .roles-field { grid-column:auto; } .user-editor .roles-grid,.roles-grid { grid-template-columns:1fr; } .editor .modal-header,.editor-grid,.form-actions{padding-left:1rem;padding-right:1rem}.wizard-steps{gap:.25rem}.wizard-step-copy{display:none}.wizard-step{flex:0 0 auto}.wizard-connector{min-width:.5rem}.promotion-summary{grid-template-columns:1fr} }
   `,
 })
@@ -299,7 +323,6 @@ export class FuncionalidadVistaComponent {
     private readonly matriculasApi = inject(MatriculasApiService);
     private readonly seccionesApi = inject(SeccionesApiService);
      private readonly cursosLectivosApi = inject(CursosLectivosApiService);
-     private readonly usuariosApi = inject(UsuariosApiService);
      private readonly asignaturasApi = inject(AsignaturasApiService);
      private readonly asignacionesApi = inject(AsignacionesApiService);
      private readonly feedback = inject(FeedbackService);
@@ -315,7 +338,6 @@ export class FuncionalidadVistaComponent {
     private readonly cursosLectivosMatricula = signal<CursoLectivoApi[]>([]);
     private readonly cursosApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly seccionesApiRows = signal<Array<Record<string, unknown>>>([]);
-     private readonly usuariosApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignaturasApiRows = signal<Array<Record<string, unknown>>>([]);
      private readonly asignacionesApiRows = signal<Array<Record<string, unknown>>>([]);
      protected apiError = '';
@@ -328,6 +350,11 @@ export class FuncionalidadVistaComponent {
       protected readonly totalPaginas = computed(() => Math.max(1, Math.ceil(this.totalRegistros() / this.tamanoPagina)));
      protected readonly promotionTarget = signal<PromotionTarget | null>(null);
      protected readonly professorDeleteTarget = signal<ProfessorDeleteTarget | null>(null);
+     protected readonly coordinacionTarget = signal<CoordinacionTarget | null>(null);
+     protected readonly guardandoCoordinacion = signal(false);
+     protected coordinacionMonografia = false;
+     protected coordinacionCas = false;
+     private readonly usuariosApi = inject(UsuariosApiService);
      protected readonly columns = computed(() => [...this.teacherColumns(), { key: 'acciones', label: 'Acciones', type: 'actions' as const }]);
      protected readonly rows = computed<Array<Record<string, unknown>>>(() => {
        if (this.isTeacher()) return this.teacherRows();
@@ -342,7 +369,6 @@ export class FuncionalidadVistaComponent {
     });
     protected readonly statCards = computed(() => [
       { label: 'Registros', value: this.cantidadRegistros(), tone: 'primary' as const },
-      ...(this.key === 'profesores' ? [{ label: 'Usuarios sin perfil', value: String(this.usuariosSinPerfil()), tone: 'success' as const }] : []),
     ]);
    protected readonly editorOpen = signal(false);
   protected readOnly = false;
@@ -370,7 +396,6 @@ export class FuncionalidadVistaComponent {
      protected placeholderBusqueda(): string { return this.key === 'matriculas' ? 'Nombre o cédula del estudiante' : 'Correo, nombre o cédula'; }
 
       protected cantidadRegistros(): string { return this.paginacionAdministrativa() ? String(this.totalRegistros()) : String(this.rows().length); }
-      protected usuariosSinPerfil(): number { return this.usuariosApiRows().filter((user) => user['activo'] === true && !user['cedulaProfesor']).length; }
      protected paginacionAdministrativa(): boolean { return this.isAdmin() && ['profesores', 'estudiantes', 'periodos', 'secciones', 'matriculas', 'asignaturas', 'asignaciones'].includes(this.key); }
      protected paginacionVisible(): boolean { return this.paginacionAdministrativa() && this.totalRegistros() > this.tamanoPagina; }
      protected rangoInicio(): number { return this.totalRegistros() ? (this.paginaActual() - 1) * this.tamanoPagina + 1 : 0; }
@@ -482,7 +507,7 @@ export class FuncionalidadVistaComponent {
     }
 
     constructor() {
-       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }
+       if (this.isAdmin() && this.key === 'profesores') { this.cargarProfesores(); }
       if (this.isAdmin() && this.key === 'estudiantes') this.cargarEstudiantes();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarMatriculas();
       if (this.isAdmin() && this.key === 'matriculas') this.cargarSecciones();
@@ -503,7 +528,7 @@ export class FuncionalidadVistaComponent {
       this.professorStep.set(1);
       this.studentSearch = '';
       this.identificacionExtranjera = false;
-     this.editorTitle = `Registrar ${this.config.singular}`;
+     this.editorTitle = this.config.accionNueva ?? `Registrar ${this.config.singular}`;
      this.draft = Object.fromEntries(this.config.fields.map((field) => [field.key, field.options?.[0] ?? '']));
       if (this.key === 'profesores') { this.draft['modoCuenta'] = 'nueva'; this.draft['roles'] = 'Profesor regular'; }
       if (this.key === 'asignaturas') { this.draft['imparteNivel11'] = 'true'; this.draft['imparteNivel12'] = 'true'; }
@@ -591,7 +616,8 @@ export class FuncionalidadVistaComponent {
    }
 
       private accionesProfesor(tieneCuenta: boolean): Array<{ label: string; code: string; tone?: string }> {
-        return [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }];
+        // CU34: «Coordinación» solo aparece si el profesor tiene cuenta (los roles viven en la cuenta).
+        return [{ label: 'Ver', code: 'view' }, { label: 'Editar', code: 'edit' }, ...(tieneCuenta ? [{ label: 'Coordinación', code: 'coordination' }] : []), { label: 'Eliminar', code: 'delete', tone: 'danger' }];
     }
 
      protected normalizarCodigoAsignatura(value: string): void {
@@ -765,26 +791,6 @@ export class FuncionalidadVistaComponent {
        else if (this.key === 'asignaciones') this.cargarAsignaciones();
      }
 
-    private cargarUsuarios(busqueda = '', pagina = this.paginaActual(), actualizaPaginacion = true, tamanoPagina = this.tamanoPagina): void {
-      this.usuariosApi.listar(busqueda, pagina, tamanoPagina).subscribe({
-        next: (response) => { if (actualizaPaginacion) this.actualizarPaginacion(response); this.usuariosApiRows.set(response.elementos.map((item) => this.usuarioRow(item))); },
-        error: (error) => { this.usuariosApiRows.set([]); this.errorListado.set(true); this.notificarError(error, 'No se pudieron consultar los usuarios.'); },
-      });
-    }
-
-    private usuarioRow(item: UsuarioAdminApi): Record<string, unknown> {
-      return {
-        id: item.id,
-        correo: item.email,
-        roles: item.roles.map((role) => ROLES_FRONTEND[role] ?? role).join('|'),
-        rolesBackend: item.roles.join('|'),
-        estado: item.activo ? 'Activo' : 'Inactivo',
-        activo: item.activo,
-        cedulaProfesor: item.cedulaProfesor ?? '',
-        nombreProfesor: item.nombreProfesor ?? '',
-      };
-    }
-
     protected filtroAsigTipo = '';
     protected filtroAsigNivel = '';
     protected filtrarAsignaturas(): void { this.paginaActual.set(1); this.cargarAsignaturas(1); }
@@ -911,6 +917,7 @@ export class FuncionalidadVistaComponent {
     }
 
    private async accionProfesor(action: string, registro: RegistroVista): Promise<void> {
+     if (action === 'coordination') { this.abrirCoordinacion(registro); return; }
      if (action === 'delete') {
        this.professorDeleteTarget.set({ nombre: String(registro['nombreCompleto'] ?? registro['cedula']), cedula: String(registro['cedula']) });
        return;
@@ -950,7 +957,7 @@ export class FuncionalidadVistaComponent {
     const validation = this.validarProfesorDraft();
     if (validation) { this.apiError = validation; return; }
     const request = this.profesorRequest();
-    const terminar = (mensaje: string) => { this.feedback.exito(mensaje); this.cerrarEditor(); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); };
+    const terminar = (mensaje: string) => { this.feedback.exito(mensaje); this.cerrarEditor(); this.cargarProfesores(); };
       if (this.editingId) {
         // RD-010: datos y cuenta van en una sola petición; la API los aplica en una transacción (si algo falla, no se guarda nada).
         const cedula = String(this.draft['cedulaOriginal'] ?? this.draft['cedula']);
@@ -1383,10 +1390,42 @@ export class FuncionalidadVistaComponent {
 
     protected cancelarEliminacionProfesor(): void { this.professorDeleteTarget.set(null); }
 
+    private abrirCoordinacion(registro: RegistroVista): void {
+      const roles = String(registro['rolesBackend'] ?? '').split('|');
+      const target: CoordinacionTarget = { nombre: String(registro['nombreCompleto'] ?? registro['cedula']), usuarioId: String(registro['usuarioId'] ?? ''), monografiaActual: roles.includes('COORD_MONOGRAFIA'), casActual: roles.includes('COORD_CAS') };
+      this.coordinacionMonografia = target.monografiaActual;
+      this.coordinacionCas = target.casActual;
+      this.coordinacionTarget.set(target);
+    }
+
+    protected cancelarCoordinacion(): void {
+      if (!this.guardandoCoordinacion()) this.coordinacionTarget.set(null);
+    }
+
+    // CU34: se aplican solo los cambios, uno por uno (primero las bajas). Si uno falla, se muestra el mensaje de la API
+    // (p. ej. ya hay un Coordinador CAS, o el coordinador tiene monografías sin terminar) y el listado se recarga con
+    // los roles que quedaron vigentes.
+    protected guardarCoordinacion(): void {
+      const target = this.coordinacionTarget();
+      if (!target || this.guardandoCoordinacion()) return;
+      const cambios = [
+        ...(target.monografiaActual && !this.coordinacionMonografia ? [this.usuariosApi.quitarRol(target.usuarioId, 'COORD_MONOGRAFIA')] : []),
+        ...(target.casActual && !this.coordinacionCas ? [this.usuariosApi.quitarRol(target.usuarioId, 'COORD_CAS')] : []),
+        ...(!target.monografiaActual && this.coordinacionMonografia ? [this.usuariosApi.agregarRol(target.usuarioId, 'COORD_MONOGRAFIA')] : []),
+        ...(!target.casActual && this.coordinacionCas ? [this.usuariosApi.agregarRol(target.usuarioId, 'COORD_CAS')] : []),
+      ];
+      if (cambios.length === 0) { this.coordinacionTarget.set(null); this.feedback.exito('No hubo cambios en la coordinación.'); return; }
+      this.guardandoCoordinacion.set(true);
+      concat(...cambios).subscribe({
+        complete: () => { this.guardandoCoordinacion.set(false); this.coordinacionTarget.set(null); this.feedback.exito('La coordinación del profesor fue actualizada.'); this.cargarProfesores(this.adminSearch); },
+        error: (error) => { this.guardandoCoordinacion.set(false); this.coordinacionTarget.set(null); this.notificarError(error, 'No se pudo actualizar la coordinación del profesor.'); this.cargarProfesores(this.adminSearch); },
+      });
+    }
+
     protected confirmarEliminacionProfesor(): void {
       const target = this.professorDeleteTarget();
       if (!target) return;
-      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.feedback.exito('El profesor fue eliminado.'); this.cargarProfesores(); this.cargarUsuarios('', 1, false, 100); }, error: (error) => { this.professorDeleteTarget.set(null); this.notificarError(error, 'No se pudo eliminar el profesor.'); } });
+      this.profesoresApi.borrar(target.cedula).subscribe({ next: () => { this.professorDeleteTarget.set(null); this.feedback.exito('El profesor fue eliminado.'); this.cargarProfesores(); }, error: (error) => { this.professorDeleteTarget.set(null); this.notificarError(error, 'No se pudo eliminar el profesor.'); } });
     }
 
     protected confirmarPromocion(): void {

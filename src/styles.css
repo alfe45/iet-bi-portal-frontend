@@ -253,3 +253,10 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
 @media (max-width: 900px) {
   app-vista-monografias .monographs-page .top-actions { flex-wrap: wrap; }
 }
+
+/* Insignias de rol: mismos colores que las tarjetas de rol del formulario de profesor. */
+.insignia-rol { display: inline-flex; align-items: center; padding: .22rem .6rem; border-radius: 999px; border: 1px solid #c9dceb; background: #eef5fb; color: #245a85; font-size: .72rem; font-weight: 700; line-height: 1.25; white-space: normal; max-width: 100%; }
+.insignia-rol--admin { border-color: #efc3c8; background: #fff3f4; color: #a03a48; }
+.insignia-rol--guia { border-color: #ecd3a3; background: #fff8ea; color: #8c5a0f; }
+.insignia-rol--monografia { border-color: #d6c8e6; background: #f6f2fb; color: #654889; }
+.insignia-rol--cas { border-color: #b5dccf; background: #edf8f4; color: #17614f; }
