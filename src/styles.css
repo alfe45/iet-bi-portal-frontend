@@ -260,3 +260,26 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
 .insignia-rol--guia { border-color: #ecd3a3; background: #fff8ea; color: #8c5a0f; }
 .insignia-rol--monografia { border-color: #d6c8e6; background: #f6f2fb; color: #654889; }
 .insignia-rol--cas { border-color: #b5dccf; background: #edf8f4; color: #17614f; }
+
+/* ===== Celular y tableta (12/11/2026). Todo va dentro de @media: el escritorio no cambia. =====
+   Cortes: celular hasta 600 px; tableta hasta 1024 px (donde el menú lateral ya pasa a cajón). */
+@media (max-width: 1024px) {
+  .workspace__content :is(.page-header, .module-header, .page-heading, .section-heading, .group-header, .panel-heading, .block-heading, .table-heading) { flex-wrap: wrap; }
+  .workspace__content :is(.page-header, .module-header, .page-heading, .section-heading, .group-header) :is(h2, h3, p) { overflow-wrap: anywhere; }
+  /* El título de las ventanas queda a la izquierda y la «×» arriba a la derecha (la regla de .section-heading lo apilaba). */
+  .modal-backdrop :is(.modal-header, .modal-heading) { flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start !important; }
+}
+@media (max-width: 600px) {
+  .workspace__content :is(.page-header, .module-header, .page-heading, .group-header) { flex-direction: column; align-items: stretch !important; }
+  .workspace__content :is(.page-header, .module-header, .page-heading, .group-header) > :is(button, a.primary-button, .module-actions) { width: 100%; }
+  .modal-backdrop { padding: .5rem !important; }
+  .modal-backdrop > :is(form, section) { width: 100% !important; max-width: 100% !important; max-height: calc(100dvh - 1rem) !important; overflow-y: auto !important; }
+  .modal-backdrop :is(.modal-actions, .editor-actions, .form-actions) { position: sticky; bottom: -1rem; z-index: 2; flex-wrap: wrap; padding: .75rem 0 .25rem; background: #fff; }
+  .modal-backdrop :is(.modal-actions, .editor-actions, .form-actions) > button { flex: 1 1 8rem; }
+}
+/* Pantallas táctiles: botones de al menos 40 px y campos de 16 px (el iPhone no hace zoom al tocarlos). */
+@media (pointer: coarse) and (max-width: 1024px) {
+  input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px !important; }
+  :is(.primary-button, .ghost-button, .danger-button, .secondary-button) { min-height: 40px; }
+  input[type=checkbox], input[type=radio] { width: 1.15rem; height: 1.15rem; }
+}
