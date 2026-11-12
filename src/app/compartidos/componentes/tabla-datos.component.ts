@@ -21,6 +21,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
                   @case ('badge-periodo') { <span class="badge" [class]="badgePeriodoClass(row[column.key])">{{ etiquetaEstadoPeriodo(row[column.key]) }}</span> }
                     @case ('actions') { <div class="action-list">@for (action of asActionArray(row[column.key]); track action.label) { <button type="button" class="btn btn-sm table-action" [class.btn-outline-danger]="action.tone === 'danger'" [class.btn-outline-primary]="action.tone !== 'danger'" (click)="actionSelected.emit({ action: action.code ?? action.label, row })">{{ action.label }}</button> }</div> }
                   @case ('avatar') { <div class="avatar-cell"><div class="avatar-dot">{{ getInitials(row[column.key]) }}</div><div><strong>{{ getAvatarTitle(row[column.key]) }}</strong><small>{{ getAvatarSubtitle(row[column.key]) }}</small></div></div> }
+                  @case ('pendiente') { @if (row[column.key] === 'Sin asignar') { <button type="button" class="pendiente" title="Asignar" (click)="actionSelected.emit({ action: 'assign-guide', row })">Sin asignar</button> } @else { {{ row[column.key] }} } }
                   @case ('badges') { <div class="badge-list">@for (item of asListaInsignias(row[column.key]); track item) { <span [class]="claseRol(item)">{{ item }}</span> } @empty { — }</div> }
                   @case ('list') { <div class="list-cell">@for (item of asStringArray(row[column.key]); track item) { <span>{{ item }}</span> }</div> }
                   @default { {{ row[column.key] }} }
@@ -36,6 +37,8 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
      .table-card { padding:0; overflow:hidden; }.table-wrapper{max-width:100%;overflow:auto;-webkit-overflow-scrolling:touch}.table{width:100%;font-size:.72rem;table-layout:fixed}.table>:not(caption)>*>*{padding:.52rem .65rem;border-bottom-color:#edf0f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.table thead th{color:#5b6b79;background:#f8f9fa;font-size:.64rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
     .badge { display:inline-flex;padding:.26rem .5rem;border-radius:3px;background:rgba(64,153,255,.1);color:#287edc;font-size:.66rem;font-weight:600}.badge--success{background:rgba(46,216,182,.13);color:#168d76}.badge--danger{background:rgba(255,83,112,.12);color:#d63854}.badge--warning{background:rgba(255,182,77,.14);color:#9e6b06}.badge--info{background:rgba(64,153,255,.1);color:#287edc}.badge--neutral{background:rgba(137,150,164,.12);color:#5b6b79}
     .action-list, .list-cell { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+    .pendiente { display: inline-flex; align-items: center; gap: .3rem; padding: .25rem .65rem; border: 1px solid #fecdca; border-radius: 999px; background: #fff1f0; color: #b42318; font-size: .74rem; font-weight: 800; cursor: pointer; }
+    .pendiente::after { content: '+'; font-size: .85rem; }.pendiente:hover { background: #fee4e2; border-color: #fda29b; }
     .badge-list { display: flex; flex-wrap: wrap; gap: 0.3rem; white-space: normal; }
      .table-action{padding:.22rem .48rem;border-radius:3px;font-size:.66rem}
     .avatar-cell { display: flex; align-items: center; gap: 0.8rem; }
