@@ -38,7 +38,7 @@ interface ProblemaVerificacionMonografia {
        <app-guia-criterios />
        <section class="context-panel no-print"><div><small>Periodo</small><strong>{{ periodoEtiqueta() }}</strong></div><div><small>Sección guía</small><strong>{{ seccionActual()?.nombre || 'Sin sección' }} · Nivel {{ seccionActual()?.nivel ?? '-' }}</strong></div><div><small>Profesor Guía</small><strong>{{ guideName() }}</strong></div><div><small>Estado de información</small>@if (loading()) {<strong>Cargando...</strong>} @else if (!reports().length) {<strong class="context-status status-pending">Sin información</strong>} @else if (incompleteProjects().length) {<strong class="context-status status-pending">Información incompleta</strong><small>Faltan reportes en {{ incompleteProjects().length }} proyecto(s).</small><button type="button" class="status-link" (click)="abrirProblemas()">Ver estudiantes</button>} @else if (pending() > 0) {<strong class="context-status status-warning">Completa, pendiente de confirmación</strong><small>{{ pending() }} proyecto(s) esperan confirmación.</small><button type="button" class="status-link" (click)="abrirProblemas()">Ver estudiantes</button>} @else {<strong class="context-status status-ready">Confirmada y completa</strong><small>Todos los reportes están completos y confirmados.</small>}</div></section>
        @if (problemasModalOpen()) {<div class="modal-backdrop no-print" role="presentation" (click)="cerrarProblemas()"><section class="incomplete-modal" role="dialog" aria-modal="true" aria-labelledby="monograph-issues-title" (click)="$event.stopPropagation()"><div class="modal-heading"><h3 id="monograph-issues-title">Pendientes de monografías</h3><button type="button" class="close-button" aria-label="Cerrar lista" (click)="cerrarProblemas()">×</button></div><div class="issue-groups">@for (group of problemasMonografia(); track group.titulo) {<section class="issue-group"><h4>{{ group.titulo }}</h4><p>{{ group.descripcion }}</p><ul class="incomplete-list">@for (student of group.estudiantes; track student.nombre + student.detalle) {<li><strong>{{ student.nombre }}</strong>@if (student.detalle) {<small>{{ student.detalle }}</small>}</li>}</ul></section>}</div></section></div>}
-      <section class="student-picker no-print"><label for="student-search">Buscar estudiante</label><input id="student-search" type="search" [ngModel]="search()" (ngModelChange)="search.set($event); studentPage.set(0)" placeholder="Nombre o identificación" /><div class="student-list">@for (item of paginatedReports(); track item.cedula) {<div class="student-row"><div><strong>{{ item.estudiante }}</strong><small class="student-detail">{{ item.cedula }} · {{ item.titulo }} · {{ item.area }} · {{ item.coordinador }}</small><small class="student-detail">Estado: {{ estadoMonografia(item.estado) }} · Seguimientos: {{ item.seguimientos }}{{ item.ultimoSeguimiento ? ' · Último: ' + fecha(item.ultimoSeguimiento) : ' · Sin seguimientos' }}</small><small class="student-observations">Observaciones del semestre: {{ item.observaciones }}</small></div><span class="report-status" [class.report-status--confirmed]="item.confirmada && item.completa" [class.report-status--complete]="item.completa && !item.confirmada" [class.status-pending]="!item.completa">{{ etiquetaReporte(item) }}</span><button class="ghost-button reactivate-button" type="button" [disabled]="saving() || !item.confirmada" (click)="permitirCambios(item)">{{ item.confirmada ? 'Reactivar edición' : 'Sin confirmar' }}</button></div>} @empty {<p class="empty-state">{{ loading() ? 'Cargando reportes...' : 'Ningún estudiante de la sección tiene una monografía asignada.' }}</p>}</div>@if (totalPages() > 1) {<div class="pagination"><button type="button" class="ghost-button" [disabled]="studentPage() === 0" (click)="previousPage()">Anterior</button><span>Página {{ studentPage() + 1 }} de {{ totalPages() }}</span><button type="button" class="ghost-button" [disabled]="studentPage() + 1 >= totalPages()" (click)="nextPage()">Siguiente</button></div>}</section>
+      <section class="student-picker no-print"><label for="student-search">Buscar estudiante</label><input id="student-search" type="search" [ngModel]="search()" (ngModelChange)="search.set($event); studentPage.set(0)" placeholder="Nombre o identificación" /><div class="student-list">@for (item of paginatedReports(); track item.cedula) {<div class="student-row"><div><strong>{{ item.estudiante }}</strong><small class="student-detail">{{ item.cedula }} · {{ item.titulo }} · {{ item.area }} · {{ item.coordinador }}</small><small class="student-detail">Estado: {{ estadoMonografia(item.estado) }} · Seguimientos: {{ item.seguimientos }}{{ item.ultimoSeguimiento ? ' · Último: ' + fecha(item.ultimoSeguimiento) : ' · Sin seguimientos' }}</small><small class="student-observations">Observaciones del semestre: {{ item.observaciones }}</small></div><span class="report-status" [class.report-status--confirmed]="item.confirmada && item.completa" [class.report-status--complete]="item.completa && !item.confirmada" [class.status-pending]="!item.completa">{{ etiquetaReporte(item) }}</span><button class="ghost-button reactivate-button" type="button" [disabled]="saving() || !item.confirmada" (click)="permitirCambios(item)">{{ item.confirmada ? 'Reactivar edición' : 'Sin confirmar' }}</button></div>} @empty {<p class="empty-state">{{ loading() ? 'Cargando reportes...' : errorCarga() || guia.error() ? 'No se pudieron cargar los registros. Intente de nuevo más tarde.' : 'Ningún estudiante de la sección tiene una monografía asignada.' }}</p>}</div>@if (totalPages() > 1) {<div class="pagination"><button type="button" class="ghost-button" [disabled]="studentPage() === 0" (click)="previousPage()">Anterior</button><span>Página {{ studentPage() + 1 }} de {{ totalPages() }}</span><button type="button" class="ghost-button" [disabled]="studentPage() + 1 >= totalPages()" (click)="nextPage()">Siguiente</button></div>}</section>
     </section>
   `,
   styles: `
@@ -57,6 +57,8 @@ export class VerificacionMonografiasVistaComponent {
   protected readonly secciones = computed(() => this.guia.secciones());
    protected readonly reports = signal<VerificacionMonografia[]>([]);
    protected readonly loading = signal(true);
+   /** RV2 PG06/PG07 error del sistema: la carga falló; no se presenta como una sección sin monografías. */
+   protected readonly errorCarga = signal(false);
     protected readonly saving = signal(false);
     protected readonly search = signal('');
    protected readonly studentPage = signal(0);
@@ -97,7 +99,9 @@ export class VerificacionMonografiasVistaComponent {
     effect(() => {
       const seccion = this.guia.seccionActual();
       this.guia.semestre();
-      untracked(() => { if (seccion) this.cargar(seccion); else { this.reiniciarVista(); this.loading.set(this.guia.cargando()); } });
+      // Sin sección se sigue el estado de la carga del guía: si falla, deja de mostrar 'Cargando reportes...'.
+      const cargandoGuia = seccion ? false : this.guia.cargando();
+      untracked(() => { if (seccion) this.cargar(seccion); else { this.reiniciarVista(); this.loading.set(cargandoGuia); } });
     });
   }
 
@@ -141,10 +145,11 @@ export class VerificacionMonografiasVistaComponent {
       this.studentPage.set(0);
      if (!seccion || !semestre) { this.loading.set(false); return; }
      this.loading.set(true);
+     this.errorCarga.set(false);
     const query = { anio: seccion.anio, nivel: seccion.nivel, numero: seccion.numero, semestre };
     forkJoin({ monographs: this.api.listarMonografias(query), reports: this.api.listarReportesMonografia(query) }).subscribe({
       next: ({ monographs, reports }) => { this.reports.set(this.adaptar(monographs, reports)); this.loading.set(false); },
-     error: () => { this.feedback.error('No se pudo cargar la verificación de monografías.'); this.loading.set(false); },
+     error: (e: { error?: { mensaje?: string } }) => { this.errorCarga.set(true); this.feedback.error(e?.error?.mensaje ?? 'No se pudo cargar la verificación de monografías. Intente de nuevo más tarde.'); this.loading.set(false); },
     });
   }
 
