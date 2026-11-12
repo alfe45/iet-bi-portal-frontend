@@ -22,7 +22,7 @@ import { TableroAdminComponent } from './tablero-admin.component';
       } @else {
         <section class="surface teacher-summary">
           <div><p class="eyebrow">{{ roleLabel() }}</p><h2 id="dashboard-title">{{ teacherName() }}</h2><p class="period-label">Periodo activo: <strong>{{ period() }}</strong></p></div>
-          @if (isRegular()) {<div class="summary-counts" aria-label="Resumen de asignaciones"><span><strong>{{ subjectCount() }}</strong> asignaturas</span><span><strong>{{ sectionCount() }}</strong> secciones</span><span><strong>{{ studentCount() }}</strong> estudiantes</span></div>}
+          @if (isRegular()) {<div class="summary-counts" aria-label="Resumen de asignaciones"><span><strong>{{ subjectCount() }}</strong> {{ subjectCount() === 1 ? 'asignatura' : 'asignaturas' }}</span><span><strong>{{ sectionCount() }}</strong> {{ sectionCount() === 1 ? 'sección' : 'secciones' }}</span><span><strong>{{ studentCount() }}</strong> {{ studentCount() === 1 ? 'estudiante' : 'estudiantes' }}</span></div>}
         </section>
 
         @if (quickLinks().length) {<section class="dashboard-section" aria-labelledby="actions-title"><div class="section-heading"><div><p class="eyebrow">Acciones frecuentes</p><h3 id="actions-title">¿Qué quieres hacer?</h3></div></div><div class="quick-grid">
@@ -34,7 +34,7 @@ import { TableroAdminComponent } from './tablero-admin.component';
         </div></section>}
 
         @if (isRegular()) {<section class="surface assignments" aria-labelledby="assignments-title"><div class="section-heading"><div><p class="eyebrow">Mis asignaciones</p><h3 id="assignments-title">Mis grupos</h3></div><span class="period-chip">{{ period() }}</span></div><div class="assignment-list">
-          @for (assignment of assignments(); track assignment.id) { <div class="assignment-row"><div><strong>{{ assignment['asignatura'] }}</strong><span>{{ assignment['seccion'] }} · {{ studentsFor(assignment['seccion']) }} estudiantes</span></div><a class="ghost-button" [routerLink]="['/grupo']" [queryParams]="groupParams(assignment)">Abrir grupo</a></div> } @empty { <p class="empty-state" [class.error-text]="grupos.errorGrupos()">{{ grupos.mensajeSinGrupos() }}</p> }
+          @for (assignment of assignments(); track assignment.id) { <div class="assignment-row"><div><strong>{{ assignment['asignatura'] }}</strong><span>{{ assignment['seccion'] }} · {{ studentsFor(assignment['seccion']) }} {{ studentsFor(assignment['seccion']) === 1 ? 'estudiante' : 'estudiantes' }}</span></div><a class="ghost-button" [routerLink]="['/grupo']" [queryParams]="groupParams(assignment)">Abrir grupo</a></div> } @empty { <p class="empty-state" [class.error-text]="grupos.errorGrupos()">{{ grupos.mensajeSinGrupos() }}</p> }
         </div></section>}
       }
     </section>
