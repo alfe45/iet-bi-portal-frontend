@@ -7,17 +7,18 @@ import type { RegistroVista } from '../nucleo/modelos/datos-vista';
 import { ProfesorRegularContextService, etiquetaSemestre } from '../nucleo/datos/profesor-regular-context.service';
 import type { ProfesorRegularAvisoApi } from '../nucleo/api/profesor-regular-api.service';
 import { fechaCostaRica } from '../compartidos/utilidades/fechas';
+import { TableroAdminComponent } from './tablero-admin.component';
 
 @Component({
   selector: 'app-vista-tablero',
-  imports: [RouterLink],
+  imports: [RouterLink, TableroAdminComponent],
   template: `
     <section class="dashboard" aria-labelledby="dashboard-title">
       @if (isAdmin()) {
-         <section class="surface admin-hero"><p class="eyebrow">{{ roleLabel() }}</p><h2 id="dashboard-title">Control institucional</h2><p>Administra la información académica y la configuración del portal.</p></section>
-        <section class="quick-grid" aria-label="Accesos rápidos">
+        <app-tablero-admin />
+        <section class="dashboard-section" aria-labelledby="admin-links-title"><h3 id="admin-links-title" class="eyebrow">Accesos rápidos</h3><div class="quick-grid quick-grid--compact">
           @for (item of quickLinks(); track item.path) { <a class="quick-card" [routerLink]="item.path"><span class="quick-card__icon" aria-hidden="true">{{ item.icon }}</span><span class="quick-card__copy"><strong>{{ item.label }}</strong><small>{{ item.description }}</small></span><span class="quick-card__arrow" aria-hidden="true">→</span></a> }
-        </section>
+        </div></section>
       } @else {
         <section class="surface teacher-summary">
           <div><p class="eyebrow">{{ roleLabel() }}</p><h2 id="dashboard-title">{{ teacherName() }}</h2><p class="period-label">Periodo activo: <strong>{{ period() }}</strong></p></div>
@@ -41,7 +42,7 @@ import { fechaCostaRica } from '../compartidos/utilidades/fechas';
   styles: `
      .dashboard { display: grid; gap: 1rem; align-content: start; }
      h2,h3,p { margin: 0; }.eyebrow { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .74rem; color: #2f6b9a; font-weight: 700; }
-     .admin-hero { border-left: 5px solid #2f6b9a; }.admin-hero p:last-child { margin-top: .35rem; color: #667085; }
+     .quick-grid--compact { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }.quick-grid--compact .quick-card { min-height: 64px; padding: .65rem; }.quick-grid--compact .quick-card small { display: none; }
      .teacher-summary { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 1.1rem 1.3rem; border-left: 5px solid #2f6b9a; }
      .teacher-summary h2 { color: #1e3a5f; font-size: clamp(1.15rem, 2vw, 1.45rem); }.period-label { margin-top: .45rem; color: #667085; }.period-label strong { color: #2f6b9a; }
      .summary-counts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem 1rem; color: #667085; font-size: .86rem; }.summary-counts span + span { border-left: 1px solid #dbe5ef; padding-left: 1rem; }.summary-counts strong { color: #1e3a5f; font-size: 1.15rem; }
