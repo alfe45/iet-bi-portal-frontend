@@ -15,7 +15,7 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
           <tbody>
             @if (!rows().length) { <tr><td class="empty-cell" [attr.colspan]="columns().length">{{ emptyMessage() }}</td></tr> }
             @for (row of rows(); track row['id'] ?? $index) {
-              <tr>@for (column of columns(); track column.key) { <td>
+              <tr>@for (column of columns(); track column.key) { <td [attr.data-label]="column.label" [class.actions-cell]="column.type === 'actions'">
                 @switch (column.type ?? 'text') {
                   @case ('badge') { <span class="badge" [class.badge--success]="isPositive(row[column.key])" [class.badge--danger]="isNegative(row[column.key])">{{ row[column.key] }}</span> }
                   @case ('badge-periodo') { <span class="badge" [class]="badgePeriodoClass(row[column.key])">{{ etiquetaEstadoPeriodo(row[column.key]) }}</span> }
@@ -46,6 +46,23 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     .avatar-cell strong, .avatar-cell small { display: block; }
     .avatar-cell small { color: #6b7280; }
     .empty-cell{text-align:center;color:#667085;padding:2rem!important}
+    /* Celular: cada fila es una tarjeta «etiqueta: valor» y las acciones bajan con botones grandes (el escritorio no cambia). */
+    @media (max-width: 600px) {
+      .table { table-layout: auto; font-size: .85rem; }
+      .table thead { display: none; }
+      .table tbody, .table tr, .table td { display: block; width: 100%; }
+      .table tr { padding: .7rem .85rem; border-bottom: 1px solid #e6edf3; }
+      .table > :not(caption) > * > * { padding: .18rem 0; border: 0; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+      .table td { display: grid; grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr); align-items: start; gap: .6rem; }
+      .table td::before { content: attr(data-label); color: #667085; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; line-height: 1.6; }
+      .table td.actions-cell { display: block; padding-top: .55rem; }
+      .table td.actions-cell::before, .table td.empty-cell::before { display: none; }
+      .table td.empty-cell { display: block; }
+      .action-list { gap: .5rem; }
+      .table-action { min-height: 38px; padding: .4rem .8rem; font-size: .82rem; }
+      .badge { font-size: .74rem; }
+      .pendiente { min-height: 34px; }
+    }
   `,
 })
 // Presenta tablas reutilizables con sus acciones y estados.
