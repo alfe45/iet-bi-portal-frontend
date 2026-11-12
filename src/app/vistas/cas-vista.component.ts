@@ -85,7 +85,7 @@ const DICCIONARIO_FECHAS_CAS = {
       <section class="panel progress-panel" aria-labelledby="cas-progress-title"><h3 id="cas-progress-title">{{ isCoordinator() ? 'Progreso CAS general' : 'Progreso CAS de la sección' }}</h3>
         <div class="table-scroll"><table class="progress-table"><thead><tr><th>Estudiante</th><th>Sección</th><th>Profesor CAS</th><th>Informe</th><th>Experiencias</th><th>Perfil</th><th>Entrevistas</th><th>Nota</th></tr></thead><tbody>
           <tr *ngFor="let row of pickerStudents()" [class.selected-row]="row.id === selected()?.id" (click)="seleccionarEstudiante(row.id)"><td><strong>{{ row.estudiante }}</strong><small>{{ row.id }}</small></td><td>{{ row.seccion }}</td><td>{{ row.profesorCas }}</td><td>{{ row.tieneInforme ? 'Registrado' : 'Sin informe' }}</td><td>{{ row.progreso?.experiencias ?? 0 }}</td><td>{{ row.progreso?.perfil ? 'Sí' : 'No' }}</td><td>{{ row.progreso?.entrevistas ?? 0 }}</td><td>{{ row.progreso?.nota ?? '—' }}{{ row.progreso?.notaEnviada ? ' (enviada)' : '' }}</td></tr>
-          <tr *ngIf="!pickerStudents().length"><td colspan="8" class="empty-cell">{{ cargando() ? 'Cargando…' : 'No hay estudiantes CAS en el periodo consultado.' }}</td></tr>
+          <tr *ngIf="!pickerStudents().length"><td colspan="8" class="empty-cell">{{ cargando() ? 'Cargando…' : errorCarga() ? 'No se pudieron cargar los registros. Intente de nuevo más tarde.' : 'No hay estudiantes CAS en el periodo consultado.' }}</td></tr>
         </tbody></table></div></section>
       <section class="cas-layout" style="grid-template-columns:minmax(0,1fr)">
          <section *ngIf="selected() as student" class="panel editor-panel"><div class="table-heading"><div class="student-heading"><div><p class="eyebrow">{{ student.estudiante }} · {{ student.seccion }}</p><h3>Registro de actividades</h3></div><div class="student-actions" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap"><button type="button" class="observations-button" (click)="abrirObservaciones(student)">Observaciones</button><button *ngIf="isCoordinator()" type="button" class="observations-button" style="background:#1b6f60;border-color:#145445" [disabled]="!selected()" (click)="printReport()">Generar reporte CAS</button><button *ngIf="!isCoordinator() && student.tieneInforme" type="button" class="observations-button" style="background:#b42318;border-color:#912018" [disabled]="guardando()" (click)="eliminarInforme(student)">Eliminar informe</button></div></div><div class="cas-filters"><label>Sección<select [ngModel]="selectedSection()" (ngModelChange)="cambiarSeccion($event)"><option *ngIf="!assignedSection()" value="Todas">Todas</option><option *ngFor="let section of sections()" [value]="section">{{ section }}</option></select></label><label>Estudiante<select [ngModel]="selectedId()" (ngModelChange)="seleccionarEstudiante($event)"><option *ngFor="let option of pickerStudents()" [value]="option.id">{{ option.estudiante }}</option></select></label></div></div>
@@ -127,6 +127,8 @@ export class CasVistaComponent {
   private readonly secciones = signal<SeccionCasRef[]>([]);
   private readonly estudiantesApi = signal<EstudianteCas[]>([]);
   protected readonly cargando = signal(false);
+  /** RV2 PC03 error del sistema: si la carga falla, no se presenta como una sección sin estudiantes CAS. */
+  protected readonly errorCarga = signal(false);
   protected readonly guardando = signal(false);
   protected readonly selectedId = signal('');
   protected readonly outcomeNumbers = [1, 2, 3, 4, 5, 6, 7];
@@ -147,7 +149,7 @@ export class CasVistaComponent {
     private salidaPendiente: SalidaCasPendiente | null = null;
     private salidaResolve: ((allowed: boolean) => void) | null = null;
     private salidaPromise: Promise<boolean> | null = null;
-    protected readonly mensajeVacio = computed(() => this.cargando() ? 'Cargando estudiantes CAS...' : this.periodo()?.semestreActual ? 'No tienes una sección CAS asignada en el periodo actual.' : 'No hay un semestre activo para registrar informes CAS.');
+    protected readonly mensajeVacio = computed(() => this.cargando() ? 'Cargando estudiantes CAS...' : this.errorCarga() ? 'No se pudieron cargar los registros. Intente de nuevo más tarde.' : this.periodo()?.semestreActual ? 'No tienes una sección CAS asignada en el periodo actual.' : 'No hay un semestre activo para registrar informes CAS.');
 
   constructor() {
     this.cargarMisSecciones();
@@ -402,13 +404,14 @@ export class CasVistaComponent {
       finalize(() => this.cargando.set(false)),
     ).subscribe({
        next: ({ refs, estudiantes }) => {
+         this.errorCarga.set(false);
          this.secciones.set(refs);
          this.estudiantesApi.set(estudiantes);
          estudiantes.forEach((student) => this.registrarSnapshot(student));
          this.selectedSection.set(this.assignedSection() || 'Todas');
          this.seleccionarEstudiante(this.pickerStudents()[0]?.id ?? '');
       },
-      error: () => this.feedback.error('No se pudieron cargar los estudiantes CAS.'),
+      error: (e: { error?: { mensaje?: string } }) => { this.errorCarga.set(true); this.secciones.set([]); this.estudiantesApi.set([]); this.feedback.error(e?.error?.mensaje ?? 'No se pudieron cargar los estudiantes CAS. Intente de nuevo más tarde.'); },
     });
   }
 
