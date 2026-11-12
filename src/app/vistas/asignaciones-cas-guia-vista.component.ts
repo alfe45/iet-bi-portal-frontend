@@ -6,6 +6,7 @@ import { ProfesoresApiService } from '../nucleo/api/profesores-api.service';
 import { SeccionesApiService, SeccionApi } from '../nucleo/api/secciones-api.service';
 import { CursosLectivosApiService } from '../nucleo/api/cursos-lectivos-api.service';
 import { FeedbackService } from '../compartidos/servicios/feedback.service';
+import { AsignarGuiaDialogoComponent, SeccionGuia } from '../compartidos/componentes/asignar-guia-dialogo.component';
 
 interface ProfesorAsignable {
   id: string | number;
@@ -39,7 +40,7 @@ interface AssignmentDraft {
 
 @Component({
   selector: 'app-vista-asignaciones-cas-guia',
-  imports: [FormsModule],
+  imports: [FormsModule, AsignarGuiaDialogoComponent],
   template: `
     <section class="assignment-page" aria-labelledby="assignment-title">
          <header class="surface page-header">
@@ -49,17 +50,16 @@ interface AssignmentDraft {
 
        <section class="surface assignment-list" [class.assignment-list--cas]="!isGuide">
             @if (isGuide) {
-              <div class="table-head guide-table-head"><strong>Profesor</strong><strong>Año</strong><strong>Sección</strong><strong>Tipo</strong><strong></strong></div>
+              <div class="table-head guide-table-head"><strong>Profesor</strong><strong>Año</strong><strong>Sección</strong><strong></strong></div>
             } @else {
               <div class="table-head"><strong>Año · sección</strong><strong>Profesor</strong><strong>Estudiantes</strong><strong>Estado</strong><strong></strong></div>
             }
           @for (item of assignments(); track item.id) {
             @if (isGuide) {
               <div class="assignment-row guide-assignment-row">
-                <div><strong>{{ item.profesor }}</strong><small>{{ item.cedula }}</small></div>
+                <div>@if (item.cedula) {<strong>{{ item.profesor }}</strong><small>{{ item.cedula }}</small>} @else {<span class="sin-guia">Sin asignar</span>}</div>
                 <span>{{ item.anio }}</span>
                 <span>{{ item.seccion }}</span>
-                <span>Profesor Guía</span>
                  <div class="row-actions">@if (item.cedula) {<button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button>} @else {<button type="button" class="primary-button" (click)="nuevoParaSeccion(item)">Asignar</button>}</div>
               </div>
             } @else {
@@ -74,14 +74,13 @@ interface AssignmentDraft {
         } @empty { <p class="empty">No hay asignaciones registradas.</p> }
       </section>
 
+      @if (isGuide && guiaDialogo() !== undefined) { <app-asignar-guia-dialogo [seccion]="guiaDialogo() ?? null" (cerrar)="guiaDialogo.set(undefined)" (guardado)="guiaDialogo.set(undefined); cargarGuias()" /> }
       @if (editorOpen()) {
         <div class="modal-backdrop" role="presentation">
           <form class="editor-modal" (ngSubmit)="guardar()" novalidate>
              <div class="modal-heading"><div><p class="eyebrow">{{ isGuide ? 'Asignación de guía' : 'Asignación de profesor CAS' }}</p><h3>{{ editingId() ? 'Editar asignación' : 'Nueva asignación' }}</h3><p class="required-legend">* Campos obligatorios</p></div><button type="button" class="close-button" (click)="cerrar()">×</button></div>
              <div class="form-grid">
                  <label>Profesor<select name="profesor" [(ngModel)]="draft.cedula" (ngModelChange)="seleccionarProfesor($event)" required><option value="">Seleccione un profesor</option>@for (teacher of profesoresElegibles(); track teacher.id) {<option [value]="teacher.cedula">{{ teacher.nombre }}</option>}</select>@if (!profesoresElegibles().length) {<small class="hint">{{ isGuide ? 'No hay profesores con el rol Profesor Guía disponibles para este curso lectivo.' : 'No hay profesores con los roles Profesor regular y Profesor CAS disponibles.' }}</small>}</label>
-                @if (isGuide && draft.seccion) { <p class="current-guide"><strong>Guía actual:</strong> {{ guiaActual() }}</p> }
-                @if (isGuide) { <label>Responsabilidad<select name="responsabilidad" [(ngModel)]="draft.responsabilidad" (ngModelChange)="cambioResponsabilidad($event)" required><option value="Profesor Guía">Profesor Guía</option></select></label> }
                  <label>Sección<select name="seccion" [(ngModel)]="draft.seccion" (ngModelChange)="cambiarSeccion()" [disabled]="!!editingId()" required><option value="">Seleccione una sección</option>@for (section of seccionesDisponibles(); track section.idSeccion) {<option [value]="sectionKey(section)">{{ section.anio }} · {{ section.nombre }}</option>}</select></label>
             </div>
             <div class="modal-actions"><button type="button" class="ghost-button" (click)="cerrar()">Cancelar</button><button type="submit" class="primary-button">Guardar asignación</button></div>
@@ -91,7 +90,7 @@ interface AssignmentDraft {
     </section>
   `,
    styles: `
-     .assignment-list--cas .table-head,.assignment-list--cas .assignment-row{grid-template-columns:1.25fr 1.35fr 1fr 100px 180px}.assignment-list:not(.assignment-list--cas) .table-head,.assignment-list:not(.assignment-list--cas) .assignment-row{grid-template-columns:1.35fr 1fr 1fr 1fr 180px}
+     .assignment-list--cas .table-head,.assignment-list--cas .assignment-row{grid-template-columns:1.25fr 1.35fr 1fr 100px 180px}.assignment-list:not(.assignment-list--cas) .table-head,.assignment-list:not(.assignment-list--cas) .assignment-row{grid-template-columns:1.6fr 1fr 1fr 190px}.sin-guia{display:inline-block;padding:.22rem .6rem;border-radius:999px;background:#fff1f0;border:1px solid #fecdca;color:#b42318;font-size:.8rem;font-weight:800}
     .assignment-page{display:grid;gap:1rem;align-content:start}.page-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;border-left:5px solid #2f6b9a}.page-header h2,.page-header p:last-child{margin:0}.page-header p:last-child{margin-top:.35rem;color:#667085}.eyebrow{margin:0 0 .25rem;color:#2f6b9a;font-size:.74rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.assignment-list{padding:1rem 1.2rem}.table-head,.assignment-row{display:grid;grid-template-columns:1.35fr 1.2fr 1.2fr 180px;gap:1rem;align-items:center}.table-head{padding:.2rem 0 .65rem;color:#667085;font-size:.75rem;text-transform:uppercase}.assignment-row{padding:.75rem 0;border-top:1px solid #e6edf3}.assignment-row strong,.assignment-row small{display:block}.assignment-row small{margin-top:.15rem;color:#667085}.assignment-row span{color:#475467}.row-actions{display:flex;justify-content:flex-end;gap:.45rem}.danger-button{border:0;border-radius:5px;padding:.5rem .7rem;background:#fff0f1;color:#b42318;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}.empty{padding:1rem 0;color:#667085}.modal-backdrop{position:fixed;inset:0;z-index:1100;display:grid;align-items:center;justify-content:center;padding:1rem;background:rgba(13,25,39,.52)}.editor-modal{width:min(100%,620px);padding:1.2rem;border-radius:10px;background:#fff;box-shadow:0 20px 60px rgba(4,26,55,.3)}.modal-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin-bottom:1rem}.modal-heading h3{margin:0;color:#1e3a5f}.close-button{width:32px;height:32px;border:0;border-radius:50%;background:#f2f5f7;color:#667085;font-size:1.25rem;cursor:pointer}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.form-grid label{display:grid;gap:.4rem;font-weight:700}.form-grid select{width:100%;box-sizing:border-box;border:1px solid #cfdbe5;border-radius:5px;padding:.55rem;background:#fff;font:inherit;color:#25364a}.modal-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem}@media(max-width:700px){.page-header{align-items:flex-start;flex-direction:column}.table-head{display:none}.assignment-row{grid-template-columns:1fr;gap:.35rem}.row-actions{justify-content:stretch}.row-actions button{flex:1}.form-grid{grid-template-columns:1fr}}
   `,
 })
@@ -120,6 +119,8 @@ export class AsignacionesCasGuiaVistaComponent {
   });
   protected readonly puedeCrear = computed(() => this.seccionesDisponibles().length > 0 && (this.isGuide || this.casLoaded()));
   protected readonly editorOpen = signal(false);
+  // Guía (CU16): undefined = cerrada; null = elegir sección; con valor = sección dada.
+  protected readonly guiaDialogo = signal<SeccionGuia | null | undefined>(undefined);
   protected readonly editingId = signal('');
   protected draft: AssignmentDraft = {};
 
@@ -134,6 +135,11 @@ export class AsignacionesCasGuiaVistaComponent {
   }
 
    protected nuevo(): void {
+     if (this.isGuide) {
+       if (!this.seccionesDisponibles().length) { this.feedback.error('Todas las secciones ya tienen profesor guía asignado.', 'No hay secciones disponibles'); return; }
+       this.guiaDialogo.set(null);
+       return;
+     }
      if (!this.isGuide && !this.casLoaded()) { this.feedback.error('Las asignaciones CAS todavía se están cargando.', 'Espere un momento'); return; }
      this.editingId.set('');
      const section = this.seccionesDisponibles()[0];
@@ -146,6 +152,7 @@ export class AsignacionesCasGuiaVistaComponent {
   }
 
   protected nuevoParaSeccion(item: AssignmentRow): void {
+    if (this.isGuide) { this.guiaDialogo.set({ anio: item.anio!, nivel: item.nivel!, numero: item.numero! }); return; }
     this.nuevo();
     this.draft.seccion = `${item.anio}-${item.nivel}-${item.numero}`;
     // DV-005: el profesor sugerido se recalcula con la sección de la fila (antes quedaba el de la primera sección
@@ -158,6 +165,7 @@ export class AsignacionesCasGuiaVistaComponent {
   }
 
   protected editar(item: AssignmentRow): void {
+    if (this.isGuide) { this.guiaDialogo.set({ anio: item.anio!, nivel: item.nivel!, numero: item.numero! }); return; }
     this.editingId.set(item.id);
     this.draft = { id: item.id, cedula: item.cedula, profesor: item.profesor, responsabilidad: 'Profesor Guía', seccion: `${item.anio}-${item.nivel}-${item.numero}` };
     this.editorOpen.set(true);
@@ -187,11 +195,6 @@ export class AsignacionesCasGuiaVistaComponent {
     return actual && !elegibles.includes(actual) ? [actual, ...elegibles] : elegibles;
   }
 
-  protected guiaActual(): string {
-    const section = this.sections().find((item) => this.sectionKey(item) === this.draft.seccion);
-    return section?.nombreGuia ?? 'Sin asignar';
-  }
-
   // DV-005: al cambiar la sección, si el profesor elegido ya no es elegible para ella se quita la selección.
   protected cambiarSeccion(): void {
     if (!this.draft.cedula) return;
@@ -203,8 +206,6 @@ export class AsignacionesCasGuiaVistaComponent {
   }
 
   protected seleccionarProfesor(cedula: string): void { this.draft.cedula = cedula; this.draft.profesor = this.teachers().find((teacher) => teacher.cedula === cedula)?.nombre ?? ''; }
-
-  protected cambioResponsabilidad(responsabilidad: string): void { if (responsabilidad === 'Profesor Guía' && !this.draft.seccion) this.draft.seccion = this.sections()[0] ? this.sectionKey(this.sections()[0]) : ''; }
 
   protected guardar(): void {
     if (!this.draft.cedula || !this.draft.seccion) return;
@@ -220,7 +221,7 @@ export class AsignacionesCasGuiaVistaComponent {
     operation.subscribe({ next: () => { this.feedback.exito(current ? 'El profesor CAS fue actualizado.' : 'El profesor CAS fue asignado.'); this.cargarAsignacionesCas(this.apiSections()); this.cerrar(); }, error: (error) => this.errorAccion(error, 'No se pudo guardar la asignación CAS.') });
   }
 
-  private cargarGuias(): void { this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => { this.apiSections.set(response.elementos); this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos)); }, error: () => this.feedback.error('No se pudieron actualizar las asignaciones de profesores guía.') }); }
+  protected cargarGuias(): void { this.seccionesApi.listarPaginado({ pagina: 1, tamanoPagina: 100 }).subscribe({ next: (response) => { this.apiSections.set(response.elementos); this.apiGuideAssignments.set(this.mapGuideAssignments(response.elementos)); }, error: () => this.feedback.error('No se pudieron actualizar las asignaciones de profesores guía.') }); }
 
   protected async eliminar(item: AssignmentRow): Promise<void> {
     if (!await this.feedback.confirmar(`¿Eliminar la asignación de ${item.profesor}?`, 'Eliminar asignación', 'Eliminar')) return;
