@@ -222,7 +222,7 @@ const ESTADOS: Record<string, string> = { PROGRAMADO: 'Programado', EN_CURSO: 'E
     @media (max-width: 760px) {
       .board { grid-template-columns: 1fr; grid-template-areas: "kpis" "alertas" "actividad" "notas" "mono" "matricula" "ausentismo"; }
       .area-actividad { height: auto; min-height: 0; }.area-actividad .activity { max-height: 22rem; }
-      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.kpi strong { font-size: 1.6rem; }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }.kpi strong { font-size: 1.6rem; }.alert-link { display: inline-flex; align-items: center; min-height: 36px; }
     }
   `,
 })
