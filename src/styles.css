@@ -268,6 +268,9 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
   .workspace__content :is(.page-header, .module-header, .page-heading, .section-heading, .group-header) :is(h2, h3, p) { overflow-wrap: anywhere; }
   /* El título de las ventanas queda a la izquierda y la «×» arriba a la derecha (la regla de .section-heading lo apilaba). */
   .modal-backdrop :is(.modal-header, .modal-heading) { flex-direction: row !important; flex-wrap: nowrap !important; align-items: flex-start !important; }
+  /* La columna de la página no crece con el contenido: las tablas anchas se desplazan dentro de su marco. */
+  .cas-page { grid-template-columns: minmax(0, 1fr) !important; }
+  .cas-page > * { min-width: 0; }
 }
 @media (max-width: 600px) {
   .workspace__content :is(.page-header, .module-header, .page-heading, .group-header) { flex-direction: column; align-items: stretch !important; }
@@ -280,6 +283,7 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
 /* Pantallas táctiles: botones de al menos 40 px y campos de 16 px (el iPhone no hace zoom al tocarlos). */
 @media (pointer: coarse) and (max-width: 1024px) {
   input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px !important; }
-  :is(.primary-button, .ghost-button, .danger-button, .secondary-button) { min-height: 40px; }
+  :is(.primary-button, .ghost-button, .danger-button, .secondary-button) { min-height: 40px !important; }
+  .cas-page :is(.flag-button, .doc-button) { min-width: 34px !important; min-height: 34px !important; }
   input[type=checkbox], input[type=radio] { width: 1.15rem; height: 1.15rem; }
 }
