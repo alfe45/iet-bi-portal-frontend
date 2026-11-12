@@ -256,7 +256,7 @@ export class MonografiasVista implements OnInit {
         this.monographs.update((items) => items.map((entry) => entry.cedulaEstudiante === item.cedulaEstudiante ? { ...entry, estado: this.draftEstado } : entry));
         this.detail.update((detail) => detail ? { ...detail, monografia: { ...detail.monografia, estado: this.draftEstado } } : detail);
         this.reportModal.set(null);
-         this.feedback.exito('Estado actualizado. Los otros campos no se guardaron.');
+         this.feedback.exito('Estado actualizado.');
       },
        error: (error: unknown) => this.feedback.error(this.mensajeError(error, 'No se pudo actualizar el estado.')),
     });
