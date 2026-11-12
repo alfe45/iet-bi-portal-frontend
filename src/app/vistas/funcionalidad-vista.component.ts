@@ -1436,7 +1436,13 @@ export class FuncionalidadVistaComponent {
       this.guardandoCoordinacion.set(true);
       concat(...cambios).subscribe({
         complete: () => { this.guardandoCoordinacion.set(false); this.coordinacionTarget.set(null); this.feedback.exito('La coordinación del profesor fue actualizada.'); this.cargarProfesores(this.adminSearch); },
-        error: (error) => { this.guardandoCoordinacion.set(false); this.coordinacionTarget.set(null); this.notificarError(error, 'No se pudo actualizar la coordinación del profesor.'); this.cargarProfesores(this.adminSearch); },
+        error: (error) => {
+          this.guardandoCoordinacion.set(false); this.coordinacionTarget.set(null);
+          // RV2 CU34 FA1: la API responde por la cuenta (NF001); en esta vista se habla del profesor.
+          const http = error as { status?: number; error?: { codigo?: string; mensaje?: string } };
+          const aviso = http?.error?.codigo === 'NF001' ? { ...http, error: { ...http.error, mensaje: 'El profesor no existe.' } } : error;
+          this.notificarError(aviso, 'No se pudo actualizar la coordinación del profesor.'); this.cargarProfesores(this.adminSearch);
+        },
       });
     }
 
