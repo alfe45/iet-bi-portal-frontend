@@ -66,7 +66,7 @@ interface AssignmentDraft {
               <div class="assignment-row">
                 <div><strong>{{ item.anio }} · {{ item.seccion }}</strong><small>Asignatura CAS</small></div>
                 <span>{{ item.profesor }}</span>
-                <span>{{ (item.cantidadEstudiantes ?? 0) + ' estudiantes' }}</span>
+                <span>{{ (item.cantidadEstudiantes ?? 0) + ((item.cantidadEstudiantes ?? 0) === 1 ? ' estudiante' : ' estudiantes') }}</span>
                 <span>{{ item.estado || 'Activo' }}</span>
                  <div class="row-actions">@if (item.cedula) {<button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button>} @else {<button type="button" class="primary-button" (click)="nuevoParaSeccion(item)">Asignar</button>}</div>
               </div>

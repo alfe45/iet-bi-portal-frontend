@@ -131,7 +131,12 @@ export class AsignarGuiaDialogoComponent {
     this.guardando.set(true);
     this.seccionesApi.asignarGuia(anio, nivel, numero, this.cedula).subscribe({
       next: () => { this.guardando.set(false); this.feedback.exito('El profesor guía fue asignado.'); this.guardado.emit(); },
-      error: (error: { error?: { mensaje?: string } }) => { this.guardando.set(false); this.feedback.error(error.error?.mensaje ?? 'No se pudo asignar el profesor guía.'); },
+      error: (error: { status?: number; error?: { mensaje?: string } }) => {
+        this.guardando.set(false);
+        this.feedback.error(error.error?.mensaje ?? 'No se pudo asignar el profesor guía.');
+        // RV2 ADM16 FA4: si la sección o el profesor ya no existen, se cierra la ventana y se actualiza el listado.
+        if (error.status === 404) this.guardado.emit();
+      },
     });
   }
 }

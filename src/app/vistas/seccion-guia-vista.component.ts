@@ -29,7 +29,7 @@ import { fechaCostaRica } from '../compartidos/utilidades/fechas';
         </section>
 
         <section class="surface student-panel">
-          <div class="panel-heading"><div><p class="eyebrow">Estudiantes de la sección guía</p><h3>{{ seccion.nombre }} · {{ seccion.anio }}</h3></div><span>{{ estudiantes().length }}</span></div>
+          <div class="panel-heading"><div><p class="eyebrow">Estudiantes de la sección guía</p><h3>{{ seccion.nombre }} · {{ seccion.anio }}</h3></div><span [title]="retirados() ? 'Matrículas activas; las retiradas se muestran en la lista' : ''">{{ estudiantes().length - retirados() }}@if (retirados()) {<small> + {{ retirados() }} {{ retirados() === 1 ? 'retirada' : 'retiradas' }}</small>}</span></div>
           <div class="student-list">
             @if (cargandoEstudiantes()) {<p class="empty">Cargando estudiantes...</p>}
             @else if (errorEstudiantes()) {<p class="empty error-text" role="alert">{{ errorEstudiantes() }}</p>}
@@ -51,6 +51,8 @@ export class SeccionGuiaVistaComponent {
   protected readonly guia = inject(GuiaConsultaService);
   private readonly api = inject(ProfesorGuiaApiService);
   protected readonly estudiantes = signal<EstudianteGuiaApi[]>([]);
+  /** Mi sección guía: la tarjeta cuenta matrículas sin retiro; el encabezado de la lista usa el mismo número y aparte las retiradas. */
+  protected readonly retirados = computed(() => this.estudiantes().filter((e) => e.estado === 'RETIRADA').length);
   protected readonly cargandoEstudiantes = signal(false);
   protected readonly errorEstudiantes = signal('');
   protected readonly studentPage = signal(0);

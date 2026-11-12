@@ -41,6 +41,8 @@ export interface InformeCasApi {
   emailEstudiante: string;
   cedulaProfesor: string;
   nombreProfesor: string;
+  /** Solo en la consulta del Coordinador de CAS (CC-CU02): nombre para la firma del reporte. */
+  nombreCoordinadorCas?: string | null;
   perfil: boolean;
   entrevista1: boolean;
   entrevista2: boolean;

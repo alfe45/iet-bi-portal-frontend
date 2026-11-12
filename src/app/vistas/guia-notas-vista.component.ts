@@ -33,6 +33,7 @@ interface GrupoNotas {
         @else if (cargando()) {<p class="surface empty">Cargando…</p>}
         @else if (modo === 'notas') {
           <section class="surface filters"><label><small>Asignatura</small><select [ngModel]="filtroAsignatura()" (ngModelChange)="filtroAsignatura.set($event)" aria-label="Filtrar por asignatura"><option value="">Todas</option>@for (grupo of grupos(); track grupo.clave) {<option [value]="grupo.clave">{{ grupo.asignatura }} · {{ grupo.profesor }}</option>}</select></label><span>{{ confirmadas() }} de {{ grupos().length }} asignaturas confirmadas</span></section>
+          @if (sinNotasRegistradas()) {<p class="surface empty">Todavía no hay notas registradas para la sección en el semestre consultado.</p>}
           @for (grupo of gruposVisibles(); track grupo.clave) {
             <section class="surface block">
               <div class="block-head"><div><h3>{{ grupo.asignatura }} <small>({{ grupo.codigo }} · {{ tipo(grupo.tipo) }})</small></h3><p>Profesor: {{ grupo.profesor }} · {{ grupo.sinNota === 0 ? 'Todos con nota' : grupo.sinNota + ' sin nota' }}</p></div><span class="badge" [class.badge--ok]="grupo.confirmada">{{ grupo.confirmada ? 'Notas confirmadas' : 'Sin confirmar' }}</span></div>
@@ -86,6 +87,8 @@ export class GuiaNotasVistaComponent {
     }
     return [...mapa.values()];
   });
+  /** RV2 PG03/PG04 FA 2: hay asignaturas pero ningún profesor registró notas en el semestre. */
+  protected readonly sinNotasRegistradas = computed(() => this.grupos().length > 0 && this.grupos().every((grupo) => grupo.notas.every((n) => n.nota === null)));
   protected readonly gruposVisibles = computed(() => this.grupos().filter((grupo) => !this.filtroAsignatura() || grupo.clave === this.filtroAsignatura()));
   protected readonly confirmadas = computed(() => this.grupos().filter((grupo) => grupo.confirmada).length);
 
