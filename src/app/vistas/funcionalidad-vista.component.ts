@@ -761,7 +761,7 @@ export class FuncionalidadVistaComponent {
     /** RD-025: la sección muestra su profesor guía y la cantidad de estudiantes. */
     private seccionRow(section: SeccionApi): Record<string, unknown> {
       const parts = section.seccion.split('-');
-      return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], guia: section.nombreGuia ?? 'Sin asignar', cantidadEstudiantes: String(section.cantidadEstudiantes ?? 0), acciones: [{ label: 'Ver', code: 'view' }, ...(section.nombreGuia ? [] : [{ label: 'Asignar guía', code: 'assign-guide' }]), { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
+      return { id: String(section.idSeccion), yearCiclo: section.yearCiclo, seccion: section.seccion, nivel: parts[0], numeroSeccion: parts[1], guia: section.nombreGuia ?? 'Sin asignar', cantidadEstudiantes: String(section.cantidadEstudiantes ?? 0), acciones: [{ label: 'Ver', code: 'view' }, { label: 'Eliminar', code: 'delete', tone: 'danger' }] };
     }
 
       protected cargarSeccionesAdministracion(pagina = this.paginaActual(), actualizaPaginacion = true): void {
@@ -1333,7 +1333,7 @@ export class FuncionalidadVistaComponent {
     }
 
     private async accionSeccion(action: string, registro: RegistroVista): Promise<void> {
-     // CU16 desde Secciones: la sección sin guía abre la ventana de asignación.
+     // CU16 desde Secciones: la etiqueta «Sin asignar» de la sección abre la ventana de asignación.
      if (action === 'assign-guide') { this.guiaSeccion.set({ anio: Number(registro['yearCiclo']), nivel: Number(registro['nivel']), numero: Number(registro['numeroSeccion']) }); return; }
      if (action === 'view') {
        // RD-025/RD-008: detalle de solo lectura con los datos vigentes (GET); un 404 informa y actualiza el listado.
