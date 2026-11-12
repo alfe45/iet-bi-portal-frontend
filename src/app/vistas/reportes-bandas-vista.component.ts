@@ -208,6 +208,7 @@ export class ReportesBandasVistaComponent {
     const bands = report.asignaturas.filter((item) => ['SUPERIOR', 'MEDIO'].includes(item.tipoAsignatura));
     const numeric = report.asignaturas.filter((item) => item.tipoAsignatura === 'MEP');
     return {
+      nombreGuia: report.nombreGuia ?? undefined,
       estudiante: report.nombreEstudiante,
       identificacion: report.cedulaEstudiante,
       seccion: report.seccion,

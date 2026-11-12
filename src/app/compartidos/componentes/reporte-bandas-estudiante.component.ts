@@ -32,6 +32,8 @@ export interface DocumentoReporteBandas {
   teoriaConocimiento: { bandaAlcanzada: string; tardias: string; injustificadas: string; justificadas: string; observaciones: string };
   reporteMonografia: { area: string; coordinador: string; observaciones: string };
   filasNumericas: FilaReporteNumerico[];
+  /** RV2 DV-016: nombre del profesor guía para la firma (PG08/PG09 FB.4). */
+  nombreGuia?: string;
 }
 
 @Component({
@@ -108,7 +110,7 @@ export interface DocumentoReporteBandas {
         }
 
         <section class="signatures-block">
-          <div class="signature"><span></span><strong>Firma del profesor guía</strong></div>
+          <div class="signature"><span></span><strong>Firma del profesor guía</strong>@if (report().nombreGuia) {<small>{{ report().nombreGuia }}</small>}</div>
           <div class="signature"><span></span><strong>Firma del encargado(a)</strong></div>
           <div class="signature signature-date"><span></span><strong>Fecha</strong></div>
         </section>
