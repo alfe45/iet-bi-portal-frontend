@@ -33,7 +33,7 @@ interface ProblemaReporteBandas {
        <section class="student-picker no-print">
         <label for="student-search">Buscar estudiante</label>
          <input id="student-search" type="search" [ngModel]="search()" (ngModelChange)="search.set($event); studentPage.set(0)" placeholder="Nombre o identificación" />
-             <div class="student-list">@for (student of paginatedStudents(); track student.cedulaEstudiante) {<div class="student-row"><div><strong>{{ student.nombreEstudiante }}</strong><small>{{ student.cedulaEstudiante }}</small></div><span class="report-status" [class.report-status--complete]="estadoReporte(student) === 'completo'" [class.report-status--confirmed]="estadoReporte(student) === 'confirmado'">{{ etiquetaEstadoReporte(student) }}</span><button class="primary-button" type="button" (click)="printOne(student.cedulaEstudiante)">Imprimir</button></div>} @empty {<p class="empty-state">{{ loading() ? 'Cargando estudiantes...' : 'No se encontraron estudiantes en la sección guía.' }}</p>}</div>
+             <div class="student-list">@for (student of paginatedStudents(); track student.cedulaEstudiante) {<div class="student-row"><div><strong>{{ student.nombreEstudiante }}</strong><small>{{ student.cedulaEstudiante }}</small></div><span class="report-status" [class.report-status--complete]="estadoReporte(student) === 'completo'" [class.report-status--confirmed]="estadoReporte(student) === 'confirmado'">{{ etiquetaEstadoReporte(student) }}</span><button class="primary-button" type="button" (click)="printOne(student.cedulaEstudiante)">Imprimir</button></div>} @empty {<p class="empty-state">{{ loading() ? 'Cargando estudiantes...' : errorCarga() ? 'No se pudieron cargar los registros. Intente de nuevo más tarde.' : 'No se encontraron estudiantes en la sección guía.' }}</p>}</div>
          @if (totalPages() > 1) {<div class="pagination"><button type="button" class="ghost-button" [disabled]="studentPage() === 0" (click)="previousPage()">Anterior</button><span>Página {{ studentPage() + 1 }} de {{ totalPages() }}</span><button type="button" class="ghost-button" [disabled]="studentPage() + 1 >= totalPages()" (click)="nextPage()">Siguiente</button></div>}
        </section>
 
@@ -65,6 +65,8 @@ export class ReportesBandasVistaComponent {
   protected readonly printingAll = signal(false);
   protected readonly studentPage = signal(0);
    protected readonly loading = signal(true);
+   /** RV2 PG08/PG09 error del sistema: si la carga falla, el listado no se presenta como una sección sin estudiantes. */
+   protected readonly errorCarga = signal(false);
    protected readonly reactivating = signal(false);
   protected readonly pageSize = 3;
   private printingInProgress = false;
@@ -192,9 +194,10 @@ export class ReportesBandasVistaComponent {
     this.studentPage.set(0);
      if (!seccion || !semestre) { this.loading.set(false); return; }
      this.loading.set(true);
+     this.errorCarga.set(false);
     this.api.listarReportesBandas({ anio: seccion.anio, nivel: seccion.nivel, numero: seccion.numero, semestre }).subscribe({
       next: (reports) => { this.reportsState.set(reports); this.selectedId.set(reports[0]?.cedulaEstudiante ?? ''); this.loading.set(false); },
-       error: () => { this.feedback.error('No se pudieron cargar los reportes de bandas.'); this.loading.set(false); },
+       error: (e: { error?: { mensaje?: string } }) => { this.errorCarga.set(true); this.feedback.error(e?.error?.mensaje ?? 'No se pudieron cargar los reportes de bandas. Intente de nuevo más tarde.'); this.loading.set(false); },
     });
   }
 
@@ -219,8 +222,9 @@ export class ReportesBandasVistaComponent {
   }
 
   // DV-013 (PG08 FA 5, PG09 FA 4): la nota registrada que el profesor aún no confirmó se marca en el reporte.
+  // RV2: si aún no hay nota, la casilla queda en blanco pero también indica que la asignatura está sin confirmar.
   private notaReporte(item: BandaAsignaturaGuiaApi): string {
-    if (item.nota === null) return '—';
+    if (item.nota === null) return item.confirmada ? '—' : '— (sin confirmar)';
     return item.confirmada ? item.nota : `${item.nota} (sin confirmar)`;
   }
 
