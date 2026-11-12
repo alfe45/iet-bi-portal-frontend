@@ -1041,7 +1041,10 @@ export class FuncionalidadVistaComponent {
     }
 
      protected fieldError(key: string): string {
-       if (!this.validationAttempted || this.readOnly || !['profesores', 'estudiantes', 'matriculas', 'periodos', 'secciones'].includes(this.key)) return '';
+       if (!this.validationAttempted || this.readOnly) return '';
+       // RV2 CU21 FA1: en asignaturas cada aviso va bajo su campo, todos a la vez, y se borra al corregir el dato.
+       if (this.key === 'asignaturas' && this.isAdmin()) return this.errorCampoAsignatura(key);
+       if (!['profesores', 'estudiantes', 'matriculas', 'periodos', 'secciones'].includes(this.key)) return '';
        const value = String(this.draft[key] ?? '').trim();
          const required = new Set(this.key === 'profesores' ? ['nombre', 'primerApellido', 'cedula', 'fechaNacimiento', ...(this.draft['modoCuenta'] === 'nueva' ? ['correo', 'password', 'roles'] : this.draft['modoCuenta'] === 'actual' ? ['correo', 'roles'] : [])] : this.key === 'estudiantes' ? ['nombre', 'primerApellido', 'cedula', 'correo', 'fechaNacimiento'] : this.key === 'matriculas' ? ['cedulaEstudiante', 'yearCiclo', 'nivel', 'numeroSeccion'] : this.key === 'periodos' ? ['yearCiclo', 'fechaInicioI', 'fechaFinI', 'fechaInicioII', 'fechaFinII'] : ['yearCiclo', 'nivel', 'numeroSeccion']);
         const labels: Record<string, string> = { usuarioId: 'Usuario disponible', nombre: 'Nombre', primerApellido: 'Primer apellido', cedula: 'Cédula', correo: 'Correo electrónico', fechaNacimiento: 'Fecha de nacimiento', password: 'Contraseña', roles: 'Roles', cedulaEstudiante: 'Cédula del estudiante', yearCiclo: 'Curso lectivo', nivel: 'Nivel', numeroSeccion: 'Número de sección', fechaInicioI: 'Inicio del I semestre', fechaFinI: 'Fin del I semestre', fechaInicioII: 'Inicio del II semestre', fechaFinII: 'Fin del II semestre' };
@@ -1062,6 +1065,15 @@ export class FuncionalidadVistaComponent {
       }
        return '';
      }
+
+    private errorCampoAsignatura(key: string): string {
+      const value = String(this.draft[key] ?? '').trim();
+      if (['codigo', 'tipoAsignatura', 'nombre'].includes(key) && !value) return `El campo '${this.etiquetaCampo(key)}' es obligatorio.`;
+      if (key === 'codigo' && !/^[A-Z0-9]{2,10}$/.test(value)) return 'El código debe tener de 2 a 10 letras o dígitos.';
+      if (key === 'nombre' && value.length < 2) return 'El nombre de la asignatura debe tener al menos 2 caracteres.';
+      if (key === 'imparteNivel12' && this.draft['imparteNivel11'] !== 'true' && this.draft['imparteNivel12'] !== 'true') return 'La asignatura debe impartirse al menos en nivel 11 o nivel 12.';
+      return '';
+    }
 
     private esFechaIsoValida(value: string): boolean {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
