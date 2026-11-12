@@ -48,7 +48,7 @@ const ESTADOS: Record<string, string> = { CAPACITACION: 'Capacitación', INVESTI
         <div class="table-head"><strong>Estudiante</strong><strong>Asignatura</strong><strong>Profesor Coordinador</strong><strong>Seguimientos</strong><strong></strong></div>
         @for (item of monographs(); track item.cedulaEstudiante) {
           <div class="assignment-row"><div><strong>{{ item.estudiante }}</strong><small>{{ item.cedulaEstudiante }} · {{ item.seccionActual }} · {{ etiquetaEstado(item.estado) }}</small></div><span>{{ item.asignatura }}</span><span>{{ item.coordinador }}</span><span>{{ item.seguimientos }}{{ item.ultimoSeguimiento ? ' (último ' + item.ultimoSeguimiento + ')' : '' }}</span><div class="row-actions"><button type="button" class="ghost-button" (click)="ver(item)">Ver</button><button type="button" class="ghost-button" (click)="editar(item)">Editar</button><button type="button" class="danger-button" (click)="eliminar(item)">Eliminar</button></div></div>
-        } @empty {<p class="empty">No se encontraron monografías.</p>}
+        } @empty {<p class="empty">{{ errorCarga() ? 'No se pudieron cargar los registros. Intente de nuevo más tarde.' : 'No se encontraron monografías.' }}</p>}
         @if (paginacionVisible()) { <nav class="pagination-bar" aria-label="Paginación de asignaciones de monografía"><span>Mostrando {{ rangoInicio() }}-{{ rangoFin() }} de {{ totalRegistros() }}</span><div class="pagination-actions"><button type="button" class="ghost-button" [disabled]="paginaActual() === 1" (click)="cambiarPagina(paginaActual() - 1)">Anterior</button><span>Página {{ paginaActual() }} de {{ totalPaginas() }}</span><button type="button" class="ghost-button" [disabled]="paginaActual() >= totalPaginas()" (click)="cambiarPagina(paginaActual() + 1)">Siguiente</button></div></nav> }
       </section>
       @if (detalle(); as d) {
@@ -85,6 +85,8 @@ export class AsignacionesMonografiaVistaComponent {
   private readonly cursosApi = inject(CursosLectivosApiService);
   private readonly feedback = inject(FeedbackService);
   private readonly monographRows = signal<MonografiaRow[]>([]);
+  /** RV2 CU30 FA4: si la carga falla, el listado no se presenta como vacío. */
+  protected readonly errorCarga = signal(false);
   protected readonly paginaActual = signal(1);
   protected readonly totalRegistros = signal(0);
   protected readonly tamanoPagina = 10;
@@ -125,8 +127,8 @@ export class AsignacionesMonografiaVistaComponent {
   private cargarMonografias(pagina = this.paginaActual()): void {
     // RD-041: filtros de la API por año de inicio, coordinador, asignatura y estado.
     this.monografiasApi.listar({ pagina, tamanoPagina: this.tamanoPagina, anioInicio: this.filtroAnio ? Number(this.filtroAnio) : undefined, cedulaCoordinador: this.filtroCoordinador || undefined, codigoAsignatura: this.filtroAsignatura || undefined, estado: this.filtroEstado || undefined }).subscribe({
-      next: (response) => { this.totalRegistros.set(response.total); this.monographRows.set(response.elementos.map((item) => this.aFila(item))); },
-      error: (error) => this.feedback.error(error?.error?.mensaje ?? 'No se pudieron cargar las monografías.'),
+      next: (response) => { this.errorCarga.set(false); this.totalRegistros.set(response.total); this.monographRows.set(response.elementos.map((item) => this.aFila(item))); },
+      error: (error) => { this.errorCarga.set(true); this.totalRegistros.set(0); this.monographRows.set([]); this.feedback.error(error?.error?.mensaje ?? 'No se pudieron cargar las monografías.'); },
     });
   }
 
