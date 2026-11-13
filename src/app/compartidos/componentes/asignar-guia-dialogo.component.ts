@@ -63,6 +63,7 @@ interface ProfesorGuia { cedula: string; nombre: string; activo: boolean; roles:
     label { display: grid; gap: .35rem; color: #29344a; font-weight: 700; font-size: .85rem; }
     .guia-hint { color: #b42318; font-weight: 600; }
     .guia-actions { display: flex; justify-content: flex-end; gap: .6rem; }
+    @media (max-width: 600px) { .guia-backdrop { display: flex; flex-direction: column; overflow-y: auto; padding: .5rem; } .guia-dialogo { width: 100%; margin: auto 0; flex: 0 0 auto; } .guia-actions { position: sticky; bottom: -.5rem; padding: .75rem 0 calc(.75rem + env(safe-area-inset-bottom)); background: #fff; } .guia-actions > button { flex: 1 1 8rem; } }
   `,
 })
 export class AsignarGuiaDialogoComponent {
