@@ -36,7 +36,9 @@ import { FeedbackService } from '../servicios/feedback.service';
   `,
   styles: `
      :host { position: fixed; top: 0; left: 0; z-index: 2000; width: 100%; height: 0; pointer-events: none; }
-     .feedback-backdrop { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 1rem; background: rgba(10, 28, 52, .34); backdrop-filter: blur(8px); pointer-events: auto; }
+     .feedback-backdrop { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 1rem; background: rgba(10, 28, 52, .34); backdrop-filter: blur(8px); pointer-events: auto; }
+     /* En pantallas táctiles el fondo mide lo visible (sin las barras del navegador), así la ventana queda centrada en lo que se ve. */
+     @media (pointer: coarse) and (max-width: 1024px), (max-width: 600px) { .feedback-backdrop { inset: 0 0 auto 0; height: 100vh; height: 100dvh; overflow-y: auto; } }
       .feedback-dialog { display: grid; justify-items: center; gap: .65rem; width: min(100%, 420px); padding: 2rem 1.5rem; border: 1px solid rgba(255,255,255,.7); border-radius: 16px; background: rgba(255,255,255,.96); box-shadow: 0 20px 60px rgba(4,26,55,.3); color: #29344a; text-align: center; user-select: none; cursor: default; }
     .feedback-dialog h2 { margin: 0; font-size: 1.05rem; }
      .feedback-dialog p { margin: 0 0 .5rem; color: #667085; font-size: .85rem; }
