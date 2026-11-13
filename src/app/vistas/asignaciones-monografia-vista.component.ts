@@ -74,6 +74,8 @@ const ESTADOS: Record<string, string> = { CAPACITACION: 'Capacitación', INVESTI
      .filters{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;margin-bottom:1rem}.filters label{display:grid;gap:.25rem;font-size:.75rem;color:#667085}.filter-actions{display:flex;gap:.5rem}
      .assignment-list .table-head,.assignment-list .assignment-row{grid-template-columns:1.4fr 1.2fr 1.3fr .9fr 230px}
      .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem 1.25rem;margin:1rem 0}.detail-grid dt{font-size:.72rem;color:#667085;text-transform:uppercase}.detail-grid dd{margin:.15rem 0 0}.hint{color:#b42318}
+    /* Celular: cada fila en bloque y las acciones a lo ancho (las reglas por columnas de arriba tienen más peso). */
+    @media (max-width: 700px) { .assignment-list .table-head { display: none !important; } .assignment-list .assignment-row { grid-template-columns: 1fr !important; gap: .35rem; } .assignment-list .row-actions { display: flex; flex-wrap: wrap; gap: .5rem; } .assignment-list .row-actions > button { flex: 1 1 7rem; } }
   `,
 })
 // Administra las asignaciones de monografías (Administrador CU29 a CU32).
