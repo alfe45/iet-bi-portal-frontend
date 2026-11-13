@@ -287,12 +287,15 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
   input[type=checkbox], input[type=radio] { width: 1.15rem; height: 1.15rem; }
 }
 
-/* Ventanas en celular (vertical, o horizontal con poco alto). */
-@media (max-width: 600px), (max-height: 520px) and (pointer: coarse) {
+/* Ventanas en celular y tableta táctil (también si el navegador reporta más de 600 px de ancho, p. ej. Edge con zoom o en
+   modo escritorio) y en celular horizontal. */
+@media (max-width: 600px), (pointer: coarse) and (max-width: 1024px), (max-height: 520px) and (pointer: coarse) {
   /* Ventanas: el fondo es el que se desplaza (no la ventana), así no depende de 100dvh ni del alto que dejan las barras
      del navegador; los botones quedan pegados al borde de abajo de la pantalla mientras la ventana sigue. */
   .modal-backdrop { padding: .5rem .5rem calc(.5rem + env(safe-area-inset-bottom)) !important; display: flex !important; flex-direction: column !important; align-items: stretch !important; justify-content: flex-start !important; overflow-y: auto !important; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-  .modal-backdrop > :is(form, section) { width: 100% !important; max-width: 100% !important; max-height: none !important; overflow: visible !important; margin: auto 0 !important; flex: 0 0 auto; }
+  .modal-backdrop > :is(form, section) { max-width: 100% !important; max-height: none !important; overflow: visible !important; margin: auto !important; flex: 0 0 auto; }
   .modal-backdrop :is(.modal-actions, .editor-actions, .form-actions, .dialog-actions, .observations-actions, .unsaved-changes-actions) { position: sticky; bottom: calc(-.5rem - env(safe-area-inset-bottom)); z-index: 2; flex-wrap: wrap; padding: .75rem 0 calc(.75rem + env(safe-area-inset-bottom)); background: #fff; box-shadow: 0 -10px 16px -14px rgba(16,24,40,.35); }
   .modal-backdrop :is(.modal-actions, .editor-actions, .form-actions, .dialog-actions, .observations-actions, .unsaved-changes-actions) > button { flex: 1 1 8rem; }
 }
+/* En celular las ventanas ocupan todo el ancho. */
+@media (max-width: 600px) { .modal-backdrop > :is(form, section) { width: 100% !important; } }
