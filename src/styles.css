@@ -285,5 +285,8 @@ app-vista-monografias .monographs-page .top-actions .primary-button { padding: .
   input:not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px !important; }
   :is(.primary-button, .ghost-button, .danger-button, .secondary-button) { min-height: 40px !important; }
   .cas-page :is(.flag-button, .doc-button) { min-width: 34px !important; min-height: 34px !important; }
+  .cas-page :is(.remove-button, .number-heading button) { min-width: 34px !important; min-height: 34px !important; }
+  .cas-page table :is(input:not([type=checkbox]), select) { min-height: 36px !important; }
+  .cas-page input.outcome-checkbox { width: 22px !important; height: 22px !important; }
   input[type=checkbox], input[type=radio] { width: 1.15rem; height: 1.15rem; }
 }

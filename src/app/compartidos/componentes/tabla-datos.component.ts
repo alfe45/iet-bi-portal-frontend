@@ -46,6 +46,8 @@ import { AccionTabla as TableAction, ColumnaTabla as TableColumn } from '../../n
     .avatar-cell strong, .avatar-cell small { display: block; }
     .avatar-cell small { color: #6b7280; }
     .empty-cell{text-align:center;color:#667085;padding:2rem!important}
+    /* Tableta: el texto largo (correos, nombres) salta de línea en vez de cortarse con «…». */
+    @media (min-width: 601px) and (max-width: 1024px) { .table > :not(caption) > * > * { white-space: normal; overflow-wrap: anywhere; text-overflow: clip; } }
     /* Celular: cada fila es una tarjeta «etiqueta: valor» y las acciones bajan con botones grandes (el escritorio no cambia). */
     @media (max-width: 600px) {
       .table { table-layout: auto; font-size: .85rem; }
